@@ -73,6 +73,7 @@ func (c *Connection) handleRead(fd int) {
 		if err != unix.EAGAIN {
 			c.handleClose(fd)
 		}
+		return
 	}
 	_, _ = c.inBuffer.Write(c.packet[:n])
 
