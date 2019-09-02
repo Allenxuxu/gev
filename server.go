@@ -1,13 +1,19 @@
+// +build linux
+
 package gev
 
 import (
+	"fmt"
+	"net"
 	"runtime"
+	"strconv"
 
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/listener"
 	"github.com/Allenxuxu/ringbuffer"
 	"github.com/Allenxuxu/toolkit/sync"
+	"golang.org/x/sys/unix"
 )
 
 type Handler interface {
@@ -71,10 +77,11 @@ func (s *Server) nextLoop() *eventloop.EventLoop {
 	return loop
 }
 
-func (s *Server) handleNewConnection(fd int) {
+func (s *Server) handleNewConnection(fd int, sa *unix.Sockaddr) {
 	loop := s.nextLoop()
 
 	c := connection.New(fd, loop, s.callback.OnMessage, s.callback.OnClose)
+	c.SetPeerAddr(sockaddrToString(sa))
 	loop.QueueInLoop(func() {
 		_ = loop.AddSocketAndEnableRead(fd, c)
 	})
@@ -99,5 +106,16 @@ func (s *Server) Stop() {
 
 	for k := range s.workLoops {
 		_ = s.workLoops[k].Stop()
+	}
+}
+
+func sockaddrToString(sa *unix.Sockaddr) string {
+	switch sa := (*sa).(type) {
+	case *unix.SockaddrInet4:
+		return net.JoinHostPort(net.IP(sa.Addr[:]).String(), strconv.Itoa(sa.Port))
+	case *unix.SockaddrInet6:
+		return net.JoinHostPort(net.IP(sa.Addr[:]).String(), strconv.Itoa(sa.Port))
+	default:
+		return fmt.Sprintf("(unknown - %T)", sa)
 	}
 }

@@ -1,3 +1,5 @@
+// +build linux
+
 package listener
 
 import (
@@ -8,7 +10,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-type HandleConnFunc func(fd int)
+type HandleConnFunc func(fd int, sa *unix.Sockaddr)
 
 type Listener struct {
 	file    *os.File
@@ -41,7 +43,7 @@ func New(network, addr string, handlerConn HandleConnFunc) (*Listener, error) {
 
 func (l *Listener) HandleEvent(fd int, events uint32) {
 	if events&(unix.EPOLLIN|unix.EPOLLPRI|unix.EPOLLRDHUP) != 0 {
-		nfd, _, err := unix.Accept(fd)
+		nfd, sa, err := unix.Accept(fd)
 		if err != nil {
 			//TODO 错误处理
 			if err != unix.EAGAIN {
@@ -53,7 +55,7 @@ func (l *Listener) HandleEvent(fd int, events uint32) {
 			panic(err)
 		}
 
-		l.handleC(nfd)
+		l.handleC(nfd, &sa)
 	} else {
 		panic("listener unexpect events")
 	}

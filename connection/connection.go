@@ -1,3 +1,5 @@
+// +build linux
+
 package connection
 
 import (
@@ -20,6 +22,7 @@ type Connection struct {
 	readCallback  ReadCallback
 	closeCallback CloseCallback
 	loop          *eventloop.EventLoop
+	peerAddr      string
 }
 
 func New(fd int, loop *eventloop.EventLoop, readCb ReadCallback, closeCb CloseCallback) *Connection {
@@ -32,6 +35,14 @@ func New(fd int, loop *eventloop.EventLoop, readCb ReadCallback, closeCb CloseCa
 		closeCallback: closeCb,
 		loop:          loop,
 	}
+}
+
+func (c *Connection) SetPeerAddr(addr string) {
+	c.peerAddr = addr
+}
+
+func (c *Connection) PeerAddr() string {
+	return c.peerAddr
 }
 
 // Send 用来在非 loop 协程发送
