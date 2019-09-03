@@ -17,7 +17,6 @@ type Connection struct {
 	fd        int
 	outBuffer *ringbuffer.RingBuffer // write buffer
 	inBuffer  *ringbuffer.RingBuffer // read buffer
-	packet    []byte
 
 	readCallback  ReadCallback
 	closeCallback CloseCallback
@@ -30,7 +29,6 @@ func New(fd int, loop *eventloop.EventLoop, readCb ReadCallback, closeCb CloseCa
 		fd:            fd,
 		outBuffer:     ringbuffer.New(1024),
 		inBuffer:      ringbuffer.New(1024),
-		packet:        make([]byte, 65536),
 		readCallback:  readCb,
 		closeCallback: closeCb,
 		loop:          loop,
@@ -61,6 +59,8 @@ func (c *Connection) HandleEvent(fd int, events uint32) {
 		c.handleWrite(fd)
 	case events&unix.EPOLLERR != 0:
 		c.handleError(fd)
+	case ((events & unix.POLLHUP) != 0) && ((events & unix.POLLIN) == 0):
+		c.handleClose(fd)
 	default:
 		log.Println("unexcept events")
 	}
@@ -68,14 +68,17 @@ func (c *Connection) HandleEvent(fd int, events uint32) {
 
 func (c *Connection) handleRead(fd int) {
 	// TODO 避免这次内存拷贝
-	n, err := unix.Read(c.fd, c.packet)
+	buf := *c.loop.PacketBuf()
+	n, err := unix.Read(c.fd, buf)
 	if n == 0 || err != nil {
 		if err != unix.EAGAIN {
 			c.handleClose(fd)
+			//panic(err)
 		}
+		log.Println(n, err)
 		return
 	}
-	_, _ = c.inBuffer.Write(c.packet[:n])
+	_, _ = c.inBuffer.Write(buf[:n])
 
 	out := c.readCallback(c, c.inBuffer)
 	if len(out) != 0 {

@@ -18,6 +18,7 @@ type Socket interface {
 type EventLoop struct {
 	poll      *poller.Poller
 	socketers map[int]Socket
+	packet    []byte
 
 	pendingFunc []func()
 	mu          sync.Mutex
@@ -32,7 +33,12 @@ func New() (*EventLoop, error) {
 	return &EventLoop{
 		poll:      p,
 		socketers: make(map[int]Socket),
+		packet:    make([]byte, 65536),
 	}, nil
+}
+
+func (l *EventLoop) PacketBuf() *[]byte {
+	return &l.packet
 }
 
 func (l *EventLoop) DeleteFdInLoop(fd int) {
