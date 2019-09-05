@@ -157,7 +157,7 @@ func (ep *Poller) Poll(handler func(fd int, event uint32)) {
 		}
 
 		if wake {
-			handler(-1, events[i].Events)
+			handler(-1, -1)
 			wake = false
 		}
 
