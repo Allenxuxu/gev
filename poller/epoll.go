@@ -134,6 +134,7 @@ func (ep *Poller) Poll(handler func(fd int, event uint32)) {
 
 	events := make([]unix.EpollEvent, waitEventsBegin)
 	ep.runing.Set(true)
+	var wake bool
 	for {
 		n, err := unix.EpollWait(ep.fd, events, -1)
 
@@ -151,9 +152,13 @@ func (ep *Poller) Poll(handler func(fd int, event uint32)) {
 				if ep.closed.Get() {
 					goto quit
 				}
-
-				handler(-1, events[i].Events)
+				wake = true
 			}
+		}
+
+		if wake {
+			handler(-1, events[i].Events)
+			wake = false
 		}
 
 		if n == len(events) {

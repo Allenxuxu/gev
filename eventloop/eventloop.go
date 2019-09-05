@@ -90,9 +90,9 @@ func (l *EventLoop) handlerEvent(fd int, events uint32) {
 			//TODO
 			panic("conn not find")
 		}
+	} else {
+		l.doPendingFunc()
 	}
-
-	l.doPendingFunc()
 }
 
 func (l *EventLoop) doPendingFunc() {
