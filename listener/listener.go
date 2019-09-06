@@ -14,6 +14,7 @@ type HandleConnFunc func(fd int, sa *unix.Sockaddr)
 
 type Listener struct {
 	file    *os.File
+	fd      int
 	handleC HandleConnFunc
 }
 
@@ -23,21 +24,23 @@ func New(network, addr string, handlerConn HandleConnFunc) (*Listener, error) {
 		return nil, err
 	}
 
-	netl, ok := listener.(*net.TCPListener)
+	l, ok := listener.(*net.TCPListener)
 	if !ok {
 		return nil, errors.New("could not get file descriptor")
 	}
 
-	file, err := netl.File()
+	file, err := l.File()
 	if err != nil {
 		return nil, err
 	}
-	if err = unix.SetNonblock(int(file.Fd()), true); err != nil {
+	fd := int(file.Fd())
+	if err = unix.SetNonblock(fd, true); err != nil {
 		return nil, err
 	}
 
 	return &Listener{
 		file:    file,
+		fd:      fd,
 		handleC: handlerConn}, nil
 }
 
@@ -62,5 +65,5 @@ func (l *Listener) HandleEvent(fd int, events uint32) {
 }
 
 func (l *Listener) Fd() int {
-	return int(l.file.Fd())
+	return l.fd
 }

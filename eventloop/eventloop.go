@@ -47,11 +47,11 @@ func (l *EventLoop) DeleteFdInLoop(fd int) {
 
 func (l *EventLoop) AddSocketAndEnableRead(fd int, s Socket) error {
 	var err error
+	l.socketers[fd] = s
 	if err = l.poll.AddRead(fd); err != nil {
+		delete(l.socketers, fd)
 		return err
 	}
-
-	l.socketers[fd] = s
 	return nil
 }
 
