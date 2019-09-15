@@ -16,9 +16,9 @@ type Socket interface {
 
 // EventLoop 事件循环
 type EventLoop struct {
-	poll      *poller.Poller
-	socketers map[int]Socket
-	packet    []byte
+	poll    *poller.Poller
+	sockets map[int]Socket
+	packet  []byte
 
 	pendingFunc []func()
 	mu          spinlock.SpinLock
@@ -32,9 +32,9 @@ func New() (*EventLoop, error) {
 	}
 
 	return &EventLoop{
-		poll:      p,
-		socketers: make(map[int]Socket),
-		packet:    make([]byte, 0xFFFF),
+		poll:    p,
+		sockets: make(map[int]Socket),
+		packet:  make([]byte, 0xFFFF),
 	}, nil
 }
 
@@ -45,18 +45,18 @@ func (l *EventLoop) PacketBuf() []byte {
 func (l *EventLoop) DeleteFdInLoop(fd int) {
 	_ = l.poll.Del(fd)
 	l.mapMu.Lock()
-	delete(l.socketers, fd)
+	delete(l.sockets, fd)
 	l.mapMu.Unlock()
 }
 
 func (l *EventLoop) AddSocketAndEnableRead(fd int, s Socket) error {
 	var err error
 	l.mapMu.Lock()
-	l.socketers[fd] = s
+	l.sockets[fd] = s
 	l.mapMu.Unlock()
 
 	if err = l.poll.AddRead(fd); err != nil {
-		delete(l.socketers, fd)
+		delete(l.sockets, fd)
 		return err
 	}
 	return nil
@@ -91,7 +91,7 @@ func (l *EventLoop) QueueInLoop(f func()) {
 func (l *EventLoop) handlerEvent(fd int, events uint32) {
 	if fd != -1 {
 		l.mapMu.Lock()
-		s, ok := l.socketers[fd]
+		s, ok := l.sockets[fd]
 		l.mapMu.Unlock()
 		if ok {
 			s.HandleEvent(fd, events)
