@@ -46,7 +46,7 @@ func TestServer_Start(t *testing.T) {
 	go func() {
 		time.Sleep(time.Second)
 		sw := sync.WaitGroupWrapper{}
-		for i := 0; i < 1000; i++ {
+		for i := 0; i < 100; i++ {
 			sw.AddAndRun(func() {
 				startClient(s.opts.Network, s.opts.Address)
 			})

@@ -33,15 +33,16 @@ func New() (*EventLoop, error) {
 	return &EventLoop{
 		poll:      p,
 		socketers: make(map[int]Socket),
-		packet:    make([]byte, 65536),
+		packet:    make([]byte, 0xFFFF),
 	}, nil
 }
 
-func (l *EventLoop) PacketBuf() *[]byte {
-	return &l.packet
+func (l *EventLoop) PacketBuf() []byte {
+	return l.packet
 }
 
 func (l *EventLoop) DeleteFdInLoop(fd int) {
+	l.poll.Del(fd)
 	delete(l.socketers, fd)
 }
 
