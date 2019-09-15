@@ -4,6 +4,7 @@ package eventloop
 
 import (
 	"log"
+	"sync"
 
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/Allenxuxu/toolkit/sync/spinlock"
@@ -17,12 +18,11 @@ type Socket interface {
 // EventLoop 事件循环
 type EventLoop struct {
 	poll    *poller.Poller
-	sockets map[int]Socket
+	sockets sync.Map
 	packet  []byte
 
 	pendingFunc []func()
 	mu          spinlock.SpinLock
-	mapMu       spinlock.SpinLock
 }
 
 func New() (*EventLoop, error) {
@@ -32,9 +32,8 @@ func New() (*EventLoop, error) {
 	}
 
 	return &EventLoop{
-		poll:    p,
-		sockets: make(map[int]Socket),
-		packet:  make([]byte, 0xFFFF),
+		poll:   p,
+		packet: make([]byte, 0xFFFF),
 	}, nil
 }
 
@@ -44,19 +43,15 @@ func (l *EventLoop) PacketBuf() []byte {
 
 func (l *EventLoop) DeleteFdInLoop(fd int) {
 	_ = l.poll.Del(fd)
-	l.mapMu.Lock()
-	delete(l.sockets, fd)
-	l.mapMu.Unlock()
+	l.sockets.Delete(fd)
 }
 
 func (l *EventLoop) AddSocketAndEnableRead(fd int, s Socket) error {
 	var err error
-	l.mapMu.Lock()
-	l.sockets[fd] = s
-	l.mapMu.Unlock()
+	l.sockets.Store(fd, s)
 
 	if err = l.poll.AddRead(fd); err != nil {
-		delete(l.sockets, fd)
+		l.sockets.Delete(fd)
 		return err
 	}
 	return nil
@@ -90,11 +85,9 @@ func (l *EventLoop) QueueInLoop(f func()) {
 
 func (l *EventLoop) handlerEvent(fd int, events uint32) {
 	if fd != -1 {
-		l.mapMu.Lock()
-		s, ok := l.sockets[fd]
-		l.mapMu.Unlock()
+		s, ok := l.sockets.Load(fd)
 		if ok {
-			s.HandleEvent(fd, events)
+			s.(Socket).HandleEvent(fd, events)
 		} else {
 			//TODO
 			panic("conn not find")
