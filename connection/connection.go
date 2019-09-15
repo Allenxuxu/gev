@@ -55,12 +55,11 @@ func (c *Connection) HandleEvent(fd int, events uint32) {
 	if ((events & unix.POLLHUP) != 0) && ((events & unix.POLLIN) == 0) {
 		c.handleClose(fd)
 	}
-	if events&unix.EPOLLERR != 0 {
-		//log.Println("epollerr", fd)
-		c.handleError(fd)
-	}
+	// 在handleWrite中处理
+	//if events&unix.EPOLLERR != 0 {}
 
-	if events&unix.EPOLLOUT != 0 {
+	//if events&unix.EPOLLOUT != 0 {
+	if c.outBuffer.Length() != 0 {
 		c.handleWrite(fd)
 	} else if events&(unix.EPOLLIN|unix.EPOLLPRI|unix.EPOLLRDHUP) != 0 {
 		c.handleRead(fd)
@@ -120,15 +119,7 @@ func (c *Connection) handleClose(fd int) {
 	c.loop.DeleteFdInLoop(fd)
 
 	c.closeCallback()
-	log.Println(c.inBuffer.Capacity(), c.inBuffer.Length(), c.outBuffer.Capacity(), c.outBuffer.Length())
-}
-
-func (c *Connection) handleError(fd int) {
-	//err := unix.Close(fd)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//c.loop.DeleteFdInLoop(fd)
+	log.Println("close ", fd, c.inBuffer.Capacity(), c.inBuffer.Length(), c.outBuffer.Capacity(), c.outBuffer.Length())
 }
 
 func (c *Connection) sendInLoop(data []byte) {
@@ -136,7 +127,6 @@ func (c *Connection) sendInLoop(data []byte) {
 		_, _ = c.outBuffer.Write(data)
 	} else {
 		n, err := unix.Write(c.fd, data)
-		log.Println("write ", n, err)
 		if err != nil {
 			if err == unix.EAGAIN {
 				return
@@ -149,9 +139,9 @@ func (c *Connection) sendInLoop(data []byte) {
 		} else if n < len(data) {
 			_, _ = c.outBuffer.Write(data[n:])
 		}
-	}
 
-	if c.outBuffer.Length() > 0 {
-		_ = c.loop.EnableReadWrite(c.fd)
+		if c.outBuffer.Length() > 0 {
+			_ = c.loop.EnableReadWrite(c.fd)
+		}
 	}
 }
