@@ -43,7 +43,7 @@ func (l *EventLoop) PacketBuf() []byte {
 }
 
 func (l *EventLoop) DeleteFdInLoop(fd int) {
-	l.poll.Del(fd)
+	_ = l.poll.Del(fd)
 	l.mapMu.Lock()
 	delete(l.socketers, fd)
 	l.mapMu.Unlock()

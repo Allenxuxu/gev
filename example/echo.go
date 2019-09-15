@@ -20,8 +20,6 @@ func (s *example) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuf
 	}
 	buffer.RetrieveAll()
 	return
-
-	return
 }
 
 func (s *example) OnClose() {
