@@ -2,5 +2,7 @@ github.com/Allenxuxu/ringbuffer v0.0.0-20190803184500-fa400f2fe92b h1:vYIM1lYjI+
 github.com/Allenxuxu/ringbuffer v0.0.0-20190803184500-fa400f2fe92b/go.mod h1:9Rg4D7ixiHGlU50BJWJEg6vwDFcGiOYKQFcHK6Vx9m4=
 github.com/Allenxuxu/toolkit v0.0.0-20190901021257-c35257959938 h1:pwHkxOgZh9waucOAZRTiWaVE7PhvjVyT6PmMsuMAvdQ=
 github.com/Allenxuxu/toolkit v0.0.0-20190901021257-c35257959938/go.mod h1:kamv5tj0iNT29zmKIYaxoIcYgDnzerxnOZiHBKbVp/o=
+github.com/Allenxuxu/toolkit v0.0.0-20190906022029-0629788cfd2f h1:NuarWvfd+hX29IIIoNACi2eks5yMhUStJo/hOeQM7GE=
+github.com/Allenxuxu/toolkit v0.0.0-20190906022029-0629788cfd2f/go.mod h1:kamv5tj0iNT29zmKIYaxoIcYgDnzerxnOZiHBKbVp/o=
 golang.org/x/sys v0.0.0-20190830142957-1e83adbbebd0 h1:7z820YPX9pxWR59qM7BE5+fglp4D/mKqAwCvGt11b+8=
 golang.org/x/sys v0.0.0-20190830142957-1e83adbbebd0/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=

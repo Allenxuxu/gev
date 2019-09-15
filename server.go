@@ -82,9 +82,8 @@ func (s *Server) handleNewConnection(fd int, sa *unix.Sockaddr) {
 
 	c := connection.New(fd, loop, s.callback.OnMessage, s.callback.OnClose)
 	c.SetPeerAddr(sockaddrToString(sa))
-	loop.QueueInLoop(func() {
-		_ = loop.AddSocketAndEnableRead(fd, c)
-	})
+
+	_ = loop.AddSocketAndEnableRead(fd, c)
 
 	s.callback.OnConnect(c)
 }

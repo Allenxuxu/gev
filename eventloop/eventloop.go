@@ -4,9 +4,9 @@ package eventloop
 
 import (
 	"log"
-	"sync"
 
 	"github.com/Allenxuxu/gev/poller"
+	"github.com/Allenxuxu/toolkit/sync/spinlock"
 )
 
 // Socket ...
@@ -21,7 +21,8 @@ type EventLoop struct {
 	packet    []byte
 
 	pendingFunc []func()
-	mu          sync.Mutex
+	mu          spinlock.SpinLock
+	mapMu       spinlock.SpinLock
 }
 
 func New() (*EventLoop, error) {
@@ -43,12 +44,17 @@ func (l *EventLoop) PacketBuf() []byte {
 
 func (l *EventLoop) DeleteFdInLoop(fd int) {
 	l.poll.Del(fd)
+	l.mapMu.Lock()
 	delete(l.socketers, fd)
+	l.mapMu.Unlock()
 }
 
 func (l *EventLoop) AddSocketAndEnableRead(fd int, s Socket) error {
 	var err error
+	l.mapMu.Lock()
 	l.socketers[fd] = s
+	l.mapMu.Unlock()
+
 	if err = l.poll.AddRead(fd); err != nil {
 		delete(l.socketers, fd)
 		return err
@@ -84,7 +90,9 @@ func (l *EventLoop) QueueInLoop(f func()) {
 
 func (l *EventLoop) handlerEvent(fd int, events uint32) {
 	if fd != -1 {
+		l.mapMu.Lock()
 		s, ok := l.socketers[fd]
+		l.mapMu.Unlock()
 		if ok {
 			s.HandleEvent(fd, events)
 		} else {

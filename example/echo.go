@@ -13,8 +13,13 @@ func (s *example) OnConnect(c *connection.Connection) {
 }
 func (s *example) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) (out []byte) {
 	//log.Println("OnMessage")
-	out = buffer.Bytes()
+	first, end := buffer.PeekAll()
+	out = first
+	if len(end) > 0 {
+		out = append(out, end...)
+	}
 	buffer.RetrieveAll()
+	return
 
 	return
 }
@@ -29,7 +34,7 @@ func main() {
 	s, err := gev.NewServer(handler,
 		gev.Network("tcp"),
 		gev.Address(":1833"),
-		gev.NumLoops(3),
+		gev.NumLoops(1),
 		gev.MaxClient(100000))
 	if err != nil {
 		panic(err)
