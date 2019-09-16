@@ -3,8 +3,6 @@
 package connection
 
 import (
-	"log"
-
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/ringbuffer"
 	"golang.org/x/sys/unix"
@@ -119,7 +117,6 @@ func (c *Connection) handleClose(fd int) {
 	c.loop.DeleteFdInLoop(fd)
 
 	c.closeCallback()
-	log.Println("close ", fd, c.inBuffer.Capacity(), c.inBuffer.Length(), c.outBuffer.Capacity(), c.outBuffer.Length())
 }
 
 func (c *Connection) sendInLoop(data []byte) {
