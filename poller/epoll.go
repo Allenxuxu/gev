@@ -10,7 +10,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var ErrClosed = errors.New("poller instance is closed")
+var ErrClosed = errors.New("poller instance is not running")
 
 const ReadEvent = unix.EPOLLIN | unix.EPOLLPRI
 const WriteEvent = unix.EPOLLOUT
@@ -18,8 +18,7 @@ const WriteEvent = unix.EPOLLOUT
 type Poller struct {
 	fd       int
 	eventFd  int
-	closed   atomic.Bool
-	runing   atomic.Bool
+	running  atomic.Bool
 	waitDone chan struct{}
 }
 
@@ -69,19 +68,16 @@ func (ep *Poller) wakeHandlerRead() {
 }
 
 func (ep *Poller) Close() (err error) {
-	if ep.closed.Get() {
+	if !ep.running.Get() {
 		return ErrClosed
 	}
 
-	ep.closed.Set(true)
-	if ep.runing.Get() {
-		if err = ep.Wake(); err != nil {
-			return
-		}
-
-		<-ep.waitDone
+	ep.running.Set(false)
+	if err = ep.Wake(); err != nil {
+		return
 	}
 
+	<-ep.waitDone
 	_ = unix.Close(ep.fd)
 	_ = unix.Close(ep.eventFd)
 	return
@@ -133,8 +129,8 @@ func (ep *Poller) Poll(handler func(fd int, event uint32)) {
 	}()
 
 	events := make([]unix.EpollEvent, waitEventsBegin)
-	ep.runing.Set(true)
 	var wake bool
+	ep.running.Set(true)
 	for {
 		n, err := unix.EpollWait(ep.fd, events, -1)
 
@@ -149,7 +145,7 @@ func (ep *Poller) Poll(handler func(fd int, event uint32)) {
 			} else {
 				ep.wakeHandlerRead()
 
-				if ep.closed.Get() {
+				if !ep.running.Get() {
 					goto quit
 				}
 				wake = true
@@ -166,5 +162,4 @@ func (ep *Poller) Poll(handler func(fd int, event uint32)) {
 		}
 	}
 quit:
-	ep.runing.Set(false)
 }

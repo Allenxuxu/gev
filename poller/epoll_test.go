@@ -4,6 +4,7 @@ package poller
 
 import (
 	"testing"
+	"time"
 )
 
 func TestPoller_Poll(t *testing.T) {
@@ -15,7 +16,7 @@ func TestPoller_Poll(t *testing.T) {
 	go s.Poll(func(fd int, event uint32) {
 		t.Log(fd)
 	})
-
+	time.Sleep(time.Millisecond * 500)
 	if err = s.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +28,7 @@ func TestPoller_Close(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = s.Close(); err != nil {
-		t.Fatal(err)
+	if err = s.Close(); err == nil {
+		t.Fatal("poller should be closed")
 	}
 }
