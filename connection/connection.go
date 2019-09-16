@@ -1,9 +1,8 @@
-// +build linux
-
 package connection
 
 import (
 	"github.com/Allenxuxu/gev/eventloop"
+	"github.com/Allenxuxu/gev/poller"
 	"github.com/Allenxuxu/ringbuffer"
 	"golang.org/x/sys/unix"
 )
@@ -49,17 +48,15 @@ func (c *Connection) Send(buffer []byte) {
 }
 
 // HandleEvent 内部使用，eventloop 回调
-func (c *Connection) HandleEvent(fd int, events uint32) {
-	if ((events & unix.POLLHUP) != 0) && ((events & unix.POLLIN) == 0) {
+func (c *Connection) HandleEvent(fd int, events poller.Event) {
+	if events&poller.EventErr != 0 {
 		c.handleClose(fd)
 	}
-	// 在handleWrite中处理
-	//if events&unix.EPOLLERR != 0 {}
 
-	//if events&unix.EPOLLOUT != 0 {
+	//if events&poller.EventWrite != 0 {
 	if c.outBuffer.Length() != 0 {
 		c.handleWrite(fd)
-	} else if events&(unix.EPOLLIN|unix.EPOLLPRI|unix.EPOLLRDHUP) != 0 {
+	} else if events&poller.EventRead != 0 {
 		c.handleRead(fd)
 	}
 }

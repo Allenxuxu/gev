@@ -12,8 +12,8 @@ import (
 
 var ErrClosed = errors.New("poller instance is not running")
 
-const ReadEvent = unix.EPOLLIN | unix.EPOLLPRI
-const WriteEvent = unix.EPOLLOUT
+const readEvent = unix.EPOLLIN | unix.EPOLLPRI
+const writeEvent = unix.EPOLLOUT
 
 type Poller struct {
 	fd       int
@@ -91,11 +91,11 @@ func (ep *Poller) add(fd int, events uint32) error {
 }
 
 func (ep *Poller) AddRead(fd int) error {
-	return ep.add(fd, ReadEvent)
+	return ep.add(fd, readEvent)
 }
 
 func (ep *Poller) AddWrite(fd int) error {
-	return ep.add(fd, WriteEvent)
+	return ep.add(fd, writeEvent)
 }
 
 func (ep *Poller) Del(fd int) error {
@@ -110,20 +110,20 @@ func (ep *Poller) mod(fd int, events uint32) error {
 }
 
 func (ep *Poller) EnableReadWrite(fd int) error {
-	return ep.mod(fd, ReadEvent|WriteEvent)
+	return ep.mod(fd, readEvent|writeEvent)
 }
 
 func (ep *Poller) EnableWrite(fd int) error {
-	return ep.mod(fd, WriteEvent)
+	return ep.mod(fd, writeEvent)
 }
 
 func (ep *Poller) EnableRead(fd int) error {
-	return ep.mod(fd, ReadEvent)
+	return ep.mod(fd, readEvent)
 }
 
 const waitEventsBegin = 1024
 
-func (ep *Poller) Poll(handler func(fd int, event uint32)) {
+func (ep *Poller) Poll(handler func(fd int, event Event)) {
 	defer func() {
 		close(ep.waitDone)
 	}()
@@ -141,7 +141,18 @@ func (ep *Poller) Poll(handler func(fd int, event uint32)) {
 		for i := 0; i < n; i++ {
 			fd := int(events[i].Fd)
 			if fd != ep.eventFd {
-				handler(fd, events[i].Events)
+				var rEvents Event
+				if ((events[i].Events & unix.POLLHUP) != 0) && ((events[i].Events & unix.POLLIN) == 0) {
+					rEvents |= EventErr
+				}
+				if (events[i].Events&unix.EPOLLERR != 0) || (events[i].Events&unix.EPOLLOUT != 0) {
+					rEvents |= EventWrite
+				}
+				if events[i].Events&(unix.EPOLLIN|unix.EPOLLPRI|unix.EPOLLRDHUP) != 0 {
+					rEvents |= EventRead
+				}
+
+				handler(fd, rEvents)
 			} else {
 				ep.wakeHandlerRead()
 

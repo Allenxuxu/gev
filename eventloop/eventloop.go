@@ -1,5 +1,3 @@
-// +build linux
-
 package eventloop
 
 import (
@@ -12,7 +10,7 @@ import (
 
 // Socket ...
 type Socket interface {
-	HandleEvent(fd int, events uint32)
+	HandleEvent(fd int, events poller.Event)
 }
 
 // EventLoop 事件循环
@@ -83,7 +81,7 @@ func (l *EventLoop) QueueInLoop(f func()) {
 	}
 }
 
-func (l *EventLoop) handlerEvent(fd int, events uint32) {
+func (l *EventLoop) handlerEvent(fd int, events poller.Event) {
 	if fd != -1 {
 		s, ok := l.sockets.Load(fd)
 		if ok {

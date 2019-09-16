@@ -13,7 +13,7 @@ func TestPoller_Poll(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	go s.Poll(func(fd int, event uint32) {
+	go s.Poll(func(fd int, event Event) {
 		t.Log(fd)
 	})
 	time.Sleep(time.Millisecond * 500)

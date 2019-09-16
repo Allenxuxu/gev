@@ -1,5 +1,3 @@
-// +build linux
-
 package listener
 
 import (
@@ -7,6 +5,7 @@ import (
 	"net"
 	"os"
 
+	"github.com/Allenxuxu/gev/poller"
 	"golang.org/x/sys/unix"
 )
 
@@ -44,8 +43,8 @@ func New(network, addr string, handlerConn HandleConnFunc) (*Listener, error) {
 		handleC: handlerConn}, nil
 }
 
-func (l *Listener) HandleEvent(fd int, events uint32) {
-	if events&(unix.EPOLLIN|unix.EPOLLPRI|unix.EPOLLRDHUP) != 0 {
+func (l *Listener) HandleEvent(fd int, events poller.Event) {
+	if events&poller.EventRead != 0 {
 		nfd, sa, err := unix.Accept(fd)
 		if err != nil {
 			//TODO 错误处理

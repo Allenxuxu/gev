@@ -2,15 +2,16 @@ package gev
 
 import (
 	"bufio"
-	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/ringbuffer"
-	"github.com/Allenxuxu/toolkit/sync"
 	"io"
 	"log"
 	"math/rand"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/ringbuffer"
+	"github.com/Allenxuxu/toolkit/sync"
 )
 
 type example struct{}
