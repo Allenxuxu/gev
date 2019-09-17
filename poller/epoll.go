@@ -3,14 +3,11 @@
 package poller
 
 import (
-	"errors"
 	"log"
 
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"golang.org/x/sys/unix"
 )
-
-var ErrClosed = errors.New("poller instance is not running")
 
 const readEvent = unix.EPOLLIN | unix.EPOLLPRI
 const writeEvent = unix.EPOLLOUT
@@ -120,8 +117,6 @@ func (ep *Poller) EnableWrite(fd int) error {
 func (ep *Poller) EnableRead(fd int) error {
 	return ep.mod(fd, readEvent)
 }
-
-const waitEventsBegin = 1024
 
 func (ep *Poller) Poll(handler func(fd int, event Event)) {
 	defer func() {

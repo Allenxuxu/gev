@@ -17,7 +17,7 @@ import (
 type example struct{}
 
 func (s *example) OnConnect(c *connection.Connection) {
-	log.Println(" OnConnect ： ", c.PeerAddr())
+	//log.Println(" OnConnect ： ", c.PeerAddr())
 }
 func (s *example) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) (out []byte) {
 	//log.Println("OnMessage")

@@ -20,9 +20,8 @@ func TestEventLoop_RunLoop(t *testing.T) {
 		}()
 	}
 
-	time.Sleep(time.Second)
-
 	go func() {
+		time.Sleep(time.Second)
 		if err := el.Stop(); err != nil {
 			panic(err)
 		}
