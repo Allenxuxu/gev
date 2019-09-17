@@ -2,10 +2,9 @@ package gev
 
 // Options 服务配置
 type Options struct {
-	Network   string
-	Address   string
-	MaxClient int
-	NumLoops  int
+	Network  string
+	Address  string
+	NumLoops int
 }
 
 // Option ...
@@ -39,13 +38,6 @@ func Network(n string) Option {
 func Address(a string) Option {
 	return func(o *Options) {
 		o.Address = a
-	}
-}
-
-// MaxClient 最大客户端连接数
-func MaxClient(n int) Option {
-	return func(o *Options) {
-		o.MaxClient = n
 	}
 }
 

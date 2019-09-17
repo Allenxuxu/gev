@@ -32,8 +32,7 @@ func main() {
 	s, err := gev.NewServer(handler,
 		gev.Network("tcp"),
 		gev.Address(":1833"),
-		gev.NumLoops(1),
-		gev.MaxClient(100000))
+		gev.NumLoops(1))
 	if err != nil {
 		panic(err)
 	}
