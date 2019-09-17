@@ -64,32 +64,21 @@ func (p *Poller) AddRead(fd int) error {
 	return err
 }
 
-//func (p *Poller) AddWrite(fd int) error {
-//	_, err := unix.Kevent(p.fd, []unix.Kevent_t{
-//		{Ident: uint64(fd), Flags: unix.EV_ADD, Filter: unix.EVFILT_WRITE},
-//	}, nil, nil)
-//	return err
-//}
-
 func (p *Poller) Del(fd int) error {
 	return nil
 }
 
 func (p *Poller) EnableReadWrite(fd int) error {
 	_, err := unix.Kevent(p.fd, []unix.Kevent_t{
-		//{Ident: uint64(fd), Flags: unix.EV_ADD, Filter: unix.EVFILT_READ}, // TODO （所有 fd 已经 AddRead） 增加可读性
+		//{Ident: uint64(fd), Flags: unix.EV_ADD, Filter: unix.EVFILT_READ}, // TODO 调用时所有 fd 已经 AddRead
 		{Ident: uint64(fd), Flags: unix.EV_ADD, Filter: unix.EVFILT_WRITE},
 	}, nil, nil)
 	return err
 }
 
-//func (p *Poller) EnableWrite(fd int) error {
-//
-//}
-
 func (p *Poller) EnableRead(fd int) error {
 	_, err := unix.Kevent(p.fd, []unix.Kevent_t{
-		{Ident: uint64(fd), Flags: unix.EV_DELETE, Filter: unix.EVFILT_WRITE}, // TODO （所有 fd 已经 EnableReadWrite） 增加可读性
+		{Ident: uint64(fd), Flags: unix.EV_DELETE, Filter: unix.EVFILT_WRITE}, // TODO 调用时所有 fd 已经 EnableReadWrite
 	}, nil, nil)
 	return err
 }
