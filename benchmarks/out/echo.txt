@@ -1,0 +1,78 @@
+
+--- BENCH ECHO START ---
+
+--- GEV ---
+*** 50 connections, 10 seconds, 6 byte packets
+Destination: [127.0.0.1]:5000
+Interface lo address [127.0.0.1]:0
+Using interface lo to connect to [127.0.0.1]:5000
+Ramped up to 50 connections.
+Total data sent:     15602.7 MiB (16360590144 bytes)
+Total data received: 15516.5 MiB (16270239840 bytes)
+Bandwidth per channel: 522.002⇅ Mbps (65250.3 kBps)
+Aggregate bandwidth: 13013.927↓, 13086.195↑ Mbps
+Packet rate estimate: 1157880.7↓, 1139630.7↑ (11↓, 30↑ TCP MSS/op)
+Test duration: 10.0017 s.
+--- DONE ---
+
+--- GNET ---
+2019/09/18 09:22:23 echo server started on port 5001 (loops: 4)
+*** 50 connections, 10 seconds, 6 byte packets
+Destination: [127.0.0.1]:5001
+Interface lo address [127.0.0.1]:0
+Using interface lo to connect to [127.0.0.1]:5001
+Ramped up to 50 connections.
+Total data sent:     14850.3 MiB (15571651137 bytes)
+Total data received: 14900.2 MiB (15624006363 bytes)
+Bandwidth per channel: 499.105⇅ Mbps (62388.1 kBps)
+Aggregate bandwidth: 12498.554↓, 12456.672↑ Mbps
+Packet rate estimate: 1113881.2↓, 1096310.6↑ (11↓, 31↑ TCP MSS/op)
+Test duration: 10.0005 s.
+--- DONE ---
+
+--- EVIOP ---
+2019/09/18 09:22:35 echo server started on port 5002 (loops: 4)
+*** 50 connections, 10 seconds, 6 byte packets
+Destination: [127.0.0.1]:5002
+Interface lo address [127.0.0.1]:0
+Using interface lo to connect to [127.0.0.1]:5002
+Ramped up to 50 connections.
+Total data sent:     14078.2 MiB (14762025984 bytes)
+Total data received: 14084.1 MiB (14768210504 bytes)
+Bandwidth per channel: 472.226⇅ Mbps (59028.3 kBps)
+Aggregate bandwidth: 11808.125↓, 11803.180↑ Mbps
+Packet rate estimate: 1071922.1↓, 1013090.2↑ (10↓, 45↑ TCP MSS/op)
+Test duration: 10.0055 s.
+--- DONE ---
+
+--- EVIO ---
+2019/09/18 09:22:47 echo server started on port 5003 (loops: 4)
+*** 50 connections, 10 seconds, 6 byte packets
+Destination: [127.0.0.1]:5003
+Interface lo address [127.0.0.1]:0
+Using interface lo to connect to [127.0.0.1]:5003
+Ramped up to 50 connections.
+Total data sent:     5687.8 MiB (5964038144 bytes)
+Total data received: 5838.6 MiB (6122238220 bytes)
+Bandwidth per channel: 193.362⇅ Mbps (24170.3 kBps)
+Aggregate bandwidth: 4897.329↓, 4770.781↑ Mbps
+Packet rate estimate: 458670.8↓, 409479.4↑ (10↓, 45↑ TCP MSS/op)
+Test duration: 10.0009 s.
+--- DONE ---
+
+--- GO STDLIB ---
+2019/09/18 09:22:59 echo server started on port 5004
+*** 50 connections, 10 seconds, 6 byte packets
+Destination: [127.0.0.1]:5004
+Interface lo address [127.0.0.1]:0
+Using interface lo to connect to [127.0.0.1]:5004
+Ramped up to 50 connections.
+Total data sent:     7971.9 MiB (8359115687 bytes)
+Total data received: 7894.9 MiB (8278357938 bytes)
+Bandwidth per channel: 266.141⇅ Mbps (33267.7 kBps)
+Aggregate bandwidth: 6621.234↓, 6685.827↑ Mbps
+Packet rate estimate: 630417.6↓, 592137.2↑ (7↓, 29↑ TCP MSS/op)
+Test duration: 10.0022 s.
+--- DONE ---
+
+--- BENCH ECHO DONE ---

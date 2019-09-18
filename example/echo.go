@@ -1,6 +1,9 @@
 package main
 
 import (
+	"flag"
+	"strconv"
+
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/ringbuffer"
@@ -28,11 +31,17 @@ func (s *example) OnClose() {
 
 func main() {
 	handler := new(example)
+	var port int
+	var loops int
+
+	flag.IntVar(&port, "port", 1833, "server port")
+	flag.IntVar(&loops, "loops", -1, "num loops")
+	flag.Parse()
 
 	s, err := gev.NewServer(handler,
 		gev.Network("tcp"),
-		gev.Address(":1833"),
-		gev.NumLoops(1))
+		gev.Address(":"+strconv.Itoa(port)),
+		gev.NumLoops(loops))
 	if err != nil {
 		panic(err)
 	}
