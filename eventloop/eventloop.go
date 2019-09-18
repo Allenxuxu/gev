@@ -86,9 +86,6 @@ func (l *EventLoop) handlerEvent(fd int, events poller.Event) {
 		s, ok := l.sockets.Load(fd)
 		if ok {
 			s.(Socket).HandleEvent(fd, events)
-		} else {
-			//TODO
-			panic("conn not find")
 		}
 	} else {
 		l.doPendingFunc()

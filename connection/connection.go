@@ -51,15 +51,33 @@ func (c *Connection) Send(buffer []byte) {
 func (c *Connection) HandleEvent(fd int, events poller.Event) {
 	if events&poller.EventErr != 0 {
 		c.handleClose(fd)
+		return
 	}
 
-	//if events&poller.EventWrite != 0 {
+	//log.Println(fd, debug(events), c.inBuffer.Capacity(), c.inBuffer.Length(), c.outBuffer.Capacity(), c.outBuffer.Length())
 	if c.outBuffer.Length() != 0 {
-		c.handleWrite(fd)
+		if events&poller.EventWrite != 0 {
+			c.handleWrite(fd)
+		}
 	} else if events&poller.EventRead != 0 {
 		c.handleRead(fd)
 	}
 }
+
+//func debug(events poller.Event) string {
+//	var ret string
+//	if events&poller.EventErr != 0 {
+//		ret += "EventErr "
+//	}
+//	if events&poller.EventRead != 0 {
+//		ret += "EventRead "
+//	}
+//	if events&poller.EventWrite != 0 {
+//		ret += "EventWrite "
+//	}
+//
+//	return ret
+//}
 
 func (c *Connection) handleRead(fd int) {
 	// TODO 避免这次内存拷贝

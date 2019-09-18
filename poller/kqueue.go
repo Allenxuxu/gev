@@ -101,13 +101,13 @@ func (p *Poller) Poll(handler func(fd int, event Event)) {
 			fd := int(events[i].Ident)
 			if fd != 0 {
 				var rEvents Event
-				if events[i].Flags&unix.EV_ERROR != 0 {
+				if (events[i].Flags&unix.EV_ERROR != 0) || (events[i].Flags&unix.EV_EOF != 0) {
 					rEvents |= EventErr
 				}
-				if events[i].Filter&unix.EVFILT_WRITE != 0 {
+				if events[i].Filter == unix.EVFILT_WRITE {
 					rEvents |= EventWrite
 				}
-				if events[i].Filter&unix.EVFILT_READ != 0 {
+				if events[i].Filter == unix.EVFILT_READ {
 					rEvents |= EventRead
 				}
 
