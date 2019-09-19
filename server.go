@@ -43,7 +43,7 @@ func NewServer(handler Handler, opts ...Option) (server *Server, err error) {
 		return nil, err
 	}
 
-	l, err := listener.New(server.opts.Network, server.opts.Address, server.handleNewConnection)
+	l, err := listener.New(server.opts.Network, server.opts.Address, options.ReusePort, server.handleNewConnection)
 	if err != nil {
 		return nil, err
 	}

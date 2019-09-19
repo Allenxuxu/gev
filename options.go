@@ -2,9 +2,10 @@ package gev
 
 // Options 服务配置
 type Options struct {
-	Network  string
-	Address  string
-	NumLoops int
+	Network   string
+	Address   string
+	NumLoops  int
+	ReusePort bool
 }
 
 // Option ...
@@ -25,6 +26,13 @@ func newOptions(opt ...Option) *Options {
 	}
 
 	return &opts
+}
+
+// ReusePort 设置 SO_REUSEPORT
+func ReusePort(reusePort bool) Option {
+	return func(o *Options) {
+		o.ReusePort = reusePort
+	}
 }
 
 // Network [tcp] 暂时只支持tcp

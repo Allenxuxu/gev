@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/Allenxuxu/gev/poller"
+	reuseport "github.com/libp2p/go-reuseport"
 	"golang.org/x/sys/unix"
 )
 
@@ -20,8 +21,14 @@ type Listener struct {
 }
 
 // New 创建Listener
-func New(network, addr string, handlerConn HandleConnFunc) (*Listener, error) {
-	listener, err := net.Listen(network, addr)
+func New(network, addr string, reusePort bool, handlerConn HandleConnFunc) (*Listener, error) {
+	var listener net.Listener
+	var err error
+	if reusePort {
+		listener, err = reuseport.Listen(network, addr)
+	} else {
+		listener, err = net.Listen(network, addr)
+	}
 	if err != nil {
 		return nil, err
 	}

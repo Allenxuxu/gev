@@ -38,7 +38,8 @@ func TestServer_Start(t *testing.T) {
 	s, err := NewServer(handler,
 		Network("tcp"),
 		Address(":1833"),
-		NumLoops(8))
+		NumLoops(8),
+		ReusePort(true))
 	if err != nil {
 		t.Fatal(err)
 	}
