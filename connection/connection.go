@@ -65,6 +65,11 @@ func (c *Connection) Send(buffer []byte) {
 	})
 }
 
+// ShutdownWrite 关闭可写端，等待读取完接收缓冲区所有数据
+func (c *Connection) ShutdownWrite() error {
+	return unix.Shutdown(c.fd, unix.SHUT_WR)
+}
+
 // HandleEvent 内部使用，event loop 回调
 func (c *Connection) HandleEvent(fd int, events poller.Event) {
 	if events&poller.EventErr != 0 {
