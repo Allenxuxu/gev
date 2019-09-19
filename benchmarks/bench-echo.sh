@@ -26,13 +26,12 @@ function gobench {
     if [ "$3" != "" ]; then
         go build -o $2 $3
     fi
-#    GOMAXPROCS=4 $2 --port $4 --loops -1 &
-    $2 --port $4 --loops -1 &
+    GOMAXPROCS=1 $2 --port $4 --loops 1 &
 
     sleep 1
     echo "*** 50 connections, 10 seconds, 6 byte packets"
     nl=$'\r\n'
-    tcpkali --workers 4 -c 50 -T 10s -m "PING{$nl}" 127.0.0.1:$4
+    tcpkali --workers 1 -c 50 -T 10s -m "PING{$nl}" 127.0.0.1:$4
     echo "--- DONE ---"
     echo ""
 }
