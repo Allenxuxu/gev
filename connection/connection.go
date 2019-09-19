@@ -19,6 +19,7 @@ type Connection struct {
 	closeCallback CloseCallback
 	loop          *eventloop.EventLoop
 	peerAddr      string
+	ctx           interface{}
 }
 
 func New(fd int, loop *eventloop.EventLoop, readCb ReadCallback, closeCb CloseCallback) *Connection {
@@ -32,10 +33,22 @@ func New(fd int, loop *eventloop.EventLoop, readCb ReadCallback, closeCb CloseCa
 	}
 }
 
+// Context 获取 Context
+func (c *Connection) Context() interface{} {
+	return c.ctx
+}
+
+// SetContext 设置 Context
+func (c *Connection) SetContext(ctx interface{}) {
+	c.ctx = ctx
+}
+
+// SetPeerAddr 内部使用，设置客户端地址信息
 func (c *Connection) SetPeerAddr(addr string) {
 	c.peerAddr = addr
 }
 
+// PeerAddr 获取客户端地址信息
 func (c *Connection) PeerAddr() string {
 	return c.peerAddr
 }
@@ -47,7 +60,7 @@ func (c *Connection) Send(buffer []byte) {
 	})
 }
 
-// HandleEvent 内部使用，eventloop 回调
+// HandleEvent 内部使用，event loop 回调
 func (c *Connection) HandleEvent(fd int, events poller.Event) {
 	if events&poller.EventErr != 0 {
 		c.handleClose(fd)
