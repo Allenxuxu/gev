@@ -9,14 +9,17 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// HandleConnFunc 处理新连接
 type HandleConnFunc func(fd int, sa *unix.Sockaddr)
 
+// Listener 监听TCP连接
 type Listener struct {
 	file    *os.File
 	fd      int
 	handleC HandleConnFunc
 }
 
+// New 创建Listener
 func New(network, addr string, handlerConn HandleConnFunc) (*Listener, error) {
 	listener, err := net.Listen(network, addr)
 	if err != nil {
@@ -43,6 +46,7 @@ func New(network, addr string, handlerConn HandleConnFunc) (*Listener, error) {
 		handleC: handlerConn}, nil
 }
 
+// HandleEvent 内部使用，供 event loop 回调处理事件
 func (l *Listener) HandleEvent(fd int, events poller.Event) {
 	if events&poller.EventRead != 0 {
 		nfd, sa, err := unix.Accept(fd)
@@ -63,6 +67,7 @@ func (l *Listener) HandleEvent(fd int, events poller.Event) {
 	}
 }
 
+// Fd Listener fd
 func (l *Listener) Fd() int {
 	return l.fd
 }

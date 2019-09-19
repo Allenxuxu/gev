@@ -14,12 +14,14 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// Handler Server 注册接口
 type Handler interface {
 	OnConnect(c *connection.Connection)
 	OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) []byte
 	OnClose()
 }
 
+// Server gev Server
 type Server struct {
 	loop          *eventloop.EventLoop
 	workLoops     []*eventloop.EventLoop
@@ -29,6 +31,7 @@ type Server struct {
 	opts *Options
 }
 
+// NewServer 创建 Server
 func NewServer(handler Handler, opts ...Option) (server *Server, err error) {
 	options := newOptions(opts...)
 	server = new(Server)
@@ -86,6 +89,7 @@ func (s *Server) handleNewConnection(fd int, sa *unix.Sockaddr) {
 	s.callback.OnConnect(c)
 }
 
+// Start 启动 Server
 func (s *Server) Start() {
 	sw := sync.WaitGroupWrapper{}
 
@@ -98,6 +102,7 @@ func (s *Server) Start() {
 	sw.Wait()
 }
 
+// Stop 关闭 Server
 func (s *Server) Stop() {
 	_ = s.loop.Stop()
 

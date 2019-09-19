@@ -7,12 +7,14 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// Poller Kqueue封装
 type Poller struct {
 	fd       int
 	running  atomic.Bool
 	waitDone chan struct{}
 }
 
+// Create 创建Poller
 func Create() (*Poller, error) {
 	fd, err := unix.Kqueue()
 	if err != nil {
@@ -33,6 +35,7 @@ func Create() (*Poller, error) {
 	}, nil
 }
 
+// Wake 唤醒 kqueue
 func (p *Poller) Wake() error {
 	_, err := unix.Kevent(p.fd, []unix.Kevent_t{{
 		Ident:  0,
@@ -42,6 +45,7 @@ func (p *Poller) Wake() error {
 	return err
 }
 
+// Close 关闭 kqueue
 func (p *Poller) Close() (err error) {
 	if !p.running.Get() {
 		return ErrClosed
@@ -57,6 +61,7 @@ func (p *Poller) Close() (err error) {
 	return
 }
 
+// AddRead 注册fd到kqueue并注册可读事件
 func (p *Poller) AddRead(fd int) error {
 	_, err := unix.Kevent(p.fd, []unix.Kevent_t{
 		{Ident: uint64(fd), Flags: unix.EV_ADD, Filter: unix.EVFILT_READ},
@@ -64,10 +69,12 @@ func (p *Poller) AddRead(fd int) error {
 	return err
 }
 
+// Del 从kqueue删除fd
 func (p *Poller) Del(fd int) error {
 	return nil
 }
 
+// EnableReadWrite 修改fd注册事件为可读可写事件
 func (p *Poller) EnableReadWrite(fd int) error {
 	_, err := unix.Kevent(p.fd, []unix.Kevent_t{
 		//{Ident: uint64(fd), Flags: unix.EV_ADD, Filter: unix.EVFILT_READ}, // TODO 调用时所有 fd 已经 AddRead
@@ -76,6 +83,7 @@ func (p *Poller) EnableReadWrite(fd int) error {
 	return err
 }
 
+// EnableRead 修改fd注册事件为可读事件
 func (p *Poller) EnableRead(fd int) error {
 	_, err := unix.Kevent(p.fd, []unix.Kevent_t{
 		{Ident: uint64(fd), Flags: unix.EV_DELETE, Filter: unix.EVFILT_WRITE}, // TODO 调用时所有 fd 已经 EnableReadWrite
@@ -83,6 +91,7 @@ func (p *Poller) EnableRead(fd int) error {
 	return err
 }
 
+// Poll 启动 kqueue 循环
 func (p *Poller) Poll(handler func(fd int, event Event)) {
 	defer func() {
 		close(p.waitDone)

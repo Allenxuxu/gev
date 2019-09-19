@@ -7,9 +7,13 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// ReadCallback 数据可读回调函数
 type ReadCallback func(c *Connection, buffer *ringbuffer.RingBuffer) []byte
+
+// CloseCallback 关闭回调函数
 type CloseCallback func()
 
+// Connection TCP 连接
 type Connection struct {
 	fd        int
 	outBuffer *ringbuffer.RingBuffer // write buffer
@@ -22,6 +26,7 @@ type Connection struct {
 	ctx           interface{}
 }
 
+// 创建 Connection
 func New(fd int, loop *eventloop.EventLoop, readCb ReadCallback, closeCb CloseCallback) *Connection {
 	return &Connection{
 		fd:            fd,
