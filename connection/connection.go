@@ -26,7 +26,7 @@ type Connection struct {
 	ctx           interface{}
 }
 
-// 创建 Connection
+// New 创建 Connection
 func New(fd int, loop *eventloop.EventLoop, readCb ReadCallback, closeCb CloseCallback) *Connection {
 	return &Connection{
 		fd:            fd,
