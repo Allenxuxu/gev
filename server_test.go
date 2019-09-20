@@ -2,6 +2,7 @@ package gev
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"log"
 	"math/rand"
@@ -88,4 +89,59 @@ func startClient(network, addr string) {
 			panic("mismatch")
 		}
 	}
+}
+
+func ExampleServer_RunAfter() {
+	handler := new(example)
+
+	s, err := NewServer(handler,
+		Network("tcp"),
+		Address(":1833"),
+		NumLoops(8),
+		ReusePort(true))
+	if err != nil {
+		panic(err)
+	}
+
+	go s.Start()
+	defer s.Stop()
+
+	s.RunAfter(time.Second, func() {
+		fmt.Println("RunAfter")
+	})
+
+	time.Sleep(2500 * time.Millisecond)
+
+	// Output:
+	// RunAfter
+}
+
+func ExampleServer_RunEvery() {
+	handler := new(example)
+
+	s, err := NewServer(handler,
+		Network("tcp"),
+		Address(":1833"),
+		NumLoops(8),
+		ReusePort(true))
+	if err != nil {
+		panic(err)
+	}
+
+	go s.Start()
+	defer s.Stop()
+
+	t := s.RunEvery(time.Second, func() {
+		fmt.Println("EveryFunc")
+	})
+
+	time.Sleep(4500 * time.Millisecond)
+	t.Stop()
+	time.Sleep(4500 * time.Millisecond)
+
+	// Output:
+	// EveryFunc
+	// EveryFunc
+	// EveryFunc
+	// EveryFunc
 }

@@ -1,11 +1,16 @@
 package gev
 
+import "time"
+
 // Options 服务配置
 type Options struct {
 	Network   string
 	Address   string
 	NumLoops  int
 	ReusePort bool
+
+	tick      time.Duration
+	wheelSize int64
 }
 
 // Option ...
@@ -23,6 +28,12 @@ func newOptions(opt ...Option) *Options {
 	}
 	if len(opts.Address) == 0 {
 		opts.Address = ":1388"
+	}
+	if opts.tick == 0 {
+		opts.tick = 1 * time.Millisecond
+	}
+	if opts.wheelSize == 0 {
+		opts.wheelSize = 1000
 	}
 
 	return &opts

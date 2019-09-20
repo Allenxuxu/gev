@@ -5,11 +5,13 @@ import (
 	"net"
 	"runtime"
 	"strconv"
+	"time"
 
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/listener"
 	"github.com/Allenxuxu/ringbuffer"
+	"github.com/Allenxuxu/timingwheel.V2"
 	"github.com/Allenxuxu/toolkit/sync"
 	"golang.org/x/sys/unix"
 )
@@ -28,7 +30,8 @@ type Server struct {
 	nextLoopIndex int
 	callback      Handler
 
-	opts *Options
+	timingWheel *timingwheel.TimingWheel
+	opts        *Options
 }
 
 // NewServer 创建 Server
@@ -37,6 +40,7 @@ func NewServer(handler Handler, opts ...Option) (server *Server, err error) {
 	server = new(Server)
 	server.callback = handler
 	server.opts = options
+	server.timingWheel = timingwheel.NewTimingWheel(server.opts.tick, server.opts.wheelSize)
 	server.loop, err = eventloop.New()
 	if err != nil {
 		_ = server.loop.Stop()
@@ -71,6 +75,14 @@ func NewServer(handler Handler, opts ...Option) (server *Server, err error) {
 	return
 }
 
+func (s *Server) RunAfter(d time.Duration, f func()) *timingwheel.Timer {
+	return s.timingWheel.AfterFunc(d, f)
+}
+
+func (s *Server) RunEvery(d time.Duration, f func()) *timingwheel.Timer {
+	return s.timingWheel.EveryFunc(d, f)
+}
+
 func (s *Server) nextLoop() *eventloop.EventLoop {
 	// TODO 更多的负载方式
 	loop := s.workLoops[s.nextLoopIndex]
@@ -92,6 +104,7 @@ func (s *Server) handleNewConnection(fd int, sa *unix.Sockaddr) {
 // Start 启动 Server
 func (s *Server) Start() {
 	sw := sync.WaitGroupWrapper{}
+	s.timingWheel.Start()
 
 	length := len(s.workLoops)
 	for i := 0; i < length; i++ {
@@ -104,6 +117,7 @@ func (s *Server) Start() {
 
 // Stop 关闭 Server
 func (s *Server) Stop() {
+	s.timingWheel.Stop()
 	_ = s.loop.Stop()
 
 	for k := range s.workLoops {
