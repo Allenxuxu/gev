@@ -1,9 +1,15 @@
 package connection
 
 import (
+	"errors"
+	"fmt"
+	"net"
+	"strconv"
+
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/Allenxuxu/ringbuffer"
+	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"golang.org/x/sys/unix"
 )
 
@@ -15,10 +21,10 @@ type CloseCallback func()
 
 // Connection TCP 连接
 type Connection struct {
-	fd        int
-	outBuffer *ringbuffer.RingBuffer // write buffer
-	inBuffer  *ringbuffer.RingBuffer // read buffer
-
+	fd            int
+	connected     atomic.Bool
+	outBuffer     *ringbuffer.RingBuffer // write buffer
+	inBuffer      *ringbuffer.RingBuffer // read buffer
 	readCallback  ReadCallback
 	closeCallback CloseCallback
 	loop          *eventloop.EventLoop
@@ -27,15 +33,19 @@ type Connection struct {
 }
 
 // New 创建 Connection
-func New(fd int, loop *eventloop.EventLoop, readCb ReadCallback, closeCb CloseCallback) *Connection {
-	return &Connection{
+func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, readCb ReadCallback, closeCb CloseCallback) *Connection {
+	conn := &Connection{
 		fd:            fd,
+		peerAddr:      sockaddrToString(sa),
 		outBuffer:     ringbuffer.New(1024),
 		inBuffer:      ringbuffer.New(1024),
 		readCallback:  readCb,
 		closeCallback: closeCb,
 		loop:          loop,
 	}
+	conn.connected.Set(true)
+
+	return conn
 }
 
 // Context 获取 Context
@@ -48,25 +58,26 @@ func (c *Connection) SetContext(ctx interface{}) {
 	c.ctx = ctx
 }
 
-// SetPeerAddr 内部使用，设置客户端地址信息
-func (c *Connection) SetPeerAddr(addr string) {
-	c.peerAddr = addr
-}
-
 // PeerAddr 获取客户端地址信息
 func (c *Connection) PeerAddr() string {
 	return c.peerAddr
 }
 
 // Send 用来在非 loop 协程发送
-func (c *Connection) Send(buffer []byte) {
+func (c *Connection) Send(buffer []byte) error {
+	if !c.connected.Get() {
+		return errors.New("connection closed")
+	}
+
 	c.loop.QueueInLoop(func() {
 		c.sendInLoop(buffer)
 	})
+	return nil
 }
 
 // ShutdownWrite 关闭可写端，等待读取完接收缓冲区所有数据
 func (c *Connection) ShutdownWrite() error {
+	c.connected.Set(false)
 	return unix.Shutdown(c.fd, unix.SHUT_WR)
 }
 
@@ -150,7 +161,7 @@ func (c *Connection) handleWrite(fd int) {
 }
 
 func (c *Connection) handleClose(fd int) {
-	//log.Println("close ", fd)
+	c.connected.Set(false)
 	_ = unix.Close(fd)
 	c.loop.DeleteFdInLoop(fd)
 
@@ -178,5 +189,16 @@ func (c *Connection) sendInLoop(data []byte) {
 		if c.outBuffer.Length() > 0 {
 			_ = c.loop.EnableReadWrite(c.fd)
 		}
+	}
+}
+
+func sockaddrToString(sa *unix.Sockaddr) string {
+	switch sa := (*sa).(type) {
+	case *unix.SockaddrInet4:
+		return net.JoinHostPort(net.IP(sa.Addr[:]).String(), strconv.Itoa(sa.Port))
+	case *unix.SockaddrInet6:
+		return net.JoinHostPort(net.IP(sa.Addr[:]).String(), strconv.Itoa(sa.Port))
+	default:
+		return fmt.Sprintf("(unknown - %T)", sa)
 	}
 }

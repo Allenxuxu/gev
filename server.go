@@ -1,10 +1,7 @@
 package gev
 
 import (
-	"fmt"
-	"net"
 	"runtime"
-	"strconv"
 	"time"
 
 	"github.com/Allenxuxu/gev/connection"
@@ -93,8 +90,7 @@ func (s *Server) nextLoop() *eventloop.EventLoop {
 func (s *Server) handleNewConnection(fd int, sa *unix.Sockaddr) {
 	loop := s.nextLoop()
 
-	c := connection.New(fd, loop, s.callback.OnMessage, s.callback.OnClose)
-	c.SetPeerAddr(sockaddrToString(sa))
+	c := connection.New(fd, loop, sa, s.callback.OnMessage, s.callback.OnClose)
 
 	_ = loop.AddSocketAndEnableRead(fd, c)
 
@@ -122,16 +118,5 @@ func (s *Server) Stop() {
 
 	for k := range s.workLoops {
 		_ = s.workLoops[k].Stop()
-	}
-}
-
-func sockaddrToString(sa *unix.Sockaddr) string {
-	switch sa := (*sa).(type) {
-	case *unix.SockaddrInet4:
-		return net.JoinHostPort(net.IP(sa.Addr[:]).String(), strconv.Itoa(sa.Port))
-	case *unix.SockaddrInet6:
-		return net.JoinHostPort(net.IP(sa.Addr[:]).String(), strconv.Itoa(sa.Port))
-	default:
-		return fmt.Sprintf("(unknown - %T)", sa)
 	}
 }
