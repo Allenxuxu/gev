@@ -25,7 +25,7 @@ func (s *example) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuf
 	return
 }
 
-func (s *example) OnClose() {
+func (s *example) OnClose(c *connection.Connection) {
 	//log.Println("OnClose")
 }
 

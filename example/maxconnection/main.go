@@ -57,7 +57,7 @@ func (s *Server) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuff
 	return
 }
 
-func (s *Server) OnClose() {
+func (s *Server) OnClose(c *connection.Connection) {
 	s.clientNum.Add(-1)
 	log.Println("OnClose")
 }

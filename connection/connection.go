@@ -17,7 +17,7 @@ import (
 type ReadCallback func(c *Connection, buffer *ringbuffer.RingBuffer) []byte
 
 // CloseCallback 关闭回调函数
-type CloseCallback func()
+type CloseCallback func(c *Connection)
 
 // Connection TCP 连接
 type Connection struct {
@@ -170,7 +170,7 @@ func (c *Connection) handleClose(fd int) {
 	_ = unix.Close(fd)
 	c.loop.DeleteFdInLoop(fd)
 
-	c.closeCallback()
+	c.closeCallback(c)
 }
 
 func (c *Connection) sendInLoop(data []byte) {

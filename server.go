@@ -17,7 +17,7 @@ import (
 type Handler interface {
 	OnConnect(c *connection.Connection)
 	OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) []byte
-	OnClose()
+	OnClose(c *connection.Connection)
 }
 
 // Server gev Server

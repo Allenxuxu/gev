@@ -25,11 +25,11 @@ func (s *example) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuf
 	outbuf := buffer.Bytes()
 	buffer.RetrieveAll()
 
-	c.Send(outbuf)
+	_ = c.Send(outbuf)
 	return
 }
 
-func (s *example) OnClose() {
+func (s *example) OnClose(c *connection.Connection) {
 	//log.Println("OnClose")
 }
 
