@@ -63,6 +63,11 @@ func (c *Connection) PeerAddr() string {
 	return c.peerAddr
 }
 
+// Connected 是否已连接
+func (c *Connection) Connected() bool {
+	return c.connected.Get()
+}
+
 // Send 用来在非 loop 协程发送
 func (c *Connection) Send(buffer []byte) error {
 	if !c.connected.Get() {
