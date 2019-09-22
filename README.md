@@ -26,6 +26,21 @@
 
 > 测试环境 Ubuntu18.04
 
+### 吞吐量测试
+
+限制 GOMAXPROCS=1（单线程），1 个 work 协程
+
+![image](benchmarks/out/gev11.png)
+
+限制 GOMAXPROCS=4，4 个 work 协程
+
+![image](benchmarks/out/gev44.png)
+
+### 其他测试
+
+<details>
+  <summary> 速度测试 </summary>
+
 和同类库的简单性能比较, 压测方式与 evio 项目相同。
 
 - gnet
@@ -44,6 +59,8 @@
 限制 GOMAXPROCS=4，4 个 work 协程
 
 ![image](benchmarks/out/echo-4c-4loops.png)
+
+</details>
 
 ## 安装
 
