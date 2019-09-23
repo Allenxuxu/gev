@@ -141,7 +141,8 @@ func (ep *Poller) Poll(handler func(fd int, event Event)) {
 		n, err := unix.EpollWait(ep.fd, events, -1)
 
 		if err != nil && err != unix.EINTR {
-			panic("EpollWait: " + err.Error())
+			log.Println("EpollWait: ", err)
+			continue
 		}
 
 		for i := 0; i < n; i++ {

@@ -3,6 +3,8 @@
 package poller
 
 import (
+	"log"
+
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"golang.org/x/sys/unix"
 )
@@ -18,7 +20,7 @@ type Poller struct {
 func Create() (*Poller, error) {
 	fd, err := unix.Kqueue()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	_, err = unix.Kevent(fd, []unix.Kevent_t{{
 		Ident:  0,
@@ -103,7 +105,8 @@ func (p *Poller) Poll(handler func(fd int, event Event)) {
 	for {
 		n, err := unix.Kevent(p.fd, nil, events, nil)
 		if err != nil && err != unix.EINTR {
-			panic("EpollWait: " + err.Error())
+			log.Println("EpollWait: ", err)
+			continue
 		}
 
 		for i := 0; i < n; i++ {

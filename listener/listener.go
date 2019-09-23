@@ -2,6 +2,7 @@ package listener
 
 import (
 	"errors"
+	"log"
 	"net"
 	"os"
 
@@ -58,19 +59,18 @@ func (l *Listener) HandleEvent(fd int, events poller.Event) {
 	if events&poller.EventRead != 0 {
 		nfd, sa, err := unix.Accept(fd)
 		if err != nil {
-			//TODO 错误处理
 			if err != unix.EAGAIN {
-				panic("accept: " + err.Error())
+				log.Println("accept:", err)
 			}
 			return
 		}
 		if err := unix.SetNonblock(nfd, true); err != nil {
-			panic(err)
+			_ = unix.Close(nfd)
+			log.Println("set nonblock:", err)
+			return
 		}
 
 		l.handleC(nfd, &sa)
-	} else {
-		panic("listener unexpect events")
 	}
 }
 
