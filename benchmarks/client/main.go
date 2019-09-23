@@ -44,13 +44,12 @@ func main() {
 		totalMessagesRead += <-result
 	}
 
-	fmt.Println("totalMessagesRead :", totalMessagesRead)
-	fmt.Println(totalMessagesRead*int64(*msgLen)/int64(*timeOut*1024*1024), " MiB/s throughput")
+	fmt.Println(totalMessagesRead/int64(*timeOut*1024*1024), " MiB/s throughput")
 }
 
 func handler(conn net.Conn, startC chan interface{}, closeC chan interface{}, result chan int64) {
 	var count int64
-	buf := make([]byte, 2048)
+	buf := make([]byte, 2*(*msgLen))
 	<-startC
 
 	_, e := conn.Write(msg)
@@ -66,8 +65,13 @@ func handler(conn net.Conn, startC chan interface{}, closeC chan interface{}, re
 			return
 		default:
 			n, err := conn.Read(buf)
+			if n > 0 {
+				count += int64(n)
+			}
 			if err != nil {
 				fmt.Print("Error to read message because of ", err)
+				result <- count
+				conn.Close()
 				return
 			}
 
@@ -75,8 +79,6 @@ func handler(conn net.Conn, startC chan interface{}, closeC chan interface{}, re
 			if err != nil {
 				fmt.Println("Error to send message because of ", e.Error())
 			}
-
-			count++
 		}
 	}
 }
