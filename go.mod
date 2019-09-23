@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/Allenxuxu/eviop v0.0.0-20190901123806-035c218f739a
-	github.com/Allenxuxu/ringbuffer v0.0.0-20190803184500-fa400f2fe92b
+	github.com/Allenxuxu/ringbuffer v0.0.1
 	github.com/Allenxuxu/timingwheel.V2 v0.0.0-20190920124930-519aff1ed880
 	github.com/Allenxuxu/toolkit v0.0.0-20190906022029-0629788cfd2f
 	github.com/libp2p/go-reuseport v0.0.1

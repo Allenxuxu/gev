@@ -93,7 +93,6 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 		return
 	}
 
-	//log.Println(fd, debug(events), c.inBuffer.Capacity(), c.inBuffer.Length(), c.outBuffer.Capacity(), c.outBuffer.Length())
 	if c.outBuffer.Length() != 0 {
 		if events&poller.EventWrite != 0 {
 			c.handleWrite(fd)
@@ -128,11 +127,24 @@ func (c *Connection) handleRead(fd int) {
 		}
 		return
 	}
-	_, _ = c.inBuffer.Write(buf[:n])
 
-	out := c.readCallback(c, c.inBuffer)
-	if len(out) != 0 {
-		c.sendInLoop(out)
+	if c.inBuffer.Length() == 0 {
+		buffer := ringbuffer.NewWithData(buf[:n])
+		out := c.readCallback(c, buffer)
+
+		if buffer.Length() > 0 {
+			first, _ := buffer.PeekAll()
+			_, _ = c.inBuffer.Write(first)
+		}
+		if len(out) != 0 {
+			c.sendInLoop(out)
+		}
+	} else {
+		_, _ = c.inBuffer.Write(buf[:n])
+		out := c.readCallback(c, c.inBuffer)
+		if len(out) != 0 {
+			c.sendInLoop(out)
+		}
 	}
 }
 
