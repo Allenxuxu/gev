@@ -1,6 +1,7 @@
 package gev
 
 import (
+	"errors"
 	"runtime"
 	"time"
 
@@ -33,6 +34,9 @@ type Server struct {
 
 // NewServer 创建 Server
 func NewServer(handler Handler, opts ...Option) (server *Server, err error) {
+	if handler == nil {
+		return nil,errors.New("handler is nil")
+	}
 	options := newOptions(opts...)
 	server = new(Server)
 	server.callback = handler
