@@ -24,7 +24,7 @@
 
 ## Performance Test
 
-> test environment: Ubuntu18.04
+> Test environment: Ubuntu18.04 | 4 Virtual CPUs | 4.0 GiB
 
 ### Throughput Test
 
