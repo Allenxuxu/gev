@@ -6,6 +6,8 @@
 [![LICENSE](https://img.shields.io/badge/LICENSE-MIT-blue)](https://github.com/Allenxuxu/gev/blob/master/LICENSE)
 [![Code Size](https://img.shields.io/github/languages/code-size/Allenxuxu/gev.svg?style=flat)](https://img.shields.io/github/languages/code-size/Allenxuxu/gev.svg?style=flat)
 
+### [[English]](README-EN.md)
+
 `gev` 是一个轻量、快速的基于 Reactor 模式的非阻塞 TCP 网络库。
 
 ## 特点
@@ -24,7 +26,7 @@
 
 ## 性能测试
 
-> 测试环境 Ubuntu18.04
+> 测试环境 Ubuntu18.04 | 4 Virtual CPUs | 4.0 GiB
 
 ### 吞吐量测试
 
