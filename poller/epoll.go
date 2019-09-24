@@ -164,7 +164,7 @@ func (ep *Poller) Poll(handler func(fd int, event Event)) {
 				ep.wakeHandlerRead()
 
 				if !ep.running.Get() {
-					goto quit
+					return
 				}
 				wake = true
 			}
@@ -179,5 +179,4 @@ func (ep *Poller) Poll(handler func(fd int, event Event)) {
 			events = make([]unix.EpollEvent, n*2)
 		}
 	}
-quit:
 }
