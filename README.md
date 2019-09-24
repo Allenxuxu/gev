@@ -68,6 +68,91 @@
 go get -u github.com/Allenxuxu/gev
 ```
 
+## 快速入门
+
+```go
+package main
+
+import (
+	"log"
+
+	"github.com/Allenxuxu/gev"
+	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/ringbuffer"
+)
+
+type example struct{}
+
+func (s *example) OnConnect(c *connection.Connection) {
+	log.Println(" OnConnect ： ", c.PeerAddr())
+}
+
+func (s *example) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) (out []byte) {
+	log.Println("OnMessage")
+	first, end := buffer.PeekAll()
+	out = first
+	if len(end) > 0 {
+		out = append(out, end...)
+	}
+	buffer.RetrieveAll()
+	return
+}
+
+func (s *example) OnClose(c *connection.Connection) {
+	log.Println("OnClose")
+}
+
+func main() {
+	handler := new(example)
+
+	s, err := gev.NewServer(handler,
+		gev.Address(":1833"),
+		gev.NumLoops(2),
+		gev.ReusePort(true))
+	if err != nil {
+		panic(err)
+	}
+
+	s.Start()
+}
+```
+
+Handler 是一个接口，我们的程序必须实现它。
+
+```go
+type Handler interface {
+	OnConnect(c *connection.Connection)
+	OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) []byte
+	OnClose(c *connection.Connection)
+}
+
+func NewServer(handler Handler, opts ...Option) (server *Server, err error) {
+```
+
+在消息到来时，gev 会回调 OnMessage ，在这个函数中可以通过返回一个切片来发送数据给客户端。
+
+```go
+func (s *example) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) (out []byte)
+```
+
+Connection 还提供 Send 方法来发送数据。Send 并不会立刻发送数据，而是先添加到 event loop 的任务队列中，然后唤醒 event loop 去发送。
+
+更详细的使用方式可以参考示例：[服务端定时推送](example/pushmessage/main.go)
+
+```go
+func (c *Connection) Send(buffer []byte) error
+```
+
+Connection ShutdownWrite 会关闭写端，从而断开连接。
+
+更详细的使用方式可以参考示例：[限制最大连接数](example/maxconnection/main.go)
+
+```go
+func (c *Connection) ShutdownWrite() error
+```
+
+[RingBuffer](https://github.com/Allenxuxu/ringbuffer) 是一个动态扩容的循环缓冲区实现。
+
 ## 示例
 
 <details>
