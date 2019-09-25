@@ -52,11 +52,11 @@ limit GOMAXPROCS=1，1 work goroutine
 
 ![image](benchmarks/out/echo-1c-1loops.png)
 
-limit GOMAXPROCS=1，4 个 work goroutine
+limit GOMAXPROCS=1，4 work goroutine
 
 ![image](benchmarks/out/echo-1c-4loops.png)
 
-limit GOMAXPROCS=4，4 个 work goroutine
+limit GOMAXPROCS=4，4 work goroutine
 
 ![image](benchmarks/out/echo-4c-4loops.png)
 
