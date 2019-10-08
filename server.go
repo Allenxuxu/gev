@@ -76,10 +76,12 @@ func NewServer(handler Handler, opts ...Option) (server *Server, err error) {
 	return
 }
 
+// RunAfter 延时任务
 func (s *Server) RunAfter(d time.Duration, f func()) *timingwheel.Timer {
 	return s.timingWheel.AfterFunc(d, f)
 }
 
+// RunEvery 定时任务
 func (s *Server) RunEvery(d time.Duration, f func()) *timingwheel.Timer {
 	return s.timingWheel.EveryFunc(d, f)
 }

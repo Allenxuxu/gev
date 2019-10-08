@@ -10,12 +10,14 @@ import (
 	"time"
 )
 
+// Server example
 type Server struct {
 	conn   *list.List
 	mu     sync.RWMutex
 	server *gev.Server
 }
 
+// New server
 func New(ip, port string) (*Server, error) {
 	var err error
 	s := new(Server)
@@ -29,15 +31,18 @@ func New(ip, port string) (*Server, error) {
 	return s, nil
 }
 
+// Start server
 func (s *Server) Start() {
 	s.server.RunEvery(1*time.Second, s.RunPush)
 	s.server.Start()
 }
 
+// Stop server
 func (s *Server) Stop() {
 	s.server.Stop()
 }
 
+// RunPush push message
 func (s *Server) RunPush() {
 	var next *list.Element
 
@@ -52,6 +57,7 @@ func (s *Server) RunPush() {
 	}
 }
 
+// OnConnect callback
 func (s *Server) OnConnect(c *connection.Connection) {
 	log.Println(" OnConnect ： ", c.PeerAddr())
 
@@ -60,6 +66,8 @@ func (s *Server) OnConnect(c *connection.Connection) {
 	s.mu.Unlock()
 	c.SetContext(e)
 }
+
+// OnMessage callback
 func (s *Server) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) (out []byte) {
 	log.Println("OnMessage")
 	first, end := buffer.PeekAll()
@@ -71,6 +79,7 @@ func (s *Server) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuff
 	return
 }
 
+// OnClose callback
 func (s *Server) OnClose(c *connection.Connection) {
 	log.Println("OnClose")
 	e := c.Context().(*list.Element)
