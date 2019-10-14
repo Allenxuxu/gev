@@ -9,8 +9,8 @@ import (
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/listener"
 	"github.com/Allenxuxu/ringbuffer"
-	"github.com/Allenxuxu/timingwheel.V2"
 	"github.com/Allenxuxu/toolkit/sync"
+	"github.com/RussellLuo/timingwheel"
 	"golang.org/x/sys/unix"
 )
 
@@ -83,7 +83,7 @@ func (s *Server) RunAfter(d time.Duration, f func()) *timingwheel.Timer {
 
 // RunEvery 定时任务
 func (s *Server) RunEvery(d time.Duration, f func()) *timingwheel.Timer {
-	return s.timingWheel.EveryFunc(d, f)
+	return s.timingWheel.ScheduleFunc(&everyScheduler{Interval: time.Second}, f)
 }
 
 func (s *Server) nextLoop() *eventloop.EventLoop {
