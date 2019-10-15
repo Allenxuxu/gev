@@ -9,8 +9,8 @@ import (
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/listener"
 	"github.com/Allenxuxu/ringbuffer"
+	"github.com/Allenxuxu/timingwheel"
 	"github.com/Allenxuxu/toolkit/sync"
-	"github.com/RussellLuo/timingwheel"
 	"golang.org/x/sys/unix"
 )
 
