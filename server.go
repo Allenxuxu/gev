@@ -83,7 +83,7 @@ func (s *Server) RunAfter(d time.Duration, f func()) *timingwheel.Timer {
 
 // RunEvery 定时任务
 func (s *Server) RunEvery(d time.Duration, f func()) *timingwheel.Timer {
-	return s.timingWheel.ScheduleFunc(&everyScheduler{Interval: time.Second}, f)
+	return s.timingWheel.ScheduleFunc(&everyScheduler{Interval: d}, f)
 }
 
 func (s *Server) nextLoop() *eventloop.EventLoop {
