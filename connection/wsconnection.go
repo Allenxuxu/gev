@@ -6,6 +6,7 @@ import (
 	"github.com/Allenxuxu/gev/ws"
 )
 
+// SendWebsocketData 发送 websocket message
 func (c *Connection) SendWebsocketData(messageType ws.MessageType, buffer []byte) error {
 	if !c.connected.Get() {
 		return errors.New("connection closed")

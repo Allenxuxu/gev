@@ -9,6 +9,7 @@ import (
 	"unicode/utf8"
 )
 
+// HandleWebSocket 处理 WebSocket 信息
 func HandleWebSocket(c *connection.Connection, buffer *ringbuffer.RingBuffer,
 	handler func(*connection.Connection, []byte) (ws.MessageType, []byte)) (out []byte) {
 
