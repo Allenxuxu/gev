@@ -29,12 +29,12 @@ func (c *Connection) SendWebsocketData(messageType ws.MessageType, buffer []byte
 	return nil
 }
 
-func (c *Connection) CloseWebsocket() error {
+func (c *Connection) CloseWebsocket(reason string) error {
 	if !c.connected.Get() {
 		return errors.New("connection closed")
 	}
 
-	data, err := ws.FrameToBytes(ws.NewCloseFrame(ws.NewCloseFrameBody(ws.StatusNormalClosure, "")))
+	data, err := ws.FrameToBytes(ws.NewCloseFrame(ws.NewCloseFrameBody(ws.StatusNormalClosure, reason)))
 	if err != nil {
 		return err
 	}

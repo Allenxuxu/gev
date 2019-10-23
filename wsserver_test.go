@@ -2,6 +2,7 @@ package gev
 
 import (
 	"bytes"
+	"io"
 	"math/rand"
 	"testing"
 	"time"
@@ -19,7 +20,21 @@ func (s *wsExample) OnConnect(c *connection.Connection) {
 }
 func (s *wsExample) OnMessage(c *connection.Connection, data []byte) (messageType ws.MessageType, out []byte) {
 	messageType = ws.MessageText
-	out = data
+
+	switch rand.Int() % 3 {
+	case 0:
+		out = data
+	case 1:
+		if err := c.SendWebsocketData(ws.MessageText, data); err != nil {
+			if e := c.CloseWebsocket(err.Error()); e != nil {
+				panic(e)
+			}
+		}
+	case 2:
+		if e := c.CloseWebsocket(""); e != nil {
+			panic(e)
+		}
+	}
 	return
 }
 
@@ -76,7 +91,11 @@ func startWebSocketClient(addr string) {
 
 		data2 := make([]byte, len(data))
 		if n, err := c.Read(data2); err != nil || n != len(data) {
-			panic(err)
+			if err != io.EOF {
+				panic(err)
+			} else {
+				return
+			}
 		}
 		if !bytes.Equal(data, data2) {
 			panic("mismatch")
