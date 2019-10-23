@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/Allenxuxu/gev/ws"
 	"log"
+	"math/rand"
 	"strconv"
 
 	"github.com/Allenxuxu/gev"
@@ -18,7 +19,20 @@ func (s *example) OnConnect(c *connection.Connection) {
 func (s *example) OnMessage(c *connection.Connection, data []byte) (messageType ws.MessageType, out []byte) {
 	log.Println("OnMessage:", string(data))
 	messageType = ws.MessageBinary
-	out = data
+	switch rand.Int() % 3 {
+	case 0:
+		out = data
+	case 1:
+		if err := c.SendWebsocketData(ws.MessageText, data); err != nil {
+			if e := c.CloseWebsocket(err.Error()); e != nil {
+				panic(e)
+			}
+		}
+	case 2:
+		if e := c.CloseWebsocket("close"); e != nil {
+			panic(e)
+		}
+	}
 	return
 }
 
