@@ -11,5 +11,6 @@ require (
 	github.com/libp2p/go-reuseport v0.0.1
 	github.com/panjf2000/gnet v0.0.1-rc.4
 	github.com/tidwall/evio v1.0.2
+	golang.org/x/net v0.0.0-20190311183353-d8887717615a
 	golang.org/x/sys v0.0.0-20190830142957-1e83adbbebd0
 )
