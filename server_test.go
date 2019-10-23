@@ -73,7 +73,7 @@ func startClient(network, addr string) {
 	duration := time.Duration((rand.Float64()*2+1)*float64(time.Second)) / 8
 	start := time.Now()
 	for time.Since(start) < duration {
-		sz := rand.Int() % (1024 * 1024)
+		sz := rand.Int()%(1024*1024) + 1
 		data := make([]byte, sz)
 		if _, err := rand.Read(data); err != nil {
 			panic(err)
