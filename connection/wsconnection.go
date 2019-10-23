@@ -30,6 +30,7 @@ func (c *Connection) SendWebsocketData(messageType ws.MessageType, buffer []byte
 	return nil
 }
 
+// CloseWebsocket 关闭 websocket 连接
 func (c *Connection) CloseWebsocket(reason string) error {
 	if !c.connected.Get() {
 		return errors.New("connection closed")
