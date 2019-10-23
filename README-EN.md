@@ -16,6 +16,8 @@
 - Dynamic expansion of read and write buffers implemented by Ring Buffer
 - Asynchronous read and write
 - SO_REUSEPORT port reuse support
+- Support WebSocket
+- Support for scheduled tasks, delayed tasks
 
 ## Network model
 
@@ -70,6 +72,8 @@ go get -u github.com/Allenxuxu/gev
 ```
 
 ## Getting start
+
+### TCP
 
 ```go
 package main
@@ -153,6 +157,91 @@ func (c *Connection) ShutdownWrite() error
 ```
 
 [RingBuffer](https://github.com/Allenxuxu/ringbuffer) is a dynamical expansion implementation of circular buffer.
+
+### WebSocket
+
+```go
+package main
+
+import (
+	"flag"
+	"github.com/Allenxuxu/gev/ws"
+	"log"
+	"math/rand"
+	"strconv"
+
+	"github.com/Allenxuxu/gev"
+	"github.com/Allenxuxu/gev/connection"
+)
+
+type example struct{}
+
+func (s *example) OnConnect(c *connection.Connection) {
+	log.Println(" OnConnect ： ", c.PeerAddr())
+}
+func (s *example) OnMessage(c *connection.Connection, data []byte) (messageType ws.MessageType, out []byte) {
+	log.Println("OnMessage:", string(data))
+	messageType = ws.MessageBinary
+	switch rand.Int() % 3 {
+	case 0:
+		out = data
+	case 1:
+		if err := c.SendWebsocketData(ws.MessageText, data); err != nil {
+			if e := c.CloseWebsocket(err.Error()); e != nil {
+				panic(e)
+			}
+		}
+	case 2:
+		if e := c.CloseWebsocket("close"); e != nil {
+			panic(e)
+		}
+	}
+	return
+}
+
+func (s *example) OnClose(c *connection.Connection) {
+	log.Println("OnClose")
+}
+
+func main() {
+	handler := new(example)
+	var port int
+	var loops int
+
+	flag.IntVar(&port, "port", 1833, "server port")
+	flag.IntVar(&loops, "loops", -1, "num loops")
+	flag.Parse()
+
+	s, err := gev.NewWebSocketServer(handler,
+		gev.Network("tcp"),
+		gev.Address(":"+strconv.Itoa(port)),
+		gev.NumLoops(loops))
+	if err != nil {
+		panic(err)
+	}
+
+	s.Start()
+}
+```
+
+*WebSocketHandler* is an interface that programs must implement.
+
+```go
+type WebSocketHandler interface {
+	OnConnect(c *connection.Connection)
+	OnMessage(c *connection.Connection, msg []byte) (ws.MessageType, []byte)
+	OnClose(c *connection.Connection)
+}
+```
+
+The WebSocket-related interface is basically the same as the TCP service. The main difference is `OnMessage`.
+
+```go
+func (c *Connection) SendWebsocketData(messageType ws.MessageType, buffer []byte) error
+func (c *Connection) CloseWebsocket(reason string) error
+```
+
+Because the WebSocket protocol is actually built on top of the TCP protocol, `SendWebsocketData` and `CloseWebsocket` are provided.
 
 ## Example
 
@@ -394,6 +483,76 @@ func main() {
 ```
 
 </details>
+
+<details>
+  <summary> WebSocket </summary>
+
+```go
+package main
+
+import (
+	"flag"
+	"github.com/Allenxuxu/gev/ws"
+	"log"
+	"math/rand"
+	"strconv"
+
+	"github.com/Allenxuxu/gev"
+	"github.com/Allenxuxu/gev/connection"
+)
+
+type example struct{}
+
+func (s *example) OnConnect(c *connection.Connection) {
+	log.Println(" OnConnect ： ", c.PeerAddr())
+}
+func (s *example) OnMessage(c *connection.Connection, data []byte) (messageType ws.MessageType, out []byte) {
+	log.Println("OnMessage:", string(data))
+	messageType = ws.MessageBinary
+	switch rand.Int() % 3 {
+	case 0:
+		out = data
+	case 1:
+		if err := c.SendWebsocketData(ws.MessageText, data); err != nil {
+			if e := c.CloseWebsocket(err.Error()); e != nil {
+				panic(e)
+			}
+		}
+	case 2:
+		if e := c.CloseWebsocket("close"); e != nil {
+			panic(e)
+		}
+	}
+	return
+}
+
+func (s *example) OnClose(c *connection.Connection) {
+	log.Println("OnClose")
+}
+
+func main() {
+	handler := new(example)
+	var port int
+	var loops int
+
+	flag.IntVar(&port, "port", 1833, "server port")
+	flag.IntVar(&loops, "loops", -1, "num loops")
+	flag.Parse()
+
+	s, err := gev.NewWebSocketServer(handler,
+		gev.Network("tcp"),
+		gev.Address(":"+strconv.Itoa(port)),
+		gev.NumLoops(loops))
+	if err != nil {
+		panic(err)
+	}
+
+	s.Start()
+}
+```
+
+</details>
+
 
 ## References
 

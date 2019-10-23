@@ -18,6 +18,8 @@
 - 动态扩容 Ring Buffer 实现的读写缓冲区
 - 异步读写
 - SO_REUSEPORT 端口重用支持
+- 支持 WebSocket
+- 支持定时任务，延时任务
 
 ## 网络模型
 
@@ -72,6 +74,8 @@ go get -u github.com/Allenxuxu/gev
 ```
 
 ## 快速入门
+
+### TCP
 
 ```go
 package main
@@ -155,6 +159,91 @@ func (c *Connection) ShutdownWrite() error
 ```
 
 [RingBuffer](https://github.com/Allenxuxu/ringbuffer) 是一个动态扩容的循环缓冲区实现。
+
+### WebSocket
+
+```go
+package main
+
+import (
+	"flag"
+	"github.com/Allenxuxu/gev/ws"
+	"log"
+	"math/rand"
+	"strconv"
+
+	"github.com/Allenxuxu/gev"
+	"github.com/Allenxuxu/gev/connection"
+)
+
+type example struct{}
+
+func (s *example) OnConnect(c *connection.Connection) {
+	log.Println(" OnConnect ： ", c.PeerAddr())
+}
+func (s *example) OnMessage(c *connection.Connection, data []byte) (messageType ws.MessageType, out []byte) {
+	log.Println("OnMessage:", string(data))
+	messageType = ws.MessageBinary
+	switch rand.Int() % 3 {
+	case 0:
+		out = data
+	case 1:
+		if err := c.SendWebsocketData(ws.MessageText, data); err != nil {
+			if e := c.CloseWebsocket(err.Error()); e != nil {
+				panic(e)
+			}
+		}
+	case 2:
+		if e := c.CloseWebsocket("close"); e != nil {
+			panic(e)
+		}
+	}
+	return
+}
+
+func (s *example) OnClose(c *connection.Connection) {
+	log.Println("OnClose")
+}
+
+func main() {
+	handler := new(example)
+	var port int
+	var loops int
+
+	flag.IntVar(&port, "port", 1833, "server port")
+	flag.IntVar(&loops, "loops", -1, "num loops")
+	flag.Parse()
+
+	s, err := gev.NewWebSocketServer(handler,
+		gev.Network("tcp"),
+		gev.Address(":"+strconv.Itoa(port)),
+		gev.NumLoops(loops))
+	if err != nil {
+		panic(err)
+	}
+
+	s.Start()
+}
+```
+
+WebSocketHandler 是一个接口，我们的程序必须实现它。
+
+```go
+type WebSocketHandler interface {
+	OnConnect(c *connection.Connection)
+	OnMessage(c *connection.Connection, msg []byte) (ws.MessageType, []byte)
+	OnClose(c *connection.Connection)
+}
+```
+
+WebSocket 相关的接口和 TCP 服务基本相同，主要区别在 `OnMessage` 。
+
+```go
+func (c *Connection) SendWebsocketData(messageType ws.MessageType, buffer []byte) error
+func (c *Connection) CloseWebsocket(reason string) error
+```
+
+因为 WebSocket 协议其实是构建在 TCP 协议之上的，所以提供了 `SendWebsocketData` 和 `CloseWebsocket` 。
 
 ## 示例
 
@@ -390,6 +479,75 @@ func main() {
 		panic(err)
 	}
 	defer s.Stop()
+
+	s.Start()
+}
+```
+
+</details>
+
+<details>
+  <summary> WebSocket </summary>
+
+```go
+package main
+
+import (
+	"flag"
+	"github.com/Allenxuxu/gev/ws"
+	"log"
+	"math/rand"
+	"strconv"
+
+	"github.com/Allenxuxu/gev"
+	"github.com/Allenxuxu/gev/connection"
+)
+
+type example struct{}
+
+func (s *example) OnConnect(c *connection.Connection) {
+	log.Println(" OnConnect ： ", c.PeerAddr())
+}
+func (s *example) OnMessage(c *connection.Connection, data []byte) (messageType ws.MessageType, out []byte) {
+	log.Println("OnMessage:", string(data))
+	messageType = ws.MessageBinary
+	switch rand.Int() % 3 {
+	case 0:
+		out = data
+	case 1:
+		if err := c.SendWebsocketData(ws.MessageText, data); err != nil {
+			if e := c.CloseWebsocket(err.Error()); e != nil {
+				panic(e)
+			}
+		}
+	case 2:
+		if e := c.CloseWebsocket("close"); e != nil {
+			panic(e)
+		}
+	}
+	return
+}
+
+func (s *example) OnClose(c *connection.Connection) {
+	log.Println("OnClose")
+}
+
+func main() {
+	handler := new(example)
+	var port int
+	var loops int
+
+	flag.IntVar(&port, "port", 1833, "server port")
+	flag.IntVar(&loops, "loops", -1, "num loops")
+	flag.Parse()
+
+	s, err := gev.NewWebSocketServer(handler,
+		gev.Network("tcp"),
+		gev.Address(":"+strconv.Itoa(port)),
+		gev.NumLoops(loops))
+	if err != nil {
+		panic(err)
+	}
 
 	s.Start()
 }
