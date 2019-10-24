@@ -75,6 +75,7 @@ func NumLoops(n int) Option {
 	}
 }
 
+// Upgrade websocket
 func Upgrade(u *ws.Upgrader) Option {
 	return func(o *Options) {
 		o.Upgrade = u

@@ -16,7 +16,9 @@ import (
 type MessageType int
 
 const (
+	// MessageText Text
 	MessageText MessageType = iota + 1
+	// MessageBinary Binary
 	MessageBinary
 )
 

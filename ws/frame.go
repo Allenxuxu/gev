@@ -270,6 +270,7 @@ func PutCloseFrameBody(p []byte, code StatusCode, reason string) {
 	copy(p[2:], reason)
 }
 
+// FrameToBytes return bytes
 func FrameToBytes(f *Frame) (ret []byte, err error) {
 	ret, err = WriteHeader(&f.Header)
 	ret = append(ret, f.Payload...)
