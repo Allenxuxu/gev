@@ -65,6 +65,8 @@ func HandleWebSocket(c *connection.Connection, buffer *ringbuffer.RingBuffer,
 				return
 			}
 		}
+	} else {
+		buffer.VirtualRevert()
 	}
 
 	return
