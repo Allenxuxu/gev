@@ -1,6 +1,9 @@
 package gev
 
-import "time"
+import (
+	"github.com/Allenxuxu/gev/ws"
+	"time"
+)
 
 // Options 服务配置
 type Options struct {
@@ -11,6 +14,8 @@ type Options struct {
 
 	tick      time.Duration
 	wheelSize int64
+
+	Upgrade *ws.Upgrader
 }
 
 // Option ...
@@ -34,6 +39,9 @@ func newOptions(opt ...Option) *Options {
 	}
 	if opts.wheelSize == 0 {
 		opts.wheelSize = 1000
+	}
+	if opts.Upgrade == nil {
+		opts.Upgrade = &ws.Upgrader{}
 	}
 
 	return &opts
@@ -64,5 +72,12 @@ func Address(a string) Option {
 func NumLoops(n int) Option {
 	return func(o *Options) {
 		o.NumLoops = n
+	}
+}
+
+// Upgrade websocket
+func Upgrade(u *ws.Upgrader) Option {
+	return func(o *Options) {
+		o.Upgrade = u
 	}
 }

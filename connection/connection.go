@@ -30,6 +30,8 @@ type Connection struct {
 	loop          *eventloop.EventLoop
 	peerAddr      string
 	ctx           interface{}
+
+	Upgraded bool // WebSocket
 }
 
 // New 创建 Connection
