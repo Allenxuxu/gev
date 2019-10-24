@@ -13,15 +13,16 @@ import (
 func HandleWebSocket(c *connection.Connection, buffer *ringbuffer.RingBuffer,
 	handler func(*connection.Connection, []byte) (ws.MessageType, []byte)) (out []byte) {
 
-	header, err := ws.ReadHeader(buffer)
+	header, err := ws.VirtualReadHeader(buffer)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	if buffer.Length() >= int(header.Length) {
+		buffer.VirtualFlush()
+
 		payload := make([]byte, int(header.Length))
 		_, _ = buffer.Read(payload)
-		buffer.Retrieve(int(header.Length))
 
 		if header.Masked {
 			ws.Cipher(payload, header.Mask, 0)

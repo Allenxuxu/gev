@@ -15,8 +15,8 @@ var (
 	ErrHeaderNotReady         = fmt.Errorf("header error: not enough")
 )
 
-// ReadHeader reads a frame header from r.
-func ReadHeader(in *ringbuffer.RingBuffer) (h Header, err error) {
+// VirtualReadHeader reads a frame header from r.
+func VirtualReadHeader(in *ringbuffer.RingBuffer) (h Header, err error) {
 	if in.Length() < 6 {
 		err = ErrHeaderNotReady
 		return
@@ -24,7 +24,7 @@ func ReadHeader(in *ringbuffer.RingBuffer) (h Header, err error) {
 
 	bts := make([]byte, 2, MaxHeaderSize-2)
 	// Prepare to hold first 2 bytes to choose size of next read.
-	_, _ = in.Read(bts)
+	_, _ = in.VirtualRead(bts)
 
 	h.Fin = bts[0]&bit0 != 0
 	h.Rsv = (bts[0] & 0x70) >> 4
@@ -60,7 +60,7 @@ func ReadHeader(in *ringbuffer.RingBuffer) (h Header, err error) {
 	// Increase len of bts to extra bytes need to read.
 	// Overwrite first 2 bytes that was read before.
 	bts = bts[:extra]
-	_, _ = in.Read(bts)
+	_, _ = in.VirtualRead(bts)
 
 	switch {
 	case length == 126:
