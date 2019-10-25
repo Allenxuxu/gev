@@ -18,7 +18,7 @@ func HandleWebSocket(c *connection.Connection, buffer *ringbuffer.RingBuffer,
 		log.Println(err)
 		return
 	}
-	if buffer.Length() >= int(header.Length) {
+	if buffer.VirtualLength() >= int(header.Length) {
 		buffer.VirtualFlush()
 
 		payload := make([]byte, int(header.Length))
