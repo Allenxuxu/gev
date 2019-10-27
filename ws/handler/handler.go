@@ -6,6 +6,7 @@ import (
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/ws"
 	"github.com/Allenxuxu/ringbuffer"
+	"github.com/gobwas/pool/pbytes"
 	"unicode/utf8"
 )
 
@@ -21,7 +22,9 @@ func HandleWebSocket(c *connection.Connection, buffer *ringbuffer.RingBuffer,
 	if buffer.VirtualLength() >= int(header.Length) {
 		buffer.VirtualFlush()
 
-		payload := make([]byte, int(header.Length))
+		//payload := make([]byte, int(header.Length))
+		payload := pbytes.GetLen(int(header.Length))
+		defer pbytes.Put(payload)
 		_, _ = buffer.Read(payload)
 
 		if header.Masked {
