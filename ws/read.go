@@ -23,7 +23,6 @@ func VirtualReadHeader(in *ringbuffer.RingBuffer) (h Header, err error) {
 		return
 	}
 
-	// bts := make([]byte, 2, MaxHeaderSize-2)
 	bts := pbytes.Get(2, MaxHeaderSize-2)
 	defer pbytes.Put(bts)
 	// Prepare to hold first 2 bytes to choose size of next read.
