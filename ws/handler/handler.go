@@ -2,12 +2,12 @@ package handler
 
 import (
 	"log"
+	"unicode/utf8"
 
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/ws"
 	"github.com/Allenxuxu/ringbuffer"
 	"github.com/gobwas/pool/pbytes"
-	"unicode/utf8"
 )
 
 // HandleWebSocket 处理 WebSocket 信息
@@ -22,7 +22,6 @@ func HandleWebSocket(c *connection.Connection, buffer *ringbuffer.RingBuffer,
 	if buffer.VirtualLength() >= int(header.Length) {
 		buffer.VirtualFlush()
 
-		//payload := make([]byte, int(header.Length))
 		payload := pbytes.GetLen(int(header.Length))
 		defer pbytes.Put(payload)
 		_, _ = buffer.Read(payload)
