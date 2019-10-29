@@ -1,6 +1,7 @@
 package gev
 
 import (
+	"github.com/Allenxuxu/gev/datapacket"
 	"github.com/Allenxuxu/gev/ws"
 	"time"
 )
@@ -15,7 +16,8 @@ type Options struct {
 	tick      time.Duration
 	wheelSize int64
 
-	Upgrade *ws.Upgrader
+	DataPacket datapacket.DataPacket
+	Upgrade    *ws.Upgrader
 }
 
 // Option ...
@@ -42,6 +44,9 @@ func newOptions(opt ...Option) *Options {
 	}
 	if opts.Upgrade == nil {
 		opts.Upgrade = &ws.Upgrader{}
+	}
+	if opts.DataPacket == nil {
+		opts.DataPacket = &datapacket.DefaultDataPack{}
 	}
 
 	return &opts
@@ -79,5 +84,12 @@ func NumLoops(n int) Option {
 func Upgrade(u *ws.Upgrader) Option {
 	return func(o *Options) {
 		o.Upgrade = u
+	}
+}
+
+// DataPacket 数据包处理
+func DataPacket(d datapacket.DataPacket) Option {
+	return func(o *Options) {
+		o.DataPacket = d
 	}
 }

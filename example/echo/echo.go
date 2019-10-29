@@ -6,7 +6,6 @@ import (
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/ringbuffer"
 )
 
 type example struct{}
@@ -14,14 +13,9 @@ type example struct{}
 func (s *example) OnConnect(c *connection.Connection) {
 	//log.Println(" OnConnect ： ", c.PeerAddr())
 }
-func (s *example) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) (out []byte) {
+func (s *example) OnMessage(c *connection.Connection, data []byte) (out []byte) {
 	//log.Println("OnMessage")
-	first, end := buffer.PeekAll()
-	out = first
-	if len(end) > 0 {
-		out = append(out, end...)
-	}
-	buffer.RetrieveAll()
+	out = data
 	return
 }
 

@@ -6,6 +6,7 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/Allenxuxu/gev/datapacket"
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/Allenxuxu/ringbuffer"
@@ -14,7 +15,7 @@ import (
 )
 
 // ReadCallback 数据可读回调函数
-type ReadCallback func(c *Connection, buffer *ringbuffer.RingBuffer) []byte
+type ReadCallback func(c *Connection, data []byte) []byte
 
 // CloseCallback 关闭回调函数
 type CloseCallback func(c *Connection)
@@ -31,11 +32,12 @@ type Connection struct {
 	peerAddr      string
 	ctx           interface{}
 
-	Upgraded bool // WebSocket
+	Upgraded   bool // WebSocket
+	dataPacket datapacket.DataPacket
 }
 
 // New 创建 Connection
-func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, readCb ReadCallback, closeCb CloseCallback) *Connection {
+func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, dataPacket datapacket.DataPacket, readCb ReadCallback, closeCb CloseCallback) *Connection {
 	conn := &Connection{
 		fd:            fd,
 		peerAddr:      sockaddrToString(sa),
@@ -44,6 +46,7 @@ func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, readCb ReadCallba
 		readCallback:  readCb,
 		closeCallback: closeCb,
 		loop:          loop,
+		dataPacket:    dataPacket,
 	}
 	conn.connected.Set(true)
 
@@ -77,7 +80,7 @@ func (c *Connection) Send(buffer []byte) error {
 	}
 
 	c.loop.QueueInLoop(func() {
-		c.sendInLoop(buffer)
+		c.sendInLoop(c.dataPacket.Packet(buffer))
 	})
 	return nil
 }
@@ -104,20 +107,16 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 	}
 }
 
-//func debug(events poller.Event) string {
-//	var ret string
-//	if events&poller.EventErr != 0 {
-//		ret += "EventErr "
-//	}
-//	if events&poller.EventRead != 0 {
-//		ret += "EventRead "
-//	}
-//	if events&poller.EventWrite != 0 {
-//		ret += "EventWrite "
-//	}
-//
-//	return ret
-//}
+func (c *Connection) handlerDataPatch(buffer *ringbuffer.RingBuffer) []byte {
+	receivedData := c.dataPacket.UnPacket(buffer)
+	if len(receivedData) != 0 {
+		sendData := c.readCallback(c, receivedData)
+		if len(sendData) > 0 {
+			return c.dataPacket.Packet(sendData)
+		}
+	}
+	return nil
+}
 
 func (c *Connection) handleRead(fd int) {
 	// TODO 避免这次内存拷贝
@@ -132,7 +131,7 @@ func (c *Connection) handleRead(fd int) {
 
 	if c.inBuffer.Length() == 0 {
 		buffer := ringbuffer.NewWithData(buf[:n])
-		out := c.readCallback(c, buffer)
+		out := c.handlerDataPatch(buffer)
 
 		if buffer.Length() > 0 {
 			first, _ := buffer.PeekAll()
@@ -143,7 +142,7 @@ func (c *Connection) handleRead(fd int) {
 		}
 	} else {
 		_, _ = c.inBuffer.Write(buf[:n])
-		out := c.readCallback(c, c.inBuffer)
+		out := c.handlerDataPatch(c.inBuffer)
 		if len(out) != 0 {
 			c.sendInLoop(out)
 		}

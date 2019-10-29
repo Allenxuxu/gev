@@ -5,7 +5,6 @@ import (
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/ringbuffer"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 )
 
@@ -53,14 +52,9 @@ func (s *Server) OnConnect(c *connection.Connection) {
 }
 
 // OnMessage callback
-func (s *Server) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) (out []byte) {
+func (s *Server) OnMessage(c *connection.Connection, data []byte) (out []byte) {
 	log.Println("OnMessage")
-	first, end := buffer.PeekAll()
-	out = first
-	if len(end) > 0 {
-		out = append(out, end...)
-	}
-	buffer.RetrieveAll()
+	out = data
 	return
 }
 
