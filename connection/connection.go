@@ -6,7 +6,6 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/Allenxuxu/gev/datapacket"
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/Allenxuxu/ringbuffer"
@@ -33,11 +32,11 @@ type Connection struct {
 	ctx           interface{}
 
 	Upgraded   bool // WebSocket
-	dataPacket datapacket.DataPacket
+	dataPacket DataPacket
 }
 
 // New 创建 Connection
-func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, dataPacket datapacket.DataPacket, readCb ReadCallback, closeCb CloseCallback) *Connection {
+func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, dataPacket DataPacket, readCb ReadCallback, closeCb CloseCallback) *Connection {
 	conn := &Connection{
 		fd:            fd,
 		peerAddr:      sockaddrToString(sa),
@@ -80,7 +79,7 @@ func (c *Connection) Send(buffer []byte) error {
 	}
 
 	c.loop.QueueInLoop(func() {
-		c.sendInLoop(c.dataPacket.Packet(buffer))
+		c.sendInLoop(c.dataPacket.Packet(c, buffer))
 	})
 	return nil
 }
@@ -108,11 +107,11 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 }
 
 func (c *Connection) handlerDataPatch(buffer *ringbuffer.RingBuffer) []byte {
-	receivedData := c.dataPacket.UnPacket(buffer)
+	receivedData := c.dataPacket.UnPacket(c, buffer)
 	if len(receivedData) != 0 {
 		sendData := c.readCallback(c, receivedData)
 		if len(sendData) > 0 {
-			return c.dataPacket.Packet(sendData)
+			return c.dataPacket.Packet(c, sendData)
 		}
 	}
 	return nil

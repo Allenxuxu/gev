@@ -1,7 +1,7 @@
 package gev
 
 import (
-	"github.com/Allenxuxu/gev/datapacket"
+	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/ws"
 	"time"
 )
@@ -16,7 +16,7 @@ type Options struct {
 	tick      time.Duration
 	wheelSize int64
 
-	DataPacket datapacket.DataPacket
+	DataPacket connection.DataPacket
 	Upgrade    *ws.Upgrader
 }
 
@@ -46,7 +46,7 @@ func newOptions(opt ...Option) *Options {
 		opts.Upgrade = &ws.Upgrader{}
 	}
 	if opts.DataPacket == nil {
-		opts.DataPacket = &datapacket.DefaultDataPack{}
+		opts.DataPacket = &connection.DefaultDataPack{}
 	}
 
 	return &opts
@@ -88,7 +88,7 @@ func Upgrade(u *ws.Upgrader) Option {
 }
 
 // DataPacket 数据包处理
-func DataPacket(d datapacket.DataPacket) Option {
+func DataPacket(d connection.DataPacket) Option {
 	return func(o *Options) {
 		o.DataPacket = d
 	}
