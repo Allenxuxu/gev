@@ -2,7 +2,7 @@ package gev
 
 import (
 	"github.com/Allenxuxu/gev/plugins/websocket"
-	"github.com/Allenxuxu/gev/ws"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 )
 
 // NewWebSocketServer 创建 WebSocket Server

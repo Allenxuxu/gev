@@ -3,7 +3,7 @@ package handler
 import (
 	"unicode/utf8"
 
-	"github.com/Allenxuxu/gev/ws"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 )
 
 //// HandleWebSocket 处理 WebSocket 信息

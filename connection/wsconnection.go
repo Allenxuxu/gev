@@ -3,7 +3,7 @@ package connection
 import (
 	"errors"
 
-	"github.com/Allenxuxu/gev/ws"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 )
 
 // SendWebsocketData 发送 websocket message

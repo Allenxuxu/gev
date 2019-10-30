@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/gev/ws"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"github.com/Allenxuxu/toolkit/sync"
 	"golang.org/x/net/websocket"
 )

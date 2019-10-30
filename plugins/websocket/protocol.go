@@ -2,7 +2,7 @@ package websocket
 
 import (
 	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/gev/ws"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"github.com/Allenxuxu/ringbuffer"
 	"log"
 )
