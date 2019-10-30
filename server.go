@@ -16,7 +16,7 @@ import (
 // Handler Server 注册接口
 type Handler interface {
 	OnConnect(c *connection.Connection)
-	OnMessage(c *connection.Connection, data []byte) []byte
+	OnMessage(c *connection.Connection, ctx interface{}, data []byte) []byte
 	OnClose(c *connection.Connection)
 }
 
@@ -95,7 +95,7 @@ func (s *Server) nextLoop() *eventloop.EventLoop {
 func (s *Server) handleNewConnection(fd int, sa *unix.Sockaddr) {
 	loop := s.nextLoop()
 
-	c := connection.New(fd, loop, sa, s.opts.DataPacket, s.callback.OnMessage, s.callback.OnClose)
+	c := connection.New(fd, loop, sa, s.opts.Protocol, s.callback.OnMessage, s.callback.OnClose)
 
 	_ = loop.AddSocketAndEnableRead(fd, c)
 

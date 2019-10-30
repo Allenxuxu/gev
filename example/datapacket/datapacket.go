@@ -9,9 +9,9 @@ import (
 
 const exampleHeaderLen = 4
 
-type ExampleDataPack struct{}
+type ExampleProtocol struct{}
 
-func (d *ExampleDataPack) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuffer) []byte {
+func (d *ExampleProtocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuffer) (interface{}, []byte) {
 	if buffer.VirtualLength() > exampleHeaderLen {
 		buf := pbytes.GetLen(exampleHeaderLen)
 		defer pbytes.Put(buf)
@@ -23,15 +23,15 @@ func (d *ExampleDataPack) UnPacket(c *connection.Connection, buffer *ringbuffer.
 			_, _ = buffer.VirtualRead(ret)
 
 			buffer.VirtualFlush()
-			return ret
+			return nil, ret
 		} else {
 			buffer.VirtualRevert()
 		}
 	}
-	return nil
+	return nil, nil
 }
 
-func (d *ExampleDataPack) Packet(c *connection.Connection, data []byte) []byte {
+func (d *ExampleProtocol) Packet(c *connection.Connection, data []byte) []byte {
 	dataLen := len(data)
 	ret := make([]byte, exampleHeaderLen+dataLen)
 	binary.BigEndian.PutUint32(ret, uint32(dataLen))

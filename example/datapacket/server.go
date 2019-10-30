@@ -14,7 +14,7 @@ type example struct{}
 func (s *example) OnConnect(c *connection.Connection) {
 	log.Println(" OnConnect ： ", c.PeerAddr())
 }
-func (s *example) OnMessage(c *connection.Connection, data []byte) (out []byte) {
+func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
 	log.Println("OnMessage：", data)
 	out = data
 	return
@@ -37,7 +37,7 @@ func main() {
 		gev.Network("tcp"),
 		gev.Address(":"+strconv.Itoa(port)),
 		gev.NumLoops(loops),
-		gev.DataPacket(&ExampleDataPack{}))
+		gev.Protocol(&ExampleProtocol{}))
 	if err != nil {
 		panic(err)
 	}

@@ -14,7 +14,7 @@ import (
 )
 
 // ReadCallback 数据可读回调函数
-type ReadCallback func(c *Connection, data []byte) []byte
+type ReadCallback func(c *Connection, ctx interface{}, data []byte) []byte
 
 // CloseCallback 关闭回调函数
 type CloseCallback func(c *Connection)
@@ -32,11 +32,11 @@ type Connection struct {
 	ctx           interface{}
 
 	Upgraded   bool // WebSocket
-	dataPacket DataPacket
+	dataPacket Protocol
 }
 
 // New 创建 Connection
-func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, dataPacket DataPacket, readCb ReadCallback, closeCb CloseCallback) *Connection {
+func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, dataPacket Protocol, readCb ReadCallback, closeCb CloseCallback) *Connection {
 	conn := &Connection{
 		fd:            fd,
 		peerAddr:      sockaddrToString(sa),
@@ -106,10 +106,10 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 	}
 }
 
-func (c *Connection) handlerDataPatch(buffer *ringbuffer.RingBuffer) []byte {
-	receivedData := c.dataPacket.UnPacket(c, buffer)
-	if len(receivedData) != 0 {
-		sendData := c.readCallback(c, receivedData)
+func (c *Connection) handlerProtocol(buffer *ringbuffer.RingBuffer) []byte {
+	ctx, receivedData := c.dataPacket.UnPacket(c, buffer)
+	if ctx != nil || len(receivedData) != 0 {
+		sendData := c.readCallback(c, ctx, receivedData)
 		if len(sendData) > 0 {
 			return c.dataPacket.Packet(c, sendData)
 		}
@@ -130,7 +130,7 @@ func (c *Connection) handleRead(fd int) {
 
 	if c.inBuffer.Length() == 0 {
 		buffer := ringbuffer.NewWithData(buf[:n])
-		out := c.handlerDataPatch(buffer)
+		out := c.handlerProtocol(buffer)
 
 		if buffer.Length() > 0 {
 			first, _ := buffer.PeekAll()
@@ -141,7 +141,7 @@ func (c *Connection) handleRead(fd int) {
 		}
 	} else {
 		_, _ = c.inBuffer.Write(buf[:n])
-		out := c.handlerDataPatch(c.inBuffer)
+		out := c.handlerProtocol(c.inBuffer)
 		if len(out) != 0 {
 			c.sendInLoop(out)
 		}

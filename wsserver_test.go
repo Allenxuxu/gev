@@ -45,7 +45,7 @@ func (s *wsExample) OnClose(c *connection.Connection) {
 func TestWebSocketServer_Start(t *testing.T) {
 	handler := new(wsExample)
 
-	s, err := NewWebSocketServer(handler,
+	s, err := NewWebSocketServer(handler, &ws.Upgrader{},
 		Address(":1834"),
 		NumLoops(8),
 		ReusePort(true))
