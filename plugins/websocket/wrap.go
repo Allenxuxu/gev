@@ -44,18 +44,18 @@ func (s *handlerWrap) OnMessage(c *connection.Connection, ctx interface{}, paylo
 			)
 			switch header.OpCode {
 			case ws.OpClose:
-				out, err = handler.HandlerClose(header, payload)
+				out, err = handler.HandleClose(header, payload)
 				if err != nil {
 					log.Println(err)
 				}
 				_ = c.ShutdownWrite()
 			case ws.OpPing:
-				out, err = handler.HandlerPing(payload)
+				out, err = handler.HandlePing(payload)
 				if err != nil {
 					log.Println(err)
 				}
 			case ws.OpPong:
-				out, err = handler.HandlerPong(payload)
+				out, err = handler.HandlePong(payload)
 				if err != nil {
 					log.Println(err)
 				}

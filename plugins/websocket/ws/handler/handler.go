@@ -6,71 +6,7 @@ import (
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 )
 
-//// HandleWebSocket 处理 WebSocket 信息
-//func HandleWebSocket(c *connection.Connection, buffer *ringbuffer.RingBuffer,
-//	handler func(*connection.Connection, []byte) (ws.MessageType, []byte)) (out []byte) {
-//
-//	header, err := ws.VirtualReadHeader(buffer)
-//	if err != nil {
-//		log.Println(err)
-//		return
-//	}
-//	if buffer.VirtualLength() >= int(header.Length) {
-//		buffer.VirtualFlush()
-//
-//		payload := pbytes.GetLen(int(header.Length))
-//		defer pbytes.Put(payload)
-//		_, _ = buffer.Read(payload)
-//
-//		if header.Masked {
-//			ws.Cipher(payload, header.Mask, 0)
-//		}
-//
-//		if header.OpCode.IsControl() {
-//			switch header.OpCode {
-//			case ws.OpClose:
-//				out, err = handlerClose(&header, payload)
-//				if err != nil {
-//					log.Println(err)
-//				}
-//				_ = c.ShutdownWrite()
-//			case ws.OpPing:
-//				out, err = handlerPing(payload)
-//				if err != nil {
-//					log.Println(err)
-//				}
-//			case ws.OpPong:
-//				out, err = handlerPong(payload)
-//				if err != nil {
-//					log.Println(err)
-//				}
-//			}
-//			return
-//		}
-//
-//		messageType, data := handler(c, payload)
-//		if len(data) > 0 {
-//			var frame *ws.Frame
-//			switch messageType {
-//			case ws.MessageBinary:
-//				frame = ws.NewBinaryFrame(data)
-//			case ws.MessageText:
-//				frame = ws.NewTextFrame(data)
-//			}
-//			out, err = ws.FrameToBytes(frame)
-//			if err != nil {
-//				log.Println(err)
-//				return
-//			}
-//		}
-//	} else {
-//		buffer.VirtualRevert()
-//	}
-//
-//	return
-//}
-
-func HandlerClose(h *ws.Header, payload []byte) ([]byte, error) {
+func HandleClose(h *ws.Header, payload []byte) ([]byte, error) {
 	if h.Length == 0 {
 		return ws.WriteHeader(&ws.Header{
 			Fin:    true,
@@ -91,11 +27,11 @@ func HandlerClose(h *ws.Header, payload []byte) ([]byte, error) {
 	return ws.FrameToBytes(ws.NewCloseFrame(ws.NewCloseFrameBody(code, reason)))
 }
 
-func HandlerPing(payload []byte) ([]byte, error) {
+func HandlePing(payload []byte) ([]byte, error) {
 	return ws.FrameToBytes(ws.NewPongFrame(payload))
 }
 
-func HandlerPong(payload []byte) ([]byte, error) {
+func HandlePong(payload []byte) ([]byte, error) {
 	return ws.FrameToBytes(ws.NewPingFrame(payload))
 }
 
