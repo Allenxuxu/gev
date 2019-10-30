@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/Allenxuxu/gev/ws"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"log"
 	"math/rand"
 	"strconv"
