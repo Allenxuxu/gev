@@ -1,10 +1,11 @@
 package websocket
 
 import (
+	"log"
+
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws/handler"
-	"log"
 )
 
 // WebSocketHandler WebSocket Server 注册接口
