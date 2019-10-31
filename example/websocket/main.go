@@ -2,13 +2,14 @@ package main
 
 import (
 	"flag"
-	"github.com/Allenxuxu/gev/ws"
 	"log"
 	"math/rand"
 	"strconv"
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws/util"
 )
 
 type example struct{}
@@ -23,13 +24,25 @@ func (s *example) OnMessage(c *connection.Connection, data []byte) (messageType 
 	case 0:
 		out = data
 	case 1:
-		if err := c.SendWebsocketData(ws.MessageText, data); err != nil {
-			if e := c.CloseWebsocket(err.Error()); e != nil {
+		msg, err := util.PackData(ws.MessageText, data)
+		if err != nil {
+			panic(err)
+		}
+		if err := c.Send(msg); err != nil {
+			msg, err := util.PackCloseData(err.Error())
+			if err != nil {
+				panic(err)
+			}
+			if e := c.Send(msg); e != nil {
 				panic(e)
 			}
 		}
 	case 2:
-		if e := c.CloseWebsocket("close"); e != nil {
+		msg, err := util.PackCloseData("close")
+		if err != nil {
+			panic(err)
+		}
+		if e := c.Send(msg); e != nil {
 			panic(e)
 		}
 	}
@@ -49,7 +62,7 @@ func main() {
 	flag.IntVar(&loops, "loops", -1, "num loops")
 	flag.Parse()
 
-	s, err := gev.NewWebSocketServer(handler,
+	s, err := NewWebSocketServer(handler, &ws.Upgrader{},
 		gev.Network("tcp"),
 		gev.Address(":"+strconv.Itoa(port)),
 		gev.NumLoops(loops))

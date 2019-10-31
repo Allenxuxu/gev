@@ -14,7 +14,7 @@ import (
 )
 
 // ReadCallback 数据可读回调函数
-type ReadCallback func(c *Connection, buffer *ringbuffer.RingBuffer) []byte
+type ReadCallback func(c *Connection, ctx interface{}, data []byte) []byte
 
 // CloseCallback 关闭回调函数
 type CloseCallback func(c *Connection)
@@ -31,11 +31,11 @@ type Connection struct {
 	peerAddr      string
 	ctx           interface{}
 
-	Upgraded bool // WebSocket
+	protocol Protocol
 }
 
 // New 创建 Connection
-func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, readCb ReadCallback, closeCb CloseCallback) *Connection {
+func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, protocol Protocol, readCb ReadCallback, closeCb CloseCallback) *Connection {
 	conn := &Connection{
 		fd:            fd,
 		peerAddr:      sockaddrToString(sa),
@@ -44,6 +44,7 @@ func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, readCb ReadCallba
 		readCallback:  readCb,
 		closeCallback: closeCb,
 		loop:          loop,
+		protocol:      protocol,
 	}
 	conn.connected.Set(true)
 
@@ -77,7 +78,7 @@ func (c *Connection) Send(buffer []byte) error {
 	}
 
 	c.loop.QueueInLoop(func() {
-		c.sendInLoop(buffer)
+		c.sendInLoop(c.protocol.Packet(c, buffer))
 	})
 	return nil
 }
@@ -104,20 +105,16 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 	}
 }
 
-//func debug(events poller.Event) string {
-//	var ret string
-//	if events&poller.EventErr != 0 {
-//		ret += "EventErr "
-//	}
-//	if events&poller.EventRead != 0 {
-//		ret += "EventRead "
-//	}
-//	if events&poller.EventWrite != 0 {
-//		ret += "EventWrite "
-//	}
-//
-//	return ret
-//}
+func (c *Connection) handlerProtocol(buffer *ringbuffer.RingBuffer) []byte {
+	ctx, receivedData := c.protocol.UnPacket(c, buffer)
+	if ctx != nil || len(receivedData) != 0 {
+		sendData := c.readCallback(c, ctx, receivedData)
+		if len(sendData) > 0 {
+			return c.protocol.Packet(c, sendData)
+		}
+	}
+	return nil
+}
 
 func (c *Connection) handleRead(fd int) {
 	// TODO 避免这次内存拷贝
@@ -132,7 +129,7 @@ func (c *Connection) handleRead(fd int) {
 
 	if c.inBuffer.Length() == 0 {
 		buffer := ringbuffer.NewWithData(buf[:n])
-		out := c.readCallback(c, buffer)
+		out := c.handlerProtocol(buffer)
 
 		if buffer.Length() > 0 {
 			first, _ := buffer.PeekAll()
@@ -143,7 +140,7 @@ func (c *Connection) handleRead(fd int) {
 		}
 	} else {
 		_, _ = c.inBuffer.Write(buf[:n])
-		out := c.readCallback(c, c.inBuffer)
+		out := c.handlerProtocol(c.inBuffer)
 		if len(out) != 0 {
 			c.sendInLoop(out)
 		}

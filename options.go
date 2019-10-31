@@ -1,7 +1,7 @@
 package gev
 
 import (
-	"github.com/Allenxuxu/gev/ws"
+	"github.com/Allenxuxu/gev/connection"
 	"time"
 )
 
@@ -15,7 +15,7 @@ type Options struct {
 	tick      time.Duration
 	wheelSize int64
 
-	Upgrade *ws.Upgrader
+	Protocol connection.Protocol
 }
 
 // Option ...
@@ -40,8 +40,8 @@ func newOptions(opt ...Option) *Options {
 	if opts.wheelSize == 0 {
 		opts.wheelSize = 1000
 	}
-	if opts.Upgrade == nil {
-		opts.Upgrade = &ws.Upgrader{}
+	if opts.Protocol == nil {
+		opts.Protocol = &connection.DefaultProtocol{}
 	}
 
 	return &opts
@@ -75,9 +75,9 @@ func NumLoops(n int) Option {
 	}
 }
 
-// Upgrade websocket
-func Upgrade(u *ws.Upgrader) Option {
+// Protocol 数据包处理
+func Protocol(p connection.Protocol) Option {
 	return func(o *Options) {
-		o.Upgrade = u
+		o.Protocol = p
 	}
 }

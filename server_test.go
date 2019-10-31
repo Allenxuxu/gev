@@ -4,14 +4,12 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"net"
 	"testing"
 	"time"
 
 	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/ringbuffer"
 	"github.com/Allenxuxu/toolkit/sync"
 )
 
@@ -20,12 +18,12 @@ type example struct{}
 func (s *example) OnConnect(c *connection.Connection) {
 	//log.Println(" OnConnect ： ", c.PeerAddr())
 }
-func (s *example) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) (out []byte) {
-	//log.Println("OnMessage")
-	outbuf := buffer.Bytes()
-	buffer.RetrieveAll()
 
-	_ = c.Send(outbuf)
+func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
+	//log.Println("OnMessage")
+
+	out = data
+	//c.Send(data)
 	return
 }
 
@@ -55,7 +53,6 @@ func TestServer_Start(t *testing.T) {
 		}
 
 		sw.Wait()
-		log.Println("stop server")
 		s.Stop()
 	}()
 

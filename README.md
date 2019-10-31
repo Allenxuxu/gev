@@ -9,7 +9,7 @@
 
 ### [[English]](README-EN.md)
 
-`gev` 是一个轻量、快速的基于 Reactor 模式的非阻塞 TCP 网络库。
+`gev` 是一个轻量、快速的基于 Reactor 模式的非阻塞 TCP 网络库，支持自定义协议，轻松快速搭建高性能服务器。
 
 ## 特点
 
@@ -20,6 +20,7 @@
 - SO_REUSEPORT 端口重用支持
 - 支持 WebSocket
 - 支持定时任务，延时任务
+- 支持自定义协议，处理 TCP 粘包
 
 ## 网络模型
 
@@ -75,47 +76,46 @@ go get -u github.com/Allenxuxu/gev
 
 ## 快速入门
 
-### TCP
+### echo demo
 
 ```go
 package main
 
 import (
-	"log"
+	"flag"
+	"strconv"
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/ringbuffer"
 )
 
 type example struct{}
 
 func (s *example) OnConnect(c *connection.Connection) {
-	log.Println(" OnConnect ： ", c.PeerAddr())
+	//log.Println(" OnConnect ： ", c.PeerAddr())
 }
-
-func (s *example) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) (out []byte) {
-	log.Println("OnMessage")
-	first, end := buffer.PeekAll()
-	out = first
-	if len(end) > 0 {
-		out = append(out, end...)
-	}
-	buffer.RetrieveAll()
+func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
+	//log.Println("OnMessage")
+	out = data
 	return
 }
 
 func (s *example) OnClose(c *connection.Connection) {
-	log.Println("OnClose")
+	//log.Println("OnClose")
 }
 
 func main() {
 	handler := new(example)
+	var port int
+	var loops int
+
+	flag.IntVar(&port, "port", 1833, "server port")
+	flag.IntVar(&loops, "loops", -1, "num loops")
+	flag.Parse()
 
 	s, err := gev.NewServer(handler,
-		gev.Address(":1833"),
-		gev.NumLoops(2),
-		gev.ReusePort(true))
+		gev.Address(":"+strconv.Itoa(port)),
+		gev.NumLoops(loops))
 	if err != nil {
 		panic(err)
 	}
@@ -129,18 +129,58 @@ Handler 是一个接口，我们的程序必须实现它。
 ```go
 type Handler interface {
 	OnConnect(c *connection.Connection)
-	OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) []byte
+	OnMessage(c *connection.Connection, ctx interface{}, data []byte) []byte
 	OnClose(c *connection.Connection)
 }
 
-func NewServer(handler Handler, opts ...Option) (server *Server, err error) {
+func NewServer(handler Handler, opts ...Option) (server *Server, err error)
 ```
 
-在消息到来时，gev 会回调 OnMessage ，在这个函数中可以通过返回一个切片来发送数据给客户端。
+OnMessage 会在一个完整的数据帧到来时被回调。用户可此可以拿到数据，处理业务逻辑，并返回需要发送的数据。
+
+在有数据到来时，gev 并非立刻回调 OnMessage ，而是会先回调一个 UnPacket 函数。大概执行逻辑如下：
 
 ```go
-func (s *example) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) (out []byte)
+ctx, receivedData := c.protocol.UnPacket(c, buffer)
+if ctx != nil || len(receivedData) != 0 {
+	sendData := c.OnMessage(c, ctx, receivedData)
+	if len(sendData) > 0 {
+		return c.protocol.Packet(c, sendData)
+	}
+}
 ```
+
+UnPacket 函数中会查看 ringbuffer 中的数据是否是一个完整的数据帧，如果是则会将数据拆包并返回 payload 数据；如果还不是一个完整的数据帧，则直接返回。
+
+UnPacket 的返回值 `(interface{}, []byte)` 会作为 OnMessage 的入参 `ctx interface{}, data []byte` 被传入并回调。`ctx` 被设计用来传递在 UnPacket 函数中解析数据帧时生成的特殊信息（复杂的数据帧协议会需要），`data` 则是用来传递 payload 数据。
+
+```go
+type Protocol interface {
+	UnPacket(c *Connection, buffer *ringbuffer.RingBuffer) (interface{}, []byte)
+	Packet(c *Connection, data []byte) []byte
+}
+
+type DefaultProtocol struct{}
+
+func (d *DefaultProtocol) UnPacket(c *Connection, buffer *ringbuffer.RingBuffer) (interface{}, []byte) {
+	ret := buffer.Bytes()
+	buffer.RetrieveAll()
+	return nil, ret
+}
+
+func (d *DefaultProtocol) Packet(c *Connection, data []byte) []byte {
+	return data
+}
+```
+
+如上，`gev` 提供一个默认的 Protocol 实现，会将接受缓冲区中( ringbuffer )的所有数据取出。
+在实际使用中，通常会有自己的数据帧协议，`gev` 可以以插件的形式来设置：在创建 Server 的时候通过可变参数设置。
+
+```go
+s, err := gev.NewServer(handler,gev.Protocol(&ExampleProtocol{}))
+```
+
+更详细的使用方式可以参考示例：[自定义协议](example/protocol)
 
 Connection 还提供 Send 方法来发送数据。Send 并不会立刻发送数据，而是先添加到 event loop 的任务队列中，然后唤醒 event loop 去发送。
 
@@ -160,90 +200,60 @@ func (c *Connection) ShutdownWrite() error
 
 [RingBuffer](https://github.com/Allenxuxu/ringbuffer) 是一个动态扩容的循环缓冲区实现。
 
-### WebSocket
+### WebSocket 支持
+
+WebSocket 协议构建在 TCP 协议之上的，所以 `gev` 无需内置它，而是通过插件的形式提供支持，在 `plugins/websocket` 目录。
 
 ```go
-package main
-
-import (
-	"flag"
-	"github.com/Allenxuxu/gev/ws"
-	"log"
-	"math/rand"
-	"strconv"
-
-	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/connection"
-)
-
-type example struct{}
-
-func (s *example) OnConnect(c *connection.Connection) {
-	log.Println(" OnConnect ： ", c.PeerAddr())
+type Protocol struct {
+	upgrade *ws.Upgrader
 }
-func (s *example) OnMessage(c *connection.Connection, data []byte) (messageType ws.MessageType, out []byte) {
-	log.Println("OnMessage:", string(data))
-	messageType = ws.MessageBinary
-	switch rand.Int() % 3 {
-	case 0:
-		out = data
-	case 1:
-		if err := c.SendWebsocketData(ws.MessageText, data); err != nil {
-			if e := c.CloseWebsocket(err.Error()); e != nil {
-				panic(e)
-			}
+
+func New(u *ws.Upgrader) *Protocol {
+	return &Protocol{upgrade: u}
+}
+
+func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuffer) (ctx interface{}, out []byte) {
+	upgraded := c.Context()
+	if upgraded == nil {
+		var err error
+		out, _, err = p.upgrade.Upgrade(buffer)
+		if err != nil {
+			log.Println("Websocket Upgrade :", err)
+			return
 		}
-	case 2:
-		if e := c.CloseWebsocket("close"); e != nil {
-			panic(e)
+		c.SetContext(true)
+	} else {
+		header, err := ws.VirtualReadHeader(buffer)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		if buffer.VirtualLength() >= int(header.Length) {
+			buffer.VirtualFlush()
+
+			payload := make([]byte, int(header.Length))
+			_, _ = buffer.Read(payload)
+
+			if header.Masked {
+				ws.Cipher(payload, header.Mask, 0)
+			}
+
+			ctx = &header
+			out = payload
+		} else {
+			buffer.VirtualRevert()
 		}
 	}
 	return
 }
 
-func (s *example) OnClose(c *connection.Connection) {
-	log.Println("OnClose")
-}
-
-func main() {
-	handler := new(example)
-	var port int
-	var loops int
-
-	flag.IntVar(&port, "port", 1833, "server port")
-	flag.IntVar(&loops, "loops", -1, "num loops")
-	flag.Parse()
-
-	s, err := gev.NewWebSocketServer(handler,
-		gev.Network("tcp"),
-		gev.Address(":"+strconv.Itoa(port)),
-		gev.NumLoops(loops))
-	if err != nil {
-		panic(err)
-	}
-
-	s.Start()
+func (p *Protocol) Packet(c *connection.Connection, data []byte) []byte {
+	return data
 }
 ```
 
-WebSocketHandler 是一个接口，我们的程序必须实现它。
-
-```go
-type WebSocketHandler interface {
-	OnConnect(c *connection.Connection)
-	OnMessage(c *connection.Connection, msg []byte) (ws.MessageType, []byte)
-	OnClose(c *connection.Connection)
-}
-```
-
-WebSocket 相关的接口和 TCP 服务基本相同，主要区别在 `OnMessage` 。
-
-```go
-func (c *Connection) SendWebsocketData(messageType ws.MessageType, buffer []byte) error
-func (c *Connection) CloseWebsocket(reason string) error
-```
-
-因为 WebSocket 协议其实是构建在 TCP 协议之上的，所以提供了 `SendWebsocketData` 和 `CloseWebsocket` 。
+详细实现可以插件实现查看 [源码](plugins/websocket)，使用方式可以查看 websocket [示例](example/websocket)
 
 ## 示例
 
@@ -256,31 +266,24 @@ package main
 import (
 	"flag"
 	"strconv"
-	"log"
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/ringbuffer"
 )
 
 type example struct{}
 
 func (s *example) OnConnect(c *connection.Connection) {
-	log.Println(" OnConnect ： ", c.PeerAddr())
+	//log.Println(" OnConnect ： ", c.PeerAddr())
 }
-func (s *example) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) (out []byte) {
+func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
 	//log.Println("OnMessage")
-	first, end := buffer.PeekAll()
-	out = first
-	if len(end) > 0 {
-		out = append(out, end...)
-	}
-	buffer.RetrieveAll()
+	out = data
 	return
 }
 
-func (s *example) OnClose() {
-	log.Println("OnClose")
+func (s *example) OnClose(c *connection.Connection) {
+	//log.Println("OnClose")
 }
 
 func main() {
@@ -317,16 +320,17 @@ import (
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/ringbuffer"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 )
 
+// Server example
 type Server struct {
 	clientNum     atomic.Int64
 	maxConnection int64
 	server        *gev.Server
 }
 
+// New server
 func New(ip, port string, maxConnection int64) (*Server, error) {
 	var err error
 	s := new(Server)
@@ -340,14 +344,17 @@ func New(ip, port string, maxConnection int64) (*Server, error) {
 	return s, nil
 }
 
+// Start server
 func (s *Server) Start() {
 	s.server.Start()
 }
 
+// Stop server
 func (s *Server) Stop() {
 	s.server.Stop()
 }
 
+// OnConnect callback
 func (s *Server) OnConnect(c *connection.Connection) {
 	s.clientNum.Add(1)
 	log.Println(" OnConnect ： ", c.PeerAddr())
@@ -358,18 +365,16 @@ func (s *Server) OnConnect(c *connection.Connection) {
 		return
 	}
 }
-func (s *Server) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) (out []byte) {
+
+// OnMessage callback
+func (s *Server) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
 	log.Println("OnMessage")
-	first, end := buffer.PeekAll()
-	out = first
-	if len(end) > 0 {
-		out = append(out, end...)
-	}
-	buffer.RetrieveAll()
+	out = data
 	return
 }
 
-func (s *Server) OnClose() {
+// OnClose callback
+func (s *Server) OnClose(c *connection.Connection) {
 	s.clientNum.Add(-1)
 	log.Println("OnClose")
 }
@@ -397,18 +402,19 @@ import (
 	"container/list"
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/ringbuffer"
 	"log"
 	"sync"
 	"time"
 )
 
+// Server example
 type Server struct {
 	conn   *list.List
 	mu     sync.RWMutex
 	server *gev.Server
 }
 
+// New server
 func New(ip, port string) (*Server, error) {
 	var err error
 	s := new(Server)
@@ -422,15 +428,18 @@ func New(ip, port string) (*Server, error) {
 	return s, nil
 }
 
+// Start server
 func (s *Server) Start() {
 	s.server.RunEvery(1*time.Second, s.RunPush)
 	s.server.Start()
 }
 
+// Stop server
 func (s *Server) Stop() {
 	s.server.Stop()
 }
 
+// RunPush push message
 func (s *Server) RunPush() {
 	var next *list.Element
 
@@ -445,6 +454,7 @@ func (s *Server) RunPush() {
 	}
 }
 
+// OnConnect callback
 func (s *Server) OnConnect(c *connection.Connection) {
 	log.Println(" OnConnect ： ", c.PeerAddr())
 
@@ -453,17 +463,15 @@ func (s *Server) OnConnect(c *connection.Connection) {
 	s.mu.Unlock()
 	c.SetContext(e)
 }
-func (s *Server) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) (out []byte) {
+
+// OnMessage callback
+func (s *Server) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
 	log.Println("OnMessage")
-	first, end := buffer.PeekAll()
-	out = first
-	if len(end) > 0 {
-		out = append(out, end...)
-	}
-	buffer.RetrieveAll()
+	out = data
 	return
 }
 
+// OnClose callback
 func (s *Server) OnClose(c *connection.Connection) {
 	log.Println("OnClose")
 	e := c.Context().(*list.Element)
@@ -494,13 +502,14 @@ package main
 
 import (
 	"flag"
-	"github.com/Allenxuxu/gev/ws"
 	"log"
 	"math/rand"
 	"strconv"
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws/util"
 )
 
 type example struct{}
@@ -515,13 +524,25 @@ func (s *example) OnMessage(c *connection.Connection, data []byte) (messageType 
 	case 0:
 		out = data
 	case 1:
-		if err := c.SendWebsocketData(ws.MessageText, data); err != nil {
-			if e := c.CloseWebsocket(err.Error()); e != nil {
+		msg, err := util.PackData(ws.MessageText, data)
+		if err != nil {
+			panic(err)
+		}
+		if err := c.Send(msg); err != nil {
+			msg, err := util.PackCloseData(err.Error())
+			if err != nil {
+				panic(err)
+			}
+			if e := c.Send(msg); e != nil {
 				panic(e)
 			}
 		}
 	case 2:
-		if e := c.CloseWebsocket("close"); e != nil {
+		msg, err := util.PackCloseData("close")
+		if err != nil {
+			panic(err)
+		}
+		if e := c.Send(msg); e != nil {
 			panic(e)
 		}
 	}
@@ -541,7 +562,7 @@ func main() {
 	flag.IntVar(&loops, "loops", -1, "num loops")
 	flag.Parse()
 
-	s, err := gev.NewWebSocketServer(handler,
+	s, err := NewWebSocketServer(handler, &ws.Upgrader{},
 		gev.Network("tcp"),
 		gev.Address(":"+strconv.Itoa(port)),
 		gev.NumLoops(loops))
@@ -550,6 +571,22 @@ func main() {
 	}
 
 	s.Start()
+}
+```
+
+```go
+package main
+
+import (
+	"github.com/Allenxuxu/gev"
+	"github.com/Allenxuxu/gev/plugins/websocket"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws"
+)
+
+// NewWebSocketServer 创建 WebSocket Server
+func NewWebSocketServer(handler websocket.WebSocketHandler, u *ws.Upgrader, opts ...gev.Option) (server *gev.Server, err error) {
+	opts = append(opts, gev.Protocol(websocket.New(u)))
+	return gev.NewServer(websocket.NewHandlerWrap(u, handler), opts...)
 }
 ```
 

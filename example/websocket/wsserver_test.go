@@ -1,4 +1,4 @@
-package gev
+package main
 
 import (
 	"bytes"
@@ -7,8 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/gev/ws"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws/util"
 	"github.com/Allenxuxu/toolkit/sync"
 	"golang.org/x/net/websocket"
 )
@@ -25,13 +27,25 @@ func (s *wsExample) OnMessage(c *connection.Connection, data []byte) (messageTyp
 	case 0:
 		out = data
 	case 1:
-		if err := c.SendWebsocketData(ws.MessageText, data); err != nil {
-			if e := c.CloseWebsocket(err.Error()); e != nil {
+		msg, err := util.PackData(ws.MessageText, data)
+		if err != nil {
+			panic(err)
+		}
+		if err := c.Send(msg); err != nil {
+			msg, err := util.PackCloseData(err.Error())
+			if err != nil {
+				panic(err)
+			}
+			if e := c.Send(msg); e != nil {
 				panic(e)
 			}
 		}
 	case 2:
-		if e := c.CloseWebsocket(""); e != nil {
+		msg, err := util.PackCloseData("close")
+		if err != nil {
+			panic(err)
+		}
+		if e := c.Send(msg); e != nil {
 			panic(e)
 		}
 	}
@@ -45,10 +59,10 @@ func (s *wsExample) OnClose(c *connection.Connection) {
 func TestWebSocketServer_Start(t *testing.T) {
 	handler := new(wsExample)
 
-	s, err := NewWebSocketServer(handler,
-		Address(":1834"),
-		NumLoops(8),
-		ReusePort(true))
+	s, err := NewWebSocketServer(handler, &ws.Upgrader{},
+		gev.Address(":1834"),
+		gev.NumLoops(8),
+		gev.ReusePort(true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +72,7 @@ func TestWebSocketServer_Start(t *testing.T) {
 		sw := sync.WaitGroupWrapper{}
 		for i := 0; i < 100; i++ {
 			sw.AddAndRun(func() {
-				startWebSocketClient(s.opts.Address)
+				startWebSocketClient(s.Options().Address)
 			})
 		}
 

@@ -8,7 +8,6 @@ import (
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/listener"
-	"github.com/Allenxuxu/ringbuffer"
 	"github.com/Allenxuxu/toolkit/sync"
 	"github.com/RussellLuo/timingwheel"
 	"golang.org/x/sys/unix"
@@ -17,7 +16,7 @@ import (
 // Handler Server 注册接口
 type Handler interface {
 	OnConnect(c *connection.Connection)
-	OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) []byte
+	OnMessage(c *connection.Connection, ctx interface{}, data []byte) []byte
 	OnClose(c *connection.Connection)
 }
 
@@ -96,7 +95,7 @@ func (s *Server) nextLoop() *eventloop.EventLoop {
 func (s *Server) handleNewConnection(fd int, sa *unix.Sockaddr) {
 	loop := s.nextLoop()
 
-	c := connection.New(fd, loop, sa, s.callback.OnMessage, s.callback.OnClose)
+	c := connection.New(fd, loop, sa, s.opts.Protocol, s.callback.OnMessage, s.callback.OnClose)
 
 	_ = loop.AddSocketAndEnableRead(fd, c)
 
@@ -125,4 +124,9 @@ func (s *Server) Stop() {
 	for k := range s.workLoops {
 		_ = s.workLoops[k].Stop()
 	}
+}
+
+// Options 返回 options
+func (s *Server) Options() Options {
+	return *s.opts
 }
