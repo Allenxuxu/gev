@@ -31,11 +31,11 @@ type Connection struct {
 	peerAddr      string
 	ctx           interface{}
 
-	dataPacket Protocol
+	protocol Protocol
 }
 
 // New 创建 Connection
-func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, dataPacket Protocol, readCb ReadCallback, closeCb CloseCallback) *Connection {
+func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, protocol Protocol, readCb ReadCallback, closeCb CloseCallback) *Connection {
 	conn := &Connection{
 		fd:            fd,
 		peerAddr:      sockaddrToString(sa),
@@ -44,7 +44,7 @@ func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, dataPacket Protoc
 		readCallback:  readCb,
 		closeCallback: closeCb,
 		loop:          loop,
-		dataPacket:    dataPacket,
+		protocol:      protocol,
 	}
 	conn.connected.Set(true)
 
@@ -78,7 +78,7 @@ func (c *Connection) Send(buffer []byte) error {
 	}
 
 	c.loop.QueueInLoop(func() {
-		c.sendInLoop(c.dataPacket.Packet(c, buffer))
+		c.sendInLoop(c.protocol.Packet(c, buffer))
 	})
 	return nil
 }
@@ -106,11 +106,11 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 }
 
 func (c *Connection) handlerProtocol(buffer *ringbuffer.RingBuffer) []byte {
-	ctx, receivedData := c.dataPacket.UnPacket(c, buffer)
+	ctx, receivedData := c.protocol.UnPacket(c, buffer)
 	if ctx != nil || len(receivedData) != 0 {
 		sendData := c.readCallback(c, ctx, receivedData)
 		if len(sendData) > 0 {
-			return c.dataPacket.Packet(c, sendData)
+			return c.protocol.Packet(c, sendData)
 		}
 	}
 	return nil
