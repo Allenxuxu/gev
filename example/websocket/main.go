@@ -62,7 +62,7 @@ func main() {
 	flag.IntVar(&loops, "loops", -1, "num loops")
 	flag.Parse()
 
-	s, err := gev.NewWebSocketServer(handler, &ws.Upgrader{},
+	s, err := NewWebSocketServer(handler, &ws.Upgrader{},
 		gev.Network("tcp"),
 		gev.Address(":"+strconv.Itoa(port)),
 		gev.NumLoops(loops))

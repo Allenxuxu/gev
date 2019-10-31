@@ -1,7 +1,8 @@
-package gev
+package main
 
 import (
 	"bytes"
+	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws/handler"
 	"io"
 	"math/rand"
@@ -59,9 +60,9 @@ func TestWebSocketServer_Start(t *testing.T) {
 	handler := new(wsExample)
 
 	s, err := NewWebSocketServer(handler, &ws.Upgrader{},
-		Address(":1834"),
-		NumLoops(8),
-		ReusePort(true))
+		gev.Address(":1834"),
+		gev.NumLoops(8),
+		gev.ReusePort(true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +72,7 @@ func TestWebSocketServer_Start(t *testing.T) {
 		sw := sync.WaitGroupWrapper{}
 		for i := 0; i < 100; i++ {
 			sw.AddAndRun(func() {
-				startWebSocketClient(s.opts.Address)
+				startWebSocketClient(s.Options().Address)
 			})
 		}
 

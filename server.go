@@ -125,3 +125,8 @@ func (s *Server) Stop() {
 		_ = s.workLoops[k].Stop()
 	}
 }
+
+// Options 返回 options
+func (s *Server) Options() Options {
+	return *s.opts
+}
