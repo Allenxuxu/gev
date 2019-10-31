@@ -2,14 +2,14 @@ package main
 
 import (
 	"flag"
-	"github.com/Allenxuxu/gev/plugins/websocket/ws"
-	"github.com/Allenxuxu/gev/plugins/websocket/ws/handler"
 	"log"
 	"math/rand"
 	"strconv"
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws/util"
 )
 
 type example struct{}
@@ -24,12 +24,12 @@ func (s *example) OnMessage(c *connection.Connection, data []byte) (messageType 
 	case 0:
 		out = data
 	case 1:
-		msg, err := handler.PackData(ws.MessageText, data)
+		msg, err := util.PackData(ws.MessageText, data)
 		if err != nil {
 			panic(err)
 		}
 		if err := c.Send(msg); err != nil {
-			msg, err := handler.PackCloseData(err.Error())
+			msg, err := util.PackCloseData(err.Error())
 			if err != nil {
 				panic(err)
 			}
@@ -38,7 +38,7 @@ func (s *example) OnMessage(c *connection.Connection, data []byte) (messageType 
 			}
 		}
 	case 2:
-		msg, err := handler.PackCloseData("close")
+		msg, err := util.PackCloseData("close")
 		if err != nil {
 			panic(err)
 		}

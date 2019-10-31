@@ -2,15 +2,15 @@ package main
 
 import (
 	"bytes"
-	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/plugins/websocket/ws/handler"
 	"io"
 	"math/rand"
 	"testing"
 	"time"
 
+	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws/util"
 	"github.com/Allenxuxu/toolkit/sync"
 	"golang.org/x/net/websocket"
 )
@@ -27,12 +27,12 @@ func (s *wsExample) OnMessage(c *connection.Connection, data []byte) (messageTyp
 	case 0:
 		out = data
 	case 1:
-		msg, err := handler.PackData(ws.MessageText, data)
+		msg, err := util.PackData(ws.MessageText, data)
 		if err != nil {
 			panic(err)
 		}
 		if err := c.Send(msg); err != nil {
-			msg, err := handler.PackCloseData(err.Error())
+			msg, err := util.PackCloseData(err.Error())
 			if err != nil {
 				panic(err)
 			}
@@ -41,7 +41,7 @@ func (s *wsExample) OnMessage(c *connection.Connection, data []byte) (messageTyp
 			}
 		}
 	case 2:
-		msg, err := handler.PackCloseData("close")
+		msg, err := util.PackCloseData("close")
 		if err != nil {
 			panic(err)
 		}

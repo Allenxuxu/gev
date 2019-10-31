@@ -5,7 +5,7 @@ import (
 
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
-	"github.com/Allenxuxu/gev/plugins/websocket/ws/handler"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws/util"
 )
 
 // WebSocketHandler WebSocket Server 注册接口
@@ -45,18 +45,18 @@ func (s *handlerWrap) OnMessage(c *connection.Connection, ctx interface{}, paylo
 			)
 			switch header.OpCode {
 			case ws.OpClose:
-				out, err = handler.HandleClose(header, payload)
+				out, err = util.HandleClose(header, payload)
 				if err != nil {
 					log.Println(err)
 				}
 				_ = c.ShutdownWrite()
 			case ws.OpPing:
-				out, err = handler.HandlePing(payload)
+				out, err = util.HandlePing(payload)
 				if err != nil {
 					log.Println(err)
 				}
 			case ws.OpPong:
-				out, err = handler.HandlePong(payload)
+				out, err = util.HandlePong(payload)
 				if err != nil {
 					log.Println(err)
 				}
