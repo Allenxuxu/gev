@@ -266,31 +266,24 @@ package main
 import (
 	"flag"
 	"strconv"
-	"log"
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/ringbuffer"
 )
 
 type example struct{}
 
 func (s *example) OnConnect(c *connection.Connection) {
-	log.Println(" OnConnect ： ", c.PeerAddr())
+	//log.Println(" OnConnect ： ", c.PeerAddr())
 }
-func (s *example) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) (out []byte) {
+func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
 	//log.Println("OnMessage")
-	first, end := buffer.PeekAll()
-	out = first
-	if len(end) > 0 {
-		out = append(out, end...)
-	}
-	buffer.RetrieveAll()
+	out = data
 	return
 }
 
-func (s *example) OnClose() {
-	log.Println("OnClose")
+func (s *example) OnClose(c *connection.Connection) {
+	//log.Println("OnClose")
 }
 
 func main() {
@@ -327,16 +320,17 @@ import (
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/ringbuffer"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 )
 
+// Server example
 type Server struct {
 	clientNum     atomic.Int64
 	maxConnection int64
 	server        *gev.Server
 }
 
+// New server
 func New(ip, port string, maxConnection int64) (*Server, error) {
 	var err error
 	s := new(Server)
@@ -350,14 +344,17 @@ func New(ip, port string, maxConnection int64) (*Server, error) {
 	return s, nil
 }
 
+// Start server
 func (s *Server) Start() {
 	s.server.Start()
 }
 
+// Stop server
 func (s *Server) Stop() {
 	s.server.Stop()
 }
 
+// OnConnect callback
 func (s *Server) OnConnect(c *connection.Connection) {
 	s.clientNum.Add(1)
 	log.Println(" OnConnect ： ", c.PeerAddr())
@@ -368,18 +365,16 @@ func (s *Server) OnConnect(c *connection.Connection) {
 		return
 	}
 }
-func (s *Server) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) (out []byte) {
+
+// OnMessage callback
+func (s *Server) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
 	log.Println("OnMessage")
-	first, end := buffer.PeekAll()
-	out = first
-	if len(end) > 0 {
-		out = append(out, end...)
-	}
-	buffer.RetrieveAll()
+	out = data
 	return
 }
 
-func (s *Server) OnClose() {
+// OnClose callback
+func (s *Server) OnClose(c *connection.Connection) {
 	s.clientNum.Add(-1)
 	log.Println("OnClose")
 }
@@ -407,18 +402,19 @@ import (
 	"container/list"
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/ringbuffer"
 	"log"
 	"sync"
 	"time"
 )
 
+// Server example
 type Server struct {
 	conn   *list.List
 	mu     sync.RWMutex
 	server *gev.Server
 }
 
+// New server
 func New(ip, port string) (*Server, error) {
 	var err error
 	s := new(Server)
@@ -432,15 +428,18 @@ func New(ip, port string) (*Server, error) {
 	return s, nil
 }
 
+// Start server
 func (s *Server) Start() {
 	s.server.RunEvery(1*time.Second, s.RunPush)
 	s.server.Start()
 }
 
+// Stop server
 func (s *Server) Stop() {
 	s.server.Stop()
 }
 
+// RunPush push message
 func (s *Server) RunPush() {
 	var next *list.Element
 
@@ -455,6 +454,7 @@ func (s *Server) RunPush() {
 	}
 }
 
+// OnConnect callback
 func (s *Server) OnConnect(c *connection.Connection) {
 	log.Println(" OnConnect ： ", c.PeerAddr())
 
@@ -463,17 +463,15 @@ func (s *Server) OnConnect(c *connection.Connection) {
 	s.mu.Unlock()
 	c.SetContext(e)
 }
-func (s *Server) OnMessage(c *connection.Connection, buffer *ringbuffer.RingBuffer) (out []byte) {
+
+// OnMessage callback
+func (s *Server) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
 	log.Println("OnMessage")
-	first, end := buffer.PeekAll()
-	out = first
-	if len(end) > 0 {
-		out = append(out, end...)
-	}
-	buffer.RetrieveAll()
+	out = data
 	return
 }
 
+// OnClose callback
 func (s *Server) OnClose(c *connection.Connection) {
 	log.Println("OnClose")
 	e := c.Context().(*list.Element)
