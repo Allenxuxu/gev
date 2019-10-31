@@ -29,10 +29,12 @@ func NewHandlerWrap(u *ws.Upgrader, wsHandler WSHandler) *HandlerWrap {
 	}
 }
 
+// OnConnect wrap
 func (s *HandlerWrap) OnConnect(c *connection.Connection) {
 	s.wsHandler.OnConnect(c)
 }
 
+// OnMessage wrap
 func (s *HandlerWrap) OnMessage(c *connection.Connection, ctx interface{}, payload []byte) []byte {
 	header, ok := ctx.(*ws.Header)
 	if !ok && len(payload) != 0 { // 升级协议 握手
@@ -87,6 +89,7 @@ func (s *HandlerWrap) OnMessage(c *connection.Connection, ctx interface{}, paylo
 	return nil
 }
 
+// OnClose wrap
 func (s *HandlerWrap) OnClose(c *connection.Connection) {
 	s.wsHandler.OnClose(c)
 }
