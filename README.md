@@ -141,13 +141,13 @@ OnMessage 会在一个完整的数据帧到来时被回调。用户可此可以�
 在有数据到来时，gev 并非立刻回调 OnMessage ，而是会先回调一个 UnPacket 函数。大概执行逻辑如下：
 
 ```go
-	ctx, receivedData := c.protocol.UnPacket(c, buffer)
-	if ctx != nil || len(receivedData) != 0 {
-		sendData := c.OnMessage(c, ctx, receivedData)
-		if len(sendData) > 0 {
-			return c.protocol.Packet(c, sendData)
-		}
+ctx, receivedData := c.protocol.UnPacket(c, buffer)
+if ctx != nil || len(receivedData) != 0 {
+	sendData := c.OnMessage(c, ctx, receivedData)
+	if len(sendData) > 0 {
+		return c.protocol.Packet(c, sendData)
 	}
+}
 ```
 
 UnPacket 函数中会查看 ringbuffer 中的数据是否是一个完整的数据帧，如果是则会将数据拆包并返回 payload 数据；如果还不是一个完整的数据帧，则直接返回。
@@ -177,7 +177,7 @@ func (d *DefaultProtocol) Packet(c *Connection, data []byte) []byte {
 在实际使用中，通常会有自己的数据帧协议，`gev` 可以以插件的形式来设置：在创建 Server 的时候通过可变参数设置。
 
 ```go
-	s, err := gev.NewServer(handler,gev.Protocol(&ExampleProtocol{}))
+s, err := gev.NewServer(handler,gev.Protocol(&ExampleProtocol{}))
 ```
 
 更详细的使用方式可以参考示例：[自定义协议](example/protocol)
