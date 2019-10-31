@@ -150,6 +150,8 @@ ctx, receivedData := c.protocol.UnPacket(c, buffer)
 	}
 ```
 
+![protocol](benchmarks/out/protocol.png)
+
 The UnPacket function will check whether the data in the ringbuffer is a complete data frame. If it is, the data will be unpacked and return the payload data. If it is not a complete data frame, it will return directly.
 
 The return value of UnPacket `(interface{}, []byte)` will be passed in as a call to OnMessage `ctx interface{}, data []byte` and callback.Ctx is designed to pass special information generated when parsing data frames in the UnPacket function (which is required for complex data frame protocols), and data is used to pass payload data.

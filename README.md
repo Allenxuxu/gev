@@ -150,6 +150,8 @@ if ctx != nil || len(receivedData) != 0 {
 }
 ```
 
+![protocol](benchmarks/out/protocol.png)
+
 UnPacket 函数中会查看 ringbuffer 中的数据是否是一个完整的数据帧，如果是则会将数据拆包并返回 payload 数据；如果还不是一个完整的数据帧，则直接返回。
 
 UnPacket 的返回值 `(interface{}, []byte)` 会作为 OnMessage 的入参 `ctx interface{}, data []byte` 被传入并回调。`ctx` 被设计用来传递在 UnPacket 函数中解析数据帧时生成的特殊信息（复杂的数据帧协议会需要），`data` 则是用来传递 payload 数据。
