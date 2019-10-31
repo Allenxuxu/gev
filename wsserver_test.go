@@ -2,6 +2,7 @@ package gev
 
 import (
 	"bytes"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws/handler"
 	"io"
 	"math/rand"
 	"testing"
@@ -25,13 +26,25 @@ func (s *wsExample) OnMessage(c *connection.Connection, data []byte) (messageTyp
 	case 0:
 		out = data
 	case 1:
-		if err := c.SendWebsocketData(ws.MessageText, data); err != nil {
-			if e := c.CloseWebsocket(err.Error()); e != nil {
+		msg, err := handler.PackData(ws.MessageText, data)
+		if err != nil {
+			panic(err)
+		}
+		if err := c.Send(msg); err != nil {
+			msg, err := handler.PackCloseData(err.Error())
+			if err != nil {
+				panic(err)
+			}
+			if e := c.Send(msg); e != nil {
 				panic(e)
 			}
 		}
 	case 2:
-		if e := c.CloseWebsocket(""); e != nil {
+		msg, err := handler.PackCloseData("close")
+		if err != nil {
+			panic(err)
+		}
+		if e := c.Send(msg); e != nil {
 			panic(e)
 		}
 	}

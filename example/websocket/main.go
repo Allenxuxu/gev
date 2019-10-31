@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
+	"github.com/Allenxuxu/gev/plugins/websocket/ws/handler"
 	"log"
 	"math/rand"
 	"strconv"
@@ -23,13 +24,25 @@ func (s *example) OnMessage(c *connection.Connection, data []byte) (messageType 
 	case 0:
 		out = data
 	case 1:
-		if err := c.SendWebsocketData(ws.MessageText, data); err != nil {
-			if e := c.CloseWebsocket(err.Error()); e != nil {
+		msg, err := handler.PackData(ws.MessageText, data)
+		if err != nil {
+			panic(err)
+		}
+		if err := c.Send(msg); err != nil {
+			msg, err := handler.PackCloseData(err.Error())
+			if err != nil {
+				panic(err)
+			}
+			if e := c.Send(msg); e != nil {
 				panic(e)
 			}
 		}
 	case 2:
-		if e := c.CloseWebsocket("close"); e != nil {
+		msg, err := handler.PackCloseData("close")
+		if err != nil {
+			panic(err)
+		}
+		if e := c.Send(msg); e != nil {
 			panic(e)
 		}
 	}

@@ -6,6 +6,23 @@ import (
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 )
 
+// PackData 封装 websocket message 数据包
+func PackData(messageType ws.MessageType, data []byte) ([]byte, error) {
+	var frame *ws.Frame
+	switch messageType {
+	case ws.MessageBinary:
+		frame = ws.NewBinaryFrame(data)
+	case ws.MessageText:
+		frame = ws.NewTextFrame(data)
+	}
+	return ws.FrameToBytes(frame)
+}
+
+// PackCloseData 封装 websocket close 数据包
+func PackCloseData(reason string) ([]byte, error) {
+	return ws.FrameToBytes(ws.NewCloseFrame(ws.NewCloseFrameBody(ws.StatusNormalClosure, reason)))
+}
+
 func HandleClose(h *ws.Header, payload []byte) ([]byte, error) {
 	if h.Length == 0 {
 		return ws.WriteHeader(&ws.Header{
