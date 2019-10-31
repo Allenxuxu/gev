@@ -15,23 +15,25 @@ type WSHandler interface {
 	OnClose(c *connection.Connection)
 }
 
-type handlerWrap struct {
+// HandlerWrap gev Handler wrap
+type HandlerWrap struct {
 	wsHandler WSHandler
 	Upgrade   *ws.Upgrader
 }
 
-func NewHandlerWrap(u *ws.Upgrader, wsHandler WSHandler) *handlerWrap {
-	return &handlerWrap{
+// NewHandlerWrap websocket handler wrap
+func NewHandlerWrap(u *ws.Upgrader, wsHandler WSHandler) *HandlerWrap {
+	return &HandlerWrap{
 		wsHandler: wsHandler,
 		Upgrade:   u,
 	}
 }
 
-func (s *handlerWrap) OnConnect(c *connection.Connection) {
+func (s *HandlerWrap) OnConnect(c *connection.Connection) {
 	s.wsHandler.OnConnect(c)
 }
 
-func (s *handlerWrap) OnMessage(c *connection.Connection, ctx interface{}, payload []byte) []byte {
+func (s *HandlerWrap) OnMessage(c *connection.Connection, ctx interface{}, payload []byte) []byte {
 	header, ok := ctx.(*ws.Header)
 	if !ok && len(payload) != 0 { // 升级协议 握手
 		return payload
@@ -85,6 +87,6 @@ func (s *handlerWrap) OnMessage(c *connection.Connection, ctx interface{}, paylo
 	return nil
 }
 
-func (s *handlerWrap) OnClose(c *connection.Connection) {
+func (s *HandlerWrap) OnClose(c *connection.Connection) {
 	s.wsHandler.OnClose(c)
 }
