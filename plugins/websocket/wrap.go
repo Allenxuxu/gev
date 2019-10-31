@@ -8,19 +8,19 @@ import (
 	"github.com/Allenxuxu/gev/plugins/websocket/ws/util"
 )
 
-// WebSocketHandler WebSocket Server 注册接口
-type WebSocketHandler interface {
+// WSHandler WebSocket Server 注册接口
+type WSHandler interface {
 	OnConnect(c *connection.Connection)
 	OnMessage(c *connection.Connection, msg []byte) (ws.MessageType, []byte)
 	OnClose(c *connection.Connection)
 }
 
 type handlerWrap struct {
-	wsHandler WebSocketHandler
+	wsHandler WSHandler
 	Upgrade   *ws.Upgrader
 }
 
-func NewHandlerWrap(u *ws.Upgrader, wsHandler WebSocketHandler) *handlerWrap {
+func NewHandlerWrap(u *ws.Upgrader, wsHandler WSHandler) *handlerWrap {
 	return &handlerWrap{
 		wsHandler: wsHandler,
 		Upgrade:   u,

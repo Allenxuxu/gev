@@ -75,7 +75,7 @@ func NumLoops(n int) Option {
 	}
 }
 
-// DataPacket 数据包处理
+// Protocol 数据包处理
 func Protocol(p connection.Protocol) Option {
 	return func(o *Options) {
 		o.Protocol = p
