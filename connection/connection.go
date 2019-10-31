@@ -31,7 +31,6 @@ type Connection struct {
 	peerAddr      string
 	ctx           interface{}
 
-	Upgraded   bool // WebSocket
 	dataPacket Protocol
 }
 
