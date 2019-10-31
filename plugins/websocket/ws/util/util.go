@@ -23,6 +23,7 @@ func PackCloseData(reason string) ([]byte, error) {
 	return ws.FrameToBytes(ws.NewCloseFrame(ws.NewCloseFrameBody(ws.StatusNormalClosure, reason)))
 }
 
+// HandleClose 处理 websocket close 返回应答信息
 func HandleClose(h *ws.Header, payload []byte) ([]byte, error) {
 	if h.Length == 0 {
 		return ws.WriteHeader(&ws.Header{
@@ -44,10 +45,12 @@ func HandleClose(h *ws.Header, payload []byte) ([]byte, error) {
 	return ws.FrameToBytes(ws.NewCloseFrame(ws.NewCloseFrameBody(code, reason)))
 }
 
+// HandlePing 处理 ping 返回应答信息
 func HandlePing(payload []byte) ([]byte, error) {
 	return ws.FrameToBytes(ws.NewPongFrame(payload))
 }
 
+// HandlePong 处理 pong 返回应答信息
 func HandlePong(payload []byte) ([]byte, error) {
 	return ws.FrameToBytes(ws.NewPingFrame(payload))
 }
