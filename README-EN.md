@@ -20,7 +20,7 @@ Support custom protocols to quickly and easily build high-performance servers.
 - SO_REUSEPORT port reuse support
 - Support WebSocket
 - Support for scheduled tasks, delayed tasks
-- Support for custom protocols, handling TCP sticky packets
+- Support for custom protocols
 
 ## Network model
 
