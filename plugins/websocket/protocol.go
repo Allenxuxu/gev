@@ -32,7 +32,9 @@ func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuf
 	} else {
 		header, err := ws.VirtualReadHeader(buffer)
 		if err != nil {
-			log.Println(err)
+			if err != ws.ErrHeaderNotReady {
+				log.Println(err)
+			}
 			return
 		}
 		if buffer.VirtualLength() >= int(header.Length) {
