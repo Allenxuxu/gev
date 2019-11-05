@@ -10,6 +10,7 @@ import (
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/Allenxuxu/ringbuffer"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
+	"github.com/gobwas/pool/pbytes"
 	"golang.org/x/sys/unix"
 )
 
@@ -106,14 +107,18 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 }
 
 func (c *Connection) handlerProtocol(buffer *ringbuffer.RingBuffer) []byte {
+	// 在调用方函数里归还
+	out := pbytes.GetCap(1024)
 	ctx, receivedData := c.protocol.UnPacket(c, buffer)
-	if ctx != nil || len(receivedData) != 0 {
+	for ctx != nil || len(receivedData) != 0 {
 		sendData := c.readCallback(c, ctx, receivedData)
 		if len(sendData) > 0 {
-			return c.protocol.Packet(c, sendData)
+			out = append(out, c.protocol.Packet(c, sendData)...)
 		}
+
+		ctx, receivedData = c.protocol.UnPacket(c, buffer)
 	}
-	return nil
+	return out
 }
 
 func (c *Connection) handleRead(fd int) {
@@ -138,12 +143,16 @@ func (c *Connection) handleRead(fd int) {
 		if len(out) != 0 {
 			c.sendInLoop(out)
 		}
+
+		pbytes.Put(out)
 	} else {
 		_, _ = c.inBuffer.Write(buf[:n])
 		out := c.handlerProtocol(c.inBuffer)
 		if len(out) != 0 {
 			c.sendInLoop(out)
 		}
+
+		pbytes.Put(out)
 	}
 }
 
