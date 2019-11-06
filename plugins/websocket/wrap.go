@@ -1,9 +1,8 @@
 package websocket
 
 import (
-	"log"
-
 	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws/util"
 )
@@ -51,18 +50,18 @@ func (s *HandlerWrap) OnMessage(c *connection.Connection, ctx interface{}, paylo
 			case ws.OpClose:
 				out, err = util.HandleClose(header, payload)
 				if err != nil {
-					log.Println(err)
+					log.Error(err)
 				}
 				_ = c.ShutdownWrite()
 			case ws.OpPing:
 				out, err = util.HandlePing(payload)
 				if err != nil {
-					log.Println(err)
+					log.Error(err)
 				}
 			case ws.OpPong:
 				out, err = util.HandlePong(payload)
 				if err != nil {
-					log.Println(err)
+					log.Error(err)
 				}
 			}
 			return out
@@ -80,7 +79,7 @@ func (s *HandlerWrap) OnMessage(c *connection.Connection, ctx interface{}, paylo
 			var err error
 			out, err = ws.FrameToBytes(frame)
 			if err != nil {
-				log.Println(err)
+				log.Error(err)
 			}
 
 			return out

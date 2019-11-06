@@ -3,8 +3,7 @@
 package poller
 
 import (
-	"log"
-
+	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"golang.org/x/sys/unix"
 )
@@ -105,7 +104,7 @@ func (p *Poller) Poll(handler func(fd int, event Event)) {
 	for {
 		n, err := unix.Kevent(p.fd, nil, events, nil)
 		if err != nil && err != unix.EINTR {
-			log.Println("EpollWait: ", err)
+			log.Error("EpollWait: ", err)
 			continue
 		}
 

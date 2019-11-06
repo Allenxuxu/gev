@@ -1,9 +1,9 @@
 package eventloop
 
 import (
-	"log"
 	"sync"
 
+	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/Allenxuxu/toolkit/sync/spinlock"
 )
@@ -86,7 +86,7 @@ func (l *EventLoop) QueueInLoop(f func()) {
 	l.mu.Unlock()
 
 	if err := l.poll.Wake(); err != nil {
-		log.Println("QueueInLoop Wake loop, ", err)
+		log.Error("QueueInLoop Wake loop, ", err)
 	}
 }
 

@@ -1,9 +1,8 @@
 package websocket
 
 import (
-	"log"
-
 	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"github.com/Allenxuxu/ringbuffer"
 )
@@ -25,7 +24,7 @@ func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuf
 		var err error
 		out, _, err = p.upgrade.Upgrade(buffer)
 		if err != nil {
-			log.Println("Websocket Upgrade :", err)
+			log.Error("Websocket Upgrade :", err)
 			return
 		}
 		c.SetContext(true)
@@ -33,7 +32,7 @@ func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuf
 		header, err := ws.VirtualReadHeader(buffer)
 		if err != nil {
 			if err != ws.ErrHeaderNotReady {
-				log.Println(err)
+				log.Error(err)
 			}
 			return
 		}

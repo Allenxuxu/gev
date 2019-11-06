@@ -2,10 +2,10 @@ package listener
 
 import (
 	"errors"
-	"log"
 	"net"
 	"os"
 
+	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/poller"
 	reuseport "github.com/libp2p/go-reuseport"
 	"golang.org/x/sys/unix"
@@ -60,13 +60,13 @@ func (l *Listener) HandleEvent(fd int, events poller.Event) {
 		nfd, sa, err := unix.Accept(fd)
 		if err != nil {
 			if err != unix.EAGAIN {
-				log.Println("accept:", err)
+				log.Error("accept:", err)
 			}
 			return
 		}
 		if err := unix.SetNonblock(nfd, true); err != nil {
 			_ = unix.Close(nfd)
-			log.Println("set nonblock:", err)
+			log.Error("set nonblock:", err)
 			return
 		}
 

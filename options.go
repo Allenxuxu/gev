@@ -1,8 +1,9 @@
 package gev
 
 import (
-	"github.com/Allenxuxu/gev/connection"
 	"time"
+
+	"github.com/Allenxuxu/gev/connection"
 )
 
 // Options 服务配置
