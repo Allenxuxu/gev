@@ -34,8 +34,8 @@ var (
 	// default log level is info
 	level = LevelInfo
 
-	// prefix for all messages
-	prefix string
+	// prefix for all messages, default is "[Gev]"
+	prefix = "[Gev]"
 )
 
 type defaultLogLogger struct{}
