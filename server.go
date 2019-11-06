@@ -8,6 +8,7 @@ import (
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/listener"
+	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/toolkit/sync"
 	"github.com/RussellLuo/timingwheel"
 	"golang.org/x/sys/unix"
@@ -113,6 +114,7 @@ func (s *Server) Start() {
 	}
 
 	sw.AddAndRun(s.loop.RunLoop)
+	log.Infof("Server start (%s)", s.opts.Address)
 	sw.Wait()
 }
 
@@ -124,6 +126,7 @@ func (s *Server) Stop() {
 	for k := range s.workLoops {
 		_ = s.workLoops[k].Stop()
 	}
+	log.Info("Server stop")
 }
 
 // Options 返回 options
