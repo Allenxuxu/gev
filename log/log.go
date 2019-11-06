@@ -1,4 +1,4 @@
-// from https://github.com/micro/go-micro/blob/master/util/log/log.go
+// Package log is from https://github.com/micro/go-micro/blob/master/util/log/log.go
 package log
 
 import (
@@ -86,7 +86,7 @@ func WithLevel(l Level, v ...interface{}) {
 	Log(v...)
 }
 
-// WithLevel logs with the level specified
+// WithLevelf logs with the level specified
 func WithLevelf(l Level, format string, v ...interface{}) {
 	if l > level {
 		return
@@ -156,12 +156,12 @@ func GetLevel() Level {
 	return level
 }
 
-// Set a prefix for the logger
+// SetPrefix sets a prefix for the logger
 func SetPrefix(p string) {
 	prefix = p
 }
 
-// Set service name
+// Name sets service name
 func Name(name string) {
 	prefix = fmt.Sprintf("[%s]", name)
 }
