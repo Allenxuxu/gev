@@ -9,6 +9,7 @@ import (
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/Allenxuxu/ringbuffer"
+	"github.com/Allenxuxu/ringbuffer/pool"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"github.com/gobwas/pool/pbytes"
 	"golang.org/x/sys/unix"
@@ -40,8 +41,8 @@ func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, protocol Protocol
 	conn := &Connection{
 		fd:            fd,
 		peerAddr:      sockaddrToString(sa),
-		outBuffer:     ringbuffer.New(1024),
-		inBuffer:      ringbuffer.New(1024),
+		outBuffer:     pool.Get(),
+		inBuffer:      pool.Get(),
 		readCallback:  readCb,
 		closeCallback: closeCb,
 		loop:          loop,
@@ -191,6 +192,9 @@ func (c *Connection) handleClose(fd int) {
 	c.loop.DeleteFdInLoop(fd)
 
 	c.closeCallback(c)
+
+	pool.Put(c.inBuffer)
+	pool.Put(c.outBuffer)
 }
 
 func (c *Connection) sendInLoop(data []byte) {
