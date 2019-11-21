@@ -2,6 +2,7 @@ package protobuf
 
 import "encoding/binary"
 
+// PackMessage 按自定义协议打包数据
 func PackMessage(msgType string, data []byte) []byte {
 	typeLen := len(msgType)
 	len := len(data) + typeLen + 2
