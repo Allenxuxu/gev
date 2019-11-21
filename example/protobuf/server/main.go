@@ -18,12 +18,24 @@ func (s *example) OnConnect(c *connection.Connection) {
 	log.Println(" OnConnect ： ", c.PeerAddr())
 }
 func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
-	user := &pb.User{}
-	if err := proto.Unmarshal(data, user); err != nil {
-		log.Println(err)
-	}
 	msgType := ctx.(string)
-	log.Println(msgType, user)
+
+	switch msgType {
+	case "msg1":
+		msg := &pb.Msg1{}
+		if err := proto.Unmarshal(data, msg); err != nil {
+			log.Println(err)
+		}
+		log.Println(msgType, msg)
+	case "msg2":
+		msg := &pb.Msg2{}
+		if err := proto.Unmarshal(data, msg); err != nil {
+			log.Println(err)
+		}
+		log.Println(msgType, msg)
+	default:
+		log.Println("unknown msg type")
+	}
 
 	return
 }
