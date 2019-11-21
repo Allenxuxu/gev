@@ -1,0 +1,8 @@
+syntax = "proto3";
+package proto;
+
+message User {
+    string name = 1;
+    int32 id = 2;
+}
+

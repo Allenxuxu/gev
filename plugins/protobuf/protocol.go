@@ -38,6 +38,7 @@ func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuf
 
 			dataLen := len - 2 - typeLen
 			data := make([]byte, dataLen)
+			_, _ = buffer.Read(data)
 
 			out = data
 			ctx = string(typeByte)
