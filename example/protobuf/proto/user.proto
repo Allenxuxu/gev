@@ -1,0 +1,17 @@
+syntax = "proto3";
+package proto;
+
+message Msg1 {
+    string name = 1;
+    int32 id = 2;
+}
+
+message Msg2 {
+    string name = 1;
+    string alias = 2;
+    int32 id = 3;
+}
+
+message Response {
+    string content = 1;
+}
