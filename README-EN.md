@@ -18,7 +18,7 @@ Support custom protocols to quickly and easily build high-performance servers.
 - Dynamic expansion of read and write buffers implemented by Ring Buffer
 - Asynchronous read and write
 - SO_REUSEPORT port reuse support
-- Support WebSocket
+- Support WebSocket/Protobuf
 - Support for scheduled tasks, delayed tasks
 - Support for custom protocols
 

@@ -18,7 +18,7 @@
 - 动态扩容 Ring Buffer 实现的读写缓冲区
 - 异步读写
 - SO_REUSEPORT 端口重用支持
-- 支持 WebSocket
+- 支持 WebSocket/Protobuf
 - 支持定时任务，延时任务
 - 支持自定义协议
 
