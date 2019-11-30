@@ -22,8 +22,10 @@ func (s *example) OnConnect(c *connection.Connection) {
 func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
 	//log.Println("OnMessage")
 
-	out = data
-	//c.Send(data)
+	//out = data
+	if err := c.Send(data); err != nil {
+		panic(err)
+	}
 	return
 }
 

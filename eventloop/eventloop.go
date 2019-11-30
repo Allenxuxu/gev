@@ -5,6 +5,7 @@ import (
 
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/poller"
+	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"github.com/Allenxuxu/toolkit/sync/spinlock"
 )
 
@@ -18,6 +19,8 @@ type EventLoop struct {
 	poll    *poller.Poller
 	sockets sync.Map
 	packet  []byte
+
+	eventHandling atomic.Bool
 
 	pendingFunc []func()
 	mu          spinlock.SpinLock
@@ -85,20 +88,26 @@ func (l *EventLoop) QueueInLoop(f func()) {
 	l.pendingFunc = append(l.pendingFunc, f)
 	l.mu.Unlock()
 
-	if err := l.poll.Wake(); err != nil {
-		log.Error("QueueInLoop Wake loop, ", err)
+	if !l.eventHandling.Get() {
+		if err := l.poll.Wake(); err != nil {
+			log.Error("QueueInLoop Wake loop, ", err)
+		}
 	}
 }
 
 func (l *EventLoop) handlerEvent(fd int, events poller.Event) {
+	l.eventHandling.Set(true)
+
 	if fd != -1 {
 		s, ok := l.sockets.Load(fd)
 		if ok {
 			s.(Socket).HandleEvent(fd, events)
 		}
-	} else {
-		l.doPendingFunc()
 	}
+
+	l.eventHandling.Set(false)
+
+	l.doPendingFunc()
 }
 
 func (l *EventLoop) doPendingFunc() {
