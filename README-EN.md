@@ -7,6 +7,8 @@
 [![LICENSE](https://img.shields.io/badge/LICENSE-MIT-blue)](https://github.com/Allenxuxu/gev/blob/master/LICENSE)
 [![Code Size](https://img.shields.io/github/languages/code-size/Allenxuxu/gev.svg?style=flat)](https://img.shields.io/github/languages/code-size/Allenxuxu/gev.svg?style=flat)
 
+#### [中文](README.md) | English
+
 `gev` is a lightweight, fast non-blocking TCP network library based on Reactor mode. 
 
 Support custom protocols to quickly and easily build high-performance servers.
