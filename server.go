@@ -97,9 +97,9 @@ func (s *Server) handleNewConnection(fd int, sa *unix.Sockaddr) {
 
 	c := connection.New(fd, loop, sa, s.opts.Protocol, s.callback.OnMessage, s.callback.OnClose)
 
-	_ = loop.AddSocketAndEnableRead(fd, c)
-
 	s.callback.OnConnect(c)
+
+	_ = loop.AddSocketAndEnableRead(fd, c)
 }
 
 // Start 启动 Server
