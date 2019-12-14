@@ -733,6 +733,14 @@ func main() {
 
 </details>
 
+## 致谢
+
+感谢 JetBrains 提供的免费开源 License
+
+<a href="https://www.jetbrains.com/?from=gev" target="_blank">
+	<img src="https://raw.githubusercontent.com/Allenxuxu/doc/master/jetbrains.png" width = "260" align=center />
+</a>
+
 ## 参考
 
 本项目受 evio 启发，参考 muduo 实现。
