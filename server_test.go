@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"net"
 	"testing"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/toolkit/sync"
+	"github.com/Allenxuxu/toolkit/sync/atomic"
 )
 
 type example struct{}
@@ -143,4 +145,45 @@ func ExampleServer_RunEvery() {
 	// EveryFunc
 	// EveryFunc
 	// EveryFunc
+}
+
+func TestServer_Stop(t *testing.T) {
+	handler := new(example)
+
+	s, err := NewServer(handler,
+		Network("tcp"),
+		Address(":1833"),
+		NumLoops(8),
+		ReusePort(true))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go func() {
+		var success, failed atomic.Int64
+
+		wg := &sync.WaitGroupWrapper{}
+		for i := 0; i < 500; i++ {
+			wg.AddAndRun(func() {
+				conn, err := net.DialTimeout("tcp", "login.afkplayer.com:7000", time.Second*60)
+				if err != nil {
+					failed.Add(1)
+					log.Println(err)
+					return
+				}
+				success.Add(1)
+				if err := conn.Close(); err != nil {
+					panic(err)
+				}
+			})
+		}
+
+		wg.Wait()
+		log.Printf("Success: %d Failed: %d\n", success, failed)
+
+		s.Stop()
+	}()
+
+	log.Println("server start")
+	s.Start()
 }
