@@ -159,31 +159,28 @@ func TestServer_Stop(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	go func() {
-		var success, failed atomic.Int64
+	go s.Start()
 
-		wg := &sync.WaitGroupWrapper{}
-		for i := 0; i < 500; i++ {
-			wg.AddAndRun(func() {
-				conn, err := net.DialTimeout("tcp", "login.afkplayer.com:7000", time.Second*60)
-				if err != nil {
-					failed.Add(1)
-					log.Println(err)
-					return
-				}
-				success.Add(1)
-				if err := conn.Close(); err != nil {
-					panic(err)
-				}
-			})
-		}
+	time.Sleep(time.Second)
+	var success, failed atomic.Int64
+	wg := &sync.WaitGroupWrapper{}
+	for i := 0; i < 500; i++ {
+		wg.AddAndRun(func() {
+			conn, err := net.DialTimeout("tcp", "127.0.0.1:1833", time.Second*60)
+			if err != nil {
+				failed.Add(1)
+				log.Println(err)
+				return
+			}
+			success.Add(1)
+			if err := conn.Close(); err != nil {
+				panic(err)
+			}
+		})
+	}
 
-		wg.Wait()
-		log.Printf("Success: %d Failed: %d\n", success, failed)
+	wg.Wait()
+	log.Printf("Success: %d Failed: %d\n", success, failed)
 
-		s.Stop()
-	}()
-
-	log.Println("server start")
-	s.Start()
+	s.Stop()
 }
