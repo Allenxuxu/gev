@@ -3,14 +3,20 @@ package main
 import (
 	"flag"
 	"strconv"
+	"time"
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev/log"
+	"github.com/Allenxuxu/toolkit/sync/atomic"
 )
 
-type example struct{}
+type example struct {
+	Count atomic.Int64
+}
 
 func (s *example) OnConnect(c *connection.Connection) {
+	s.Count.Add(1)
 	//log.Println(" OnConnect ： ", c.PeerAddr())
 }
 func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
@@ -20,6 +26,7 @@ func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []by
 }
 
 func (s *example) OnClose(c *connection.Connection) {
+	s.Count.Add(-1)
 	//log.Println("OnClose")
 }
 
@@ -39,6 +46,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	s.RunEvery(time.Second*2, func() {
+		log.Info("connections :", handler.Count.Get())
+	})
 
 	s.Start()
 }
