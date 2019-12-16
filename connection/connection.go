@@ -188,10 +188,10 @@ func (c *Connection) handleWrite(fd int) {
 
 func (c *Connection) handleClose(fd int) {
 	c.connected.Set(false)
-	_ = unix.Close(fd)
 	c.loop.DeleteFdInLoop(fd)
 
 	c.closeCallback(c)
+	_ = unix.Close(fd)
 
 	pool.Put(c.inBuffer)
 	pool.Put(c.outBuffer)
