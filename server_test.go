@@ -4,20 +4,23 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"net"
 	"testing"
 	"time"
 
 	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/toolkit/sync"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 )
 
-type example struct{}
+type example struct {
+	Count atomic.Int64
+}
 
 func (s *example) OnConnect(c *connection.Connection) {
+	s.Count.Add(1)
 	//log.Println(" OnConnect ： ", c.PeerAddr())
 }
 
@@ -32,6 +35,7 @@ func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []by
 }
 
 func (s *example) OnClose(c *connection.Connection) {
+	s.Count.Add(-1)
 	//log.Println("OnClose")
 }
 
@@ -148,6 +152,7 @@ func ExampleServer_RunEvery() {
 }
 
 func TestServer_Stop(t *testing.T) {
+	log.SetLevel(log.LevelDebug)
 	handler := new(example)
 
 	s, err := NewServer(handler,
@@ -164,12 +169,12 @@ func TestServer_Stop(t *testing.T) {
 	time.Sleep(time.Second)
 	var success, failed atomic.Int64
 	wg := &sync.WaitGroupWrapper{}
-	for i := 0; i < 500; i++ {
+	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
 			conn, err := net.DialTimeout("tcp", "127.0.0.1:1833", time.Second*60)
 			if err != nil {
 				failed.Add(1)
-				log.Println(err)
+				log.Error(err)
 				return
 			}
 			success.Add(1)
@@ -180,7 +185,13 @@ func TestServer_Stop(t *testing.T) {
 	}
 
 	wg.Wait()
-	log.Printf("Success: %d Failed: %d\n", success, failed)
+	log.Infof("Success: %d Failed: %d\n", success, failed)
+
+	time.Sleep(time.Second)
+	count := handler.Count.Get()
+	if count != 0 {
+		t.Fatal(count)
+	}
 
 	s.Stop()
 }
