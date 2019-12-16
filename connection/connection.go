@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/Allenxuxu/gev/eventloop"
+	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/Allenxuxu/ringbuffer"
 	"github.com/Allenxuxu/ringbuffer/pool"
@@ -182,7 +183,9 @@ func (c *Connection) handleWrite(fd int) {
 	}
 
 	if c.outBuffer.Length() == 0 {
-		_ = c.loop.EnableRead(fd)
+		if err := c.loop.EnableRead(fd); err != nil {
+			log.Error("[EnableRead]", err)
+		}
 	}
 }
 
@@ -191,7 +194,9 @@ func (c *Connection) handleClose(fd int) {
 	c.loop.DeleteFdInLoop(fd)
 
 	c.closeCallback(c)
-	_ = unix.Close(fd)
+	if err := unix.Close(fd); err != nil {
+		log.Error("[close fd]", err)
+	}
 
 	pool.Put(c.inBuffer)
 	pool.Put(c.outBuffer)

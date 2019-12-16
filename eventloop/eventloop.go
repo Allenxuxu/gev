@@ -46,7 +46,9 @@ func (l *EventLoop) PacketBuf() []byte {
 
 // DeleteFdInLoop 删除 fd
 func (l *EventLoop) DeleteFdInLoop(fd int) {
-	_ = l.poll.Del(fd)
+	if err := l.poll.Del(fd); err != nil {
+		log.Error("[DeleteFdInLoop]", err)
+	}
 	l.sockets.Delete(fd)
 }
 

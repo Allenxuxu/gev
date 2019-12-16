@@ -8,6 +8,7 @@ import (
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/listener"
+	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/toolkit/sync"
 	"github.com/RussellLuo/timingwheel"
 	"golang.org/x/sys/unix"
@@ -97,9 +98,10 @@ func (s *Server) handleNewConnection(fd int, sa *unix.Sockaddr) {
 
 	c := connection.New(fd, loop, sa, s.opts.Protocol, s.callback.OnMessage, s.callback.OnClose)
 
+	if err := loop.AddSocketAndEnableRead(fd, c); err != nil {
+		log.Error("[AddSocketAndEnableRead]", err)
+	}
 	s.callback.OnConnect(c)
-
-	_ = loop.AddSocketAndEnableRead(fd, c)
 }
 
 // Start 启动 Server
