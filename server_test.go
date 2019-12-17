@@ -195,3 +195,73 @@ func TestServer_Stop(t *testing.T) {
 
 	s.Stop()
 }
+
+type example1 struct {
+	Count atomic.Int64
+}
+
+func (s *example1) OnConnect(c *connection.Connection) {
+	s.Count.Add(1)
+	c.Send([]byte("hello gev"))
+	//log.Println(" OnConnect ： ", c.PeerAddr())
+}
+
+func (s *example1) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
+	//log.Println("OnMessage")
+
+	//out = data
+	if err := c.Send(data); err != nil {
+		panic(err)
+	}
+	return
+}
+
+func (s *example1) OnClose(c *connection.Connection) {
+	s.Count.Add(-1)
+	//log.Println("OnClose")
+}
+
+func TestServer_Stop1(t *testing.T) {
+	log.SetLevel(log.LevelDebug)
+	handler := new(example)
+
+	s, err := NewServer(handler,
+		Network("tcp"),
+		Address(":1833"),
+		NumLoops(8),
+		ReusePort(true))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go s.Start()
+
+	time.Sleep(time.Second)
+	var success, failed atomic.Int64
+	wg := &sync.WaitGroupWrapper{}
+	for i := 0; i < 100; i++ {
+		wg.AddAndRun(func() {
+			conn, err := net.DialTimeout("tcp", "127.0.0.1:1833", time.Second*60)
+			if err != nil {
+				failed.Add(1)
+				log.Error(err)
+				return
+			}
+			success.Add(1)
+			if err := conn.Close(); err != nil {
+				panic(err)
+			}
+		})
+	}
+
+	wg.Wait()
+	log.Infof("Success: %d Failed: %d\n", success, failed)
+
+	time.Sleep(time.Second)
+	count := handler.Count.Get()
+	if count != 0 {
+		t.Fatal(count)
+	}
+
+	s.Stop()
+}
