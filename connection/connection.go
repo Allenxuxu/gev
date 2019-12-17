@@ -190,16 +190,18 @@ func (c *Connection) handleWrite(fd int) {
 }
 
 func (c *Connection) handleClose(fd int) {
-	c.connected.Set(false)
-	c.loop.DeleteFdInLoop(fd)
+	if c.connected.Get() {
+		c.connected.Set(false)
+		c.loop.DeleteFdInLoop(fd)
 
-	c.closeCallback(c)
-	if err := unix.Close(fd); err != nil {
-		log.Error("[close fd]", err)
+		c.closeCallback(c)
+		if err := unix.Close(fd); err != nil {
+			log.Error("[close fd]", err)
+		}
+
+		pool.Put(c.inBuffer)
+		pool.Put(c.outBuffer)
 	}
-
-	pool.Put(c.inBuffer)
-	pool.Put(c.outBuffer)
 }
 
 func (c *Connection) sendInLoop(data []byte) {
