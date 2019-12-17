@@ -202,7 +202,7 @@ type example1 struct {
 
 func (s *example1) OnConnect(c *connection.Connection) {
 	s.Count.Add(1)
-	c.Send([]byte("hello gev"))
+	_ = c.Send([]byte("hello gev"))
 	//log.Println(" OnConnect ： ", c.PeerAddr())
 }
 
@@ -223,7 +223,7 @@ func (s *example1) OnClose(c *connection.Connection) {
 
 func TestServer_Stop1(t *testing.T) {
 	log.SetLevel(log.LevelDebug)
-	handler := new(example)
+	handler := new(example1)
 
 	s, err := NewServer(handler,
 		Network("tcp"),
