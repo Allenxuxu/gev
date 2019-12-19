@@ -2,8 +2,8 @@ github.com/Allenxuxu/eviop v0.0.0-20190901123806-035c218f739a h1:TSzycgSvz9M0Ced
 github.com/Allenxuxu/eviop v0.0.0-20190901123806-035c218f739a/go.mod h1:I5+IvzRy5ddv0t9uiuUf4LsfJOXczEb9rxSuPWFfE0w=
 github.com/Allenxuxu/ringbuffer v0.0.0-20190803184500-fa400f2fe92b h1:vYIM1lYjI+dmPyWh4Do+TsEqtSUtEWsoCruq2OW5VZU=
 github.com/Allenxuxu/ringbuffer v0.0.0-20190803184500-fa400f2fe92b/go.mod h1:9Rg4D7ixiHGlU50BJWJEg6vwDFcGiOYKQFcHK6Vx9m4=
-github.com/Allenxuxu/ringbuffer v0.0.5 h1:5UBRVNkhgxFoM2n/lAfLtkAAOZcF13EyhZPMfIgtlMg=
-github.com/Allenxuxu/ringbuffer v0.0.5/go.mod h1:F2Ela+/miJmKYwnXr3X0+spOmSEwL/iFAEzeUJ4SFMI=
+github.com/Allenxuxu/ringbuffer v0.0.6 h1:C1dRDXNPazonGogzgWRamLFDFgbHrqoNnG/MRdkIrgk=
+github.com/Allenxuxu/ringbuffer v0.0.6/go.mod h1:F2Ela+/miJmKYwnXr3X0+spOmSEwL/iFAEzeUJ4SFMI=
 github.com/Allenxuxu/toolkit v0.0.0-20190930031734-928c4d41e573 h1:ReuyJYr268gPqjonbliV6jKm5959pPtPdd18/FARdYs=
 github.com/Allenxuxu/toolkit v0.0.0-20190930031734-928c4d41e573/go.mod h1:kamv5tj0iNT29zmKIYaxoIcYgDnzerxnOZiHBKbVp/o=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
