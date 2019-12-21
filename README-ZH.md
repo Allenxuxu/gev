@@ -7,76 +7,74 @@
 [![LICENSE](https://img.shields.io/badge/LICENSE-MIT-blue)](https://github.com/Allenxuxu/gev/blob/master/LICENSE)
 [![Code Size](https://img.shields.io/github/languages/code-size/Allenxuxu/gev.svg?style=flat)](https://img.shields.io/github/languages/code-size/Allenxuxu/gev.svg?style=flat)
 
-#### [中文](README.md) | English
+#### 中文 | [English](README.md)
 
-`gev` is a lightweight, fast non-blocking TCP network library based on Reactor mode. 
+`gev` 是一个轻量、快速的基于 Reactor 模式的非阻塞 TCP 网络库，支持自定义协议，轻松快速搭建高性能服务器。
 
-Support custom protocols to quickly and easily build high-performance servers.
+## 特点
 
-## Features
+- 基于 epoll 和 kqueue 实现的高性能事件循环
+- 支持多核多线程
+- 动态扩容 Ring Buffer 实现的读写缓冲区
+- 异步读写
+- SO_REUSEPORT 端口重用支持
+- 支持 WebSocket/Protobuf
+- 支持定时任务，延时任务
+- 支持自定义协议
 
-- High-performance event loop based on epoll and kqueue
-- Support multi-core and multi-threading
-- Dynamic expansion of read and write buffers implemented by Ring Buffer
-- Asynchronous read and write
-- SO_REUSEPORT port reuse support
-- Support WebSocket/Protobuf
-- Support for scheduled tasks, delayed tasks
-- Support for custom protocols
+## 网络模型
 
-## Network model
-
-`gev` uses only a few goroutines, one of them listens for connections and the others (work coroutines) handle read and write events of connected clients. The count of work coroutines is configurable, which is the core number of host CPUs by default.
+`gev` 只使用极少的 goroutine, 一个 goroutine 负责监听客户端连接，其他 goroutine （work 协程）负责处理已连接客户端的读写事件，work 协程数量可以配置，默认与运行主机 CPU 数量相同。
 
 ![image](benchmarks/out/reactor.png)
 
-## Performance Test
+## 性能测试
 
-> Test environment: Ubuntu18.04 | 4 Virtual CPUs | 4.0 GiB
+> 测试环境 Ubuntu18.04 | 4 Virtual CPUs | 4.0 GiB
 
-### Throughput Test
+### 吞吐量测试
 
-limit GOMAXPROCS=1（Single thread），1 work goroutine
+限制 GOMAXPROCS=1（单线程），1 个 work 协程
 
 ![image](benchmarks/out/gev11.png)
 
-limit GOMAXPROCS=4，4 work goroutine
+限制 GOMAXPROCS=4，4 个 work 协程
 
 ![image](benchmarks/out/gev44.png)
 
-### Other Test
+### 其他测试
 
 <details>
-  <summary> Speed ​​Test </summary>
+  <summary> 速度测试 </summary>
 
-Compared with the simple performance of similar libraries, the pressure measurement method is the same as the evio project.
+和同类库的简单性能比较, 压测方式与 evio 项目相同。
 
 - gnet
 - eviop
 - evio
-- net (StdLib)
+- net (标准库)
 
-limit GOMAXPROCS=1，1 work goroutine
+限制 GOMAXPROCS=1，1 个 work 协程
 
 ![image](benchmarks/out/echo-1c-1loops.png)
 
-limit GOMAXPROCS=1，4 work goroutine
+限制 GOMAXPROCS=1，4 个 work 协程
 
 ![image](benchmarks/out/echo-1c-4loops.png)
 
-limit GOMAXPROCS=4，4 work goroutine
+限制 GOMAXPROCS=4，4 个 work 协程
 
 ![image](benchmarks/out/echo-4c-4loops.png)
 
 </details>
 
-## Install
+## 安装
 
 ```bash
 go get -u github.com/Allenxuxu/gev
 ```
 
-## Getting start
+## 快速入门
 
 ### echo demo
 
@@ -126,7 +124,7 @@ func main() {
 }
 ```
 
-*Handler* is an interface that programs must implement.
+Handler 是一个接口，我们的程序必须实现它。
 
 ```go
 type Handler interface {
@@ -138,25 +136,25 @@ type Handler interface {
 func NewServer(handler Handler, opts ...Option) (server *Server, err error)
 ```
 
-OnMessage will be called back when a complete data frame arrives.Users can get the data, process the business logic, and return the data that needs to be sent.
+OnMessage 会在一个完整的数据帧到来时被回调。用户可此可以拿到数据，处理业务逻辑，并返回需要发送的数据。
 
-When there is data coming, gev does not call back OnMessage immediately, but instead calls back an UnPacket function.Probably the execution logic is as follows:
+在有数据到来时，gev 并非立刻回调 OnMessage ，而是会先回调一个 UnPacket 函数。大概执行逻辑如下：
 
 ```go
 ctx, receivedData := c.protocol.UnPacket(c, buffer)
-	if ctx != nil || len(receivedData) != 0 {
-		sendData := c.OnMessage(c, ctx, receivedData)
-		if len(sendData) > 0 {
-			return c.protocol.Packet(c, sendData)
-		}
+if ctx != nil || len(receivedData) != 0 {
+	sendData := c.OnMessage(c, ctx, receivedData)
+	if len(sendData) > 0 {
+		return c.protocol.Packet(c, sendData)
 	}
+}
 ```
 
 ![protocol](benchmarks/out/protocol.png)
 
-The UnPacket function will check whether the data in the ringbuffer is a complete data frame. If it is, the data will be unpacked and return the payload data. If it is not a complete data frame, it will return directly.
+UnPacket 函数中会查看 ringbuffer 中的数据是否是一个完整的数据帧，如果是则会将数据拆包并返回 payload 数据；如果还不是一个完整的数据帧，则直接返回。
 
-The return value of UnPacket `(interface{}, []byte)` will be passed in as a call to OnMessage `ctx interface{}, data []byte` and callback.Ctx is designed to pass special information generated when parsing data frames in the UnPacket function (which is required for complex data frame protocols), and data is used to pass payload data.
+UnPacket 的返回值 `(interface{}, []byte)` 会作为 OnMessage 的入参 `ctx interface{}, data []byte` 被传入并回调。`ctx` 被设计用来传递在 UnPacket 函数中解析数据帧时生成的特殊信息（复杂的数据帧协议会需要），`data` 则是用来传递 payload 数据。
 
 ```go
 type Protocol interface {
@@ -177,35 +175,36 @@ func (d *DefaultProtocol) Packet(c *Connection, data []byte) []byte {
 }
 ```
 
-As above, gev provides a default Protocol implementation that will fetch all data in the receive buffer ( ringbuffer ).In actual use, there is usually a data frame protocol of its own, and gev can be set in the form of a plug-in: it is set by variable parameters when creating Server.
+如上，`gev` 提供一个默认的 Protocol 实现，会将接受缓冲区中( ringbuffer )的所有数据取出。
+在实际使用中，通常会有自己的数据帧协议，`gev` 可以以插件的形式来设置：在创建 Server 的时候通过可变参数设置。
 
 ```go
 s, err := gev.NewServer(handler,gev.Protocol(&ExampleProtocol{}))
 ```
 
-Check out the example [Protocol](example/protocol) for a detailed.
+更详细的使用方式可以参考示例：[自定义协议](example/protocol)
 
-There is also a *Send* method that can be used for sending data. But *Send* puts the data to Event-Loop and invokes it to send the data rather than sending data by itself immediately.
+Connection 还提供 Send 方法来发送数据。Send 并不会立刻发送数据，而是先添加到 event loop 的任务队列中，然后唤醒 event loop 去发送。
 
-Check out the example [Server timing push](example/pushmessage/main.go) for a detailed.
+更详细的使用方式可以参考示例：[服务端定时推送](example/pushmessage/main.go)
 
 ```go
 func (c *Connection) Send(buffer []byte) error
 ```
 
-*ShutdownWrite* works for reverting connected status to false and closing connection.
+Connection ShutdownWrite 会关闭写端，从而断开连接。
 
-Check out the example [Maximum connections](example/maxconnection/main.go) for a detailed.
+更详细的使用方式可以参考示例：[限制最大连接数](example/maxconnection/main.go)
 
 ```go
 func (c *Connection) ShutdownWrite() error
 ```
 
-[RingBuffer](https://github.com/Allenxuxu/ringbuffer) is a dynamical expansion implementation of circular buffer.
+[RingBuffer](https://github.com/Allenxuxu/ringbuffer) 是一个动态扩容的循环缓冲区实现。
 
-### WebSocket
+### WebSocket 支持
 
-The WebSocket protocol is built on top of the TCP protocol, so gev doesn't need to be built in, but instead provides support in the form of plugins, in the plugins/websocket directory.
+WebSocket 协议构建在 TCP 协议之上的，所以 `gev` 无需内置它，而是通过插件的形式提供支持，在 `plugins/websocket` 目录。
 
 ```go
 type Protocol struct {
@@ -256,9 +255,9 @@ func (p *Protocol) Packet(c *connection.Connection, data []byte) []byte {
 }
 ```
 
-The detailed implementation can be viewed by the [plugin](plugins/websocket). The source code can be viewed using the [websocket example](example/websocket).
+详细实现可以插件实现查看 [源码](plugins/websocket)，使用方式可以查看 websocket [示例](example/websocket)
 
-## Example
+## 示例
 
 <details>
   <summary> echo server</summary>
@@ -313,7 +312,7 @@ func main() {
 </details>
 
 <details>
-  <summary> Maximum connections </summary>
+  <summary> 限制最大连接数 </summary>
 
 ```go
 package main
@@ -396,7 +395,7 @@ func main() {
 </details>
 
 <details>
-  <summary> Server timing push </summary>
+  <summary> 服务端定时推送 </summary>
 
 ```go
 package main
@@ -734,16 +733,17 @@ func main() {
 
 </details>
 
+## 致谢
 
-## Thanks
-
-Thanks JetBrains for the free open source license
+感谢 JetBrains 提供的免费开源 License
 
 <a href="https://www.jetbrains.com/?from=gev" target="_blank">
 	<img src="https://raw.githubusercontent.com/Allenxuxu/doc/master/jetbrains.png" width = "260" align=center />
 </a>
 
-## References
+## 参考
+
+本项目受 evio 启发，参考 muduo 实现。
 
 - [evio](https://github.com/tidwall/evio)
 - [muduo](https://github.com/chenshuo/muduo)
