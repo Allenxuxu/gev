@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"time"
 
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/log"
@@ -12,6 +13,7 @@ import (
 	"github.com/Allenxuxu/ringbuffer"
 	"github.com/Allenxuxu/ringbuffer/pool"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
+	"github.com/RussellLuo/timingwheel"
 	"github.com/gobwas/pool/pbytes"
 	"golang.org/x/sys/unix"
 )
@@ -34,11 +36,17 @@ type Connection struct {
 	peerAddr      string
 	ctx           interface{}
 
+	idleTime    time.Duration
+	activeTime  atomic.Int64
+	timingWheel *timingwheel.TimingWheel
+
 	protocol Protocol
 }
 
+var ErrConnectionClosed = errors.New("connection closed")
+
 // New 创建 Connection
-func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, protocol Protocol, readCb ReadCallback, closeCb CloseCallback) *Connection {
+func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, protocol Protocol, tw *timingwheel.TimingWheel, idleTime time.Duration, readCb ReadCallback, closeCb CloseCallback) *Connection {
 	conn := &Connection{
 		fd:            fd,
 		peerAddr:      sockaddrToString(sa),
@@ -47,11 +55,30 @@ func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, protocol Protocol
 		readCallback:  readCb,
 		closeCallback: closeCb,
 		loop:          loop,
+		idleTime:      idleTime,
+		timingWheel:   tw,
 		protocol:      protocol,
 	}
 	conn.connected.Set(true)
 
+	if conn.idleTime > 0 {
+		_ = conn.activeTime.Swap(int(time.Now().Unix()))
+		conn.timingWheel.AfterFunc(conn.idleTime, conn.closeTimeoutConn())
+	}
+
 	return conn
+}
+
+func (c *Connection) closeTimeoutConn() func() {
+	return func() {
+		now := time.Now()
+		intervals := now.Sub(time.Unix(c.activeTime.Get(), 0))
+		if intervals >= c.idleTime {
+			_ = c.Close()
+		} else {
+			c.timingWheel.AfterFunc(c.idleTime-intervals, c.closeTimeoutConn())
+		}
+	}
 }
 
 // Context 获取 Context
@@ -77,11 +104,23 @@ func (c *Connection) Connected() bool {
 // Send 用来在非 loop 协程发送
 func (c *Connection) Send(buffer []byte) error {
 	if !c.connected.Get() {
-		return errors.New("connection closed")
+		return ErrConnectionClosed
 	}
 
 	c.loop.QueueInLoop(func() {
 		c.sendInLoop(c.protocol.Packet(c, buffer))
+	})
+	return nil
+}
+
+// Close 关闭连接
+func (c *Connection) Close() error {
+	if !c.connected.Get() {
+		return ErrConnectionClosed
+	}
+
+	c.loop.QueueInLoop(func() {
+		c.handleClose(c.fd)
 	})
 	return nil
 }
@@ -94,6 +133,10 @@ func (c *Connection) ShutdownWrite() error {
 
 // HandleEvent 内部使用，event loop 回调
 func (c *Connection) HandleEvent(fd int, events poller.Event) {
+	if c.idleTime > 0 {
+		_ = c.activeTime.Swap(int(time.Now().Unix()))
+	}
+
 	if events&poller.EventErr != 0 {
 		c.handleClose(fd)
 		return

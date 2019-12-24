@@ -15,8 +15,8 @@ type Options struct {
 
 	tick      time.Duration
 	wheelSize int64
-
-	Protocol connection.Protocol
+	IdleTime  time.Duration
+	Protocol  connection.Protocol
 }
 
 // Option ...
@@ -80,5 +80,12 @@ func NumLoops(n int) Option {
 func Protocol(p connection.Protocol) Option {
 	return func(o *Options) {
 		o.Protocol = p
+	}
+}
+
+// IdleTime 最大空闲时间（秒）
+func IdleTime(t time.Duration) Option {
+	return func(o *Options) {
+		o.IdleTime = t
 	}
 }
