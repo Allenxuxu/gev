@@ -29,7 +29,9 @@ Support custom protocols to quickly and easily build high-performance servers.
 
 `gev` uses only a few goroutines, one of them listens for connections and the others (work coroutines) handle read and write events of connected clients. The count of work coroutines is configurable, which is the core number of host CPUs by default.
 
-![image](benchmarks/out/reactor.png)
+<div align=center>
+<img src="benchmarks/out/reactor.png" height="230"/>
+</div>
 
 ## Performance Test
 
