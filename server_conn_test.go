@@ -57,6 +57,8 @@ func TestConnClose(t *testing.T) {
 	if n != 0 || err != io.EOF {
 		t.Fatal()
 	}
+
+	s.Stop()
 }
 
 type example3 struct {
@@ -81,7 +83,7 @@ func TestIdleTime(t *testing.T) {
 
 	s, err := NewServer(handler,
 		Network("tcp"),
-		Address(":1833"),
+		Address(":1830"),
 		NumLoops(8),
 		ReusePort(true),
 		IdleTime(3*time.Second))
@@ -95,7 +97,7 @@ func TestIdleTime(t *testing.T) {
 	wg := &sync.WaitGroupWrapper{}
 	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
-			conn, err := net.DialTimeout("tcp", "127.0.0.1:1833", time.Second*60)
+			conn, err := net.DialTimeout("tcp", "127.0.0.1:1830", time.Second*60)
 			if err != nil {
 				log.Error(err)
 				return
@@ -110,8 +112,10 @@ func TestIdleTime(t *testing.T) {
 	}
 	wg.Wait()
 
-	et := time.Now().Sub(start)
+	et := time.Since(start)
 	if et.Seconds() > 4 || et.Seconds() < 3 {
-		t.Fatal(et)
+		t.Fatal(et.Seconds())
 	}
+
+	s.Stop()
 }
