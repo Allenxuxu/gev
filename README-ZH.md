@@ -30,6 +30,9 @@
 
 ## 性能测试
 
+<details>
+  <summary> 📈 测试数据 </summary>
+
 > 测试环境 Ubuntu18.04 | 4 Virtual CPUs | 4.0 GiB
 
 ### 吞吐量测试
@@ -65,6 +68,8 @@
 限制 GOMAXPROCS=4，4 个 work 协程
 
 ![image](benchmarks/out/echo-4c-4loops.png)
+
+</details>
 
 </details>
 

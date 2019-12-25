@@ -32,6 +32,9 @@ Support custom protocols to quickly and easily build high-performance servers.
 
 ## Performance Test
 
+<details>
+  <summary> 📈 Test chart </summary>
+
 > Test environment: Ubuntu18.04 | 4 Virtual CPUs | 4.0 GiB
 
 ### Throughput Test
@@ -67,6 +70,8 @@ limit GOMAXPROCS=1，4 work goroutine
 limit GOMAXPROCS=4，4 work goroutine
 
 ![image](benchmarks/out/echo-4c-4loops.png)
+
+</details>
 
 </details>
 
