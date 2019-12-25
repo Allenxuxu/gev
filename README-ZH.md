@@ -17,6 +17,7 @@
 - 支持多核多线程
 - 动态扩容 Ring Buffer 实现的读写缓冲区
 - 异步读写
+- 自动清理空闲连接
 - SO_REUSEPORT 端口重用支持
 - 支持 WebSocket/Protobuf
 - 支持定时任务，延时任务
@@ -211,6 +212,9 @@ func (c *Connection) ShutdownWrite() error
 
 WebSocket 协议构建在 TCP 协议之上的，所以 `gev` 无需内置它，而是通过插件的形式提供支持，在 `plugins/websocket` 目录。
 
+<details>
+  <summary> code </summary>
+
 ```go
 type Protocol struct {
 	upgrade *ws.Upgrader
@@ -260,6 +264,8 @@ func (p *Protocol) Packet(c *connection.Connection, data []byte) []byte {
 }
 ```
 
+</details>
+
 详细实现可以插件实现查看 [源码](plugins/websocket)，使用方式可以查看 websocket [示例](example/websocket)
 
 ## 示例
@@ -306,6 +312,62 @@ func main() {
 		gev.Network("tcp"),
 		gev.Address(":"+strconv.Itoa(port)),
 		gev.NumLoops(loops))
+	if err != nil {
+		panic(err)
+	}
+
+	s.Start()
+}
+```
+
+</details>
+
+<details>
+  <summary> 主动断开空闲连接 </summary>
+
+```go
+package main
+
+import (
+	"flag"
+	"strconv"
+	"time"
+
+	"github.com/Allenxuxu/gev"
+	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev/log"
+)
+
+type example struct {
+}
+
+func (s *example) OnConnect(c *connection.Connection) {
+	log.Info(" OnConnect ： ", c.PeerAddr())
+}
+func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
+	log.Infof("OnMessage from : %s", c.PeerAddr())
+	out = data
+	return
+}
+
+func (s *example) OnClose(c *connection.Connection) {
+	log.Info("OnClose: ", c.PeerAddr())
+}
+
+func main() {
+	handler := new(example)
+	var port int
+	var loops int
+
+	flag.IntVar(&port, "port", 1833, "server port")
+	flag.IntVar(&loops, "loops", -1, "num loops")
+	flag.Parse()
+
+	s, err := gev.NewServer(handler,
+		gev.Network("tcp"),
+		gev.Address(":"+strconv.Itoa(port)),
+		gev.NumLoops(loops),
+		gev.IdleTime(5*time.Second))
 	if err != nil {
 		panic(err)
 	}

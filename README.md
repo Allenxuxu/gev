@@ -20,6 +20,7 @@ Support custom protocols to quickly and easily build high-performance servers.
 - Dynamic expansion of read and write buffers implemented by Ring Buffer
 - Asynchronous read and write
 - SO_REUSEPORT port reuse support
+- Automatically clean up idle connections
 - Support WebSocket/Protobuf
 - Support for scheduled tasks, delayed tasks
 - Support for custom protocols
@@ -212,6 +213,9 @@ func (c *Connection) ShutdownWrite() error
 
 The WebSocket protocol is built on top of the TCP protocol, so gev doesn't need to be built in, but instead provides support in the form of plugins, in the plugins/websocket directory.
 
+<details>
+  <summary> code </summary>
+
 ```go
 type Protocol struct {
 	upgrade *ws.Upgrader
@@ -261,6 +265,8 @@ func (p *Protocol) Packet(c *connection.Connection, data []byte) []byte {
 }
 ```
 
+</details>
+
 The detailed implementation can be viewed by the [plugin](plugins/websocket). The source code can be viewed using the [websocket example](example/websocket).
 
 ## Example
@@ -307,6 +313,62 @@ func main() {
 		gev.Network("tcp"),
 		gev.Address(":"+strconv.Itoa(port)),
 		gev.NumLoops(loops))
+	if err != nil {
+		panic(err)
+	}
+
+	s.Start()
+}
+```
+
+</details>
+
+<details>
+  <summary> Automatically clean up idle connections </summary>
+
+```go
+package main
+
+import (
+	"flag"
+	"strconv"
+	"time"
+
+	"github.com/Allenxuxu/gev"
+	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev/log"
+)
+
+type example struct {
+}
+
+func (s *example) OnConnect(c *connection.Connection) {
+	log.Info(" OnConnect ： ", c.PeerAddr())
+}
+func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
+	log.Infof("OnMessage from : %s", c.PeerAddr())
+	out = data
+	return
+}
+
+func (s *example) OnClose(c *connection.Connection) {
+	log.Info("OnClose: ", c.PeerAddr())
+}
+
+func main() {
+	handler := new(example)
+	var port int
+	var loops int
+
+	flag.IntVar(&port, "port", 1833, "server port")
+	flag.IntVar(&loops, "loops", -1, "num loops")
+	flag.Parse()
+
+	s, err := gev.NewServer(handler,
+		gev.Network("tcp"),
+		gev.Address(":"+strconv.Itoa(port)),
+		gev.NumLoops(loops),
+		gev.IdleTime(5*time.Second))
 	if err != nil {
 		panic(err)
 	}
@@ -738,7 +800,6 @@ func main() {
 ```
 
 </details>
-
 
 ## Thanks
 
