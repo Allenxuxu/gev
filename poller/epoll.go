@@ -161,10 +161,6 @@ func (ep *Poller) Poll(handler func(fd int, event Event)) {
 				handler(fd, rEvents)
 			} else {
 				ep.wakeHandlerRead()
-
-				if !ep.running.Get() {
-					return
-				}
 				wake = true
 			}
 		}
@@ -172,6 +168,9 @@ func (ep *Poller) Poll(handler func(fd int, event Event)) {
 		if wake {
 			handler(-1, 0)
 			wake = false
+			if !ep.running.Get() {
+				return
+			}
 		}
 
 		if n == len(events) {

@@ -48,7 +48,7 @@ func NewServer(handler Handler, opts ...Option) (server *Server, err error) {
 		return nil, err
 	}
 
-	l, err := listener.New(server.opts.Network, server.opts.Address, options.ReusePort, server.handleNewConnection)
+	l, err := listener.New(server.opts.Network, server.opts.Address, options.ReusePort, server.loop, server.handleNewConnection)
 	if err != nil {
 		return nil, err
 	}
@@ -121,10 +121,14 @@ func (s *Server) Start() {
 // Stop 关闭 Server
 func (s *Server) Stop() {
 	s.timingWheel.Stop()
-	_ = s.loop.Stop()
+	if err := s.loop.Stop(); err != nil {
+		log.Error(err)
+	}
 
 	for k := range s.workLoops {
-		_ = s.workLoops[k].Stop()
+		if err := s.workLoops[k].Stop(); err != nil {
+			log.Error(err)
+		}
 	}
 }
 

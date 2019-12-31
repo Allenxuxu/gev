@@ -12,6 +12,7 @@ import (
 // Socket 接口
 type Socket interface {
 	HandleEvent(fd int, events poller.Event)
+	Close() error
 }
 
 // EventLoop 事件循环
@@ -81,6 +82,17 @@ func (l *EventLoop) RunLoop() {
 
 // Stop 关闭事件循环
 func (l *EventLoop) Stop() error {
+	l.sockets.Range(func(key, value interface{}) bool {
+		s, ok := value.(Socket)
+		if !ok {
+			log.Error("value.(Socket) fail")
+		} else {
+			if err := s.Close(); err != nil {
+				log.Error(err)
+			}
+		}
+		return true
+	})
 	return l.poll.Close()
 }
 

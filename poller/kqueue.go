@@ -124,9 +124,6 @@ func (p *Poller) Poll(handler func(fd int, event Event)) {
 
 				handler(fd, rEvents)
 			} else {
-				if !p.running.Get() {
-					return
-				}
 				wake = true
 			}
 		}
@@ -134,6 +131,9 @@ func (p *Poller) Poll(handler func(fd int, event Event)) {
 		if wake {
 			handler(-1, 0)
 			wake = false
+			if !p.running.Get() {
+				return
+			}
 		}
 		if n == len(events) {
 			events = make([]unix.Kevent_t, n*2)
