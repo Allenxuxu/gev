@@ -72,6 +72,12 @@ func (p *Poller) AddRead(fd int) error {
 
 // Del 从kqueue删除fd
 func (p *Poller) Del(fd int) error {
+	// TODO 记录 fd 状态
+	// 忽略 no such file or directory 错误
+	_, _ = unix.Kevent(p.fd, []unix.Kevent_t{
+		{Ident: uint64(fd), Flags: unix.EV_DELETE, Filter: unix.EVFILT_WRITE},
+		{Ident: uint64(fd), Flags: unix.EV_DELETE, Filter: unix.EVFILT_READ},
+	}, nil, nil)
 	return nil
 }
 
