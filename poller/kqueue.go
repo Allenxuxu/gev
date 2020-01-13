@@ -3,6 +3,9 @@
 package poller
 
 import (
+	"errors"
+	"sync"
+
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"golang.org/x/sys/unix"
@@ -13,6 +16,7 @@ type Poller struct {
 	fd       int
 	running  atomic.Bool
 	waitDone chan struct{}
+	sockets  sync.Map // [fd]events
 }
 
 // Create 创建Poller
@@ -64,38 +68,81 @@ func (p *Poller) Close() (err error) {
 
 // AddRead 注册fd到kqueue并注册可读事件
 func (p *Poller) AddRead(fd int) error {
-	_, err := unix.Kevent(p.fd, []unix.Kevent_t{
-		{Ident: uint64(fd), Flags: unix.EV_ADD, Filter: unix.EVFILT_READ},
-	}, nil, nil)
+	p.sockets.Store(fd, EventRead)
+
+	kEvents := p.kEvents(EventNone, EventRead, fd)
+	_, err := unix.Kevent(p.fd, kEvents, nil, nil)
 	return err
 }
 
 // Del 从kqueue删除fd
 func (p *Poller) Del(fd int) error {
-	// TODO 记录 fd 状态
-	// 忽略 no such file or directory 错误
-	_, _ = unix.Kevent(p.fd, []unix.Kevent_t{
-		{Ident: uint64(fd), Flags: unix.EV_DELETE, Filter: unix.EVFILT_WRITE},
-		{Ident: uint64(fd), Flags: unix.EV_DELETE, Filter: unix.EVFILT_READ},
-	}, nil, nil)
-	return nil
+	v, ok := p.sockets.Load(fd)
+	if !ok {
+		return errors.New("sync map load error")
+	}
+
+	kEvents := p.kEvents(v.(Event), EventNone, fd)
+	_, err := unix.Kevent(p.fd, kEvents, nil, nil)
+	if err != nil {
+		p.sockets.Delete(fd)
+	}
+	return err
 }
 
 // EnableReadWrite 修改fd注册事件为可读可写事件
 func (p *Poller) EnableReadWrite(fd int) error {
-	_, err := unix.Kevent(p.fd, []unix.Kevent_t{
-		//{Ident: uint64(fd), Flags: unix.EV_ADD, Filter: unix.EVFILT_READ}, // TODO 调用时所有 fd 已经 AddRead
-		{Ident: uint64(fd), Flags: unix.EV_ADD, Filter: unix.EVFILT_WRITE},
-	}, nil, nil)
+	oldEvents, ok := p.sockets.Load(fd)
+	if !ok {
+		return errors.New("sync map load error")
+	}
+
+	newEvents := EventWrite | EventRead
+	kEvents := p.kEvents(oldEvents.(Event), newEvents, fd)
+	_, err := unix.Kevent(p.fd, kEvents, nil, nil)
+	if err != nil {
+		p.sockets.Store(fd, newEvents)
+	}
 	return err
 }
 
 // EnableRead 修改fd注册事件为可读事件
 func (p *Poller) EnableRead(fd int) error {
-	_, err := unix.Kevent(p.fd, []unix.Kevent_t{
-		{Ident: uint64(fd), Flags: unix.EV_DELETE, Filter: unix.EVFILT_WRITE}, // TODO 调用时所有 fd 已经 EnableReadWrite
-	}, nil, nil)
+	oldEvents, ok := p.sockets.Load(fd)
+	if !ok {
+		return errors.New("sync map load error")
+	}
+
+	newEvents := EventRead
+	kEvents := p.kEvents(oldEvents.(Event), newEvents, fd)
+	_, err := unix.Kevent(p.fd, kEvents, nil, nil)
+	if err != nil {
+		p.sockets.Store(fd, newEvents)
+	}
 	return err
+}
+
+func (p *Poller) kEvents(old Event, new Event, fd int) (ret []unix.Kevent_t) {
+	if new&EventRead != 0 {
+		if old&EventRead == 0 {
+			ret = append(ret, unix.Kevent_t{Ident: uint64(fd), Flags: unix.EV_ADD, Filter: unix.EVFILT_READ})
+		}
+	} else {
+		if old&EventRead != 0 {
+			ret = append(ret, unix.Kevent_t{Ident: uint64(fd), Flags: unix.EV_DELETE, Filter: unix.EVFILT_READ})
+		}
+	}
+
+	if new&EventWrite != 0 {
+		if old&EventWrite == 0 {
+			ret = append(ret, unix.Kevent_t{Ident: uint64(fd), Flags: unix.EV_ADD, Filter: unix.EVFILT_WRITE})
+		}
+	} else {
+		if old&EventWrite != 0 {
+			ret = append(ret, unix.Kevent_t{Ident: uint64(fd), Flags: unix.EV_DELETE, Filter: unix.EVFILT_WRITE})
+		}
+	}
+	return
 }
 
 // Poll 启动 kqueue 循环
