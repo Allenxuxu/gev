@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
@@ -65,6 +67,12 @@ func (s *Server) OnClose(c *connection.Connection) {
 }
 
 func main() {
+	go func() {
+		if err := http.ListenAndServe(":6060", nil); err != nil {
+			panic(err)
+		}
+	}()
+
 	s, err := New("", "1833", 1)
 	if err != nil {
 		panic(err)

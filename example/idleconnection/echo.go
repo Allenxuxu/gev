@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"net/http"
+	_ "net/http/pprof"
 	"strconv"
 	"time"
 
@@ -27,6 +29,12 @@ func (s *example) OnClose(c *connection.Connection) {
 }
 
 func main() {
+	go func() {
+		if err := http.ListenAndServe(":6060", nil); err != nil {
+			panic(err)
+		}
+	}()
+
 	handler := new(example)
 	var port int
 	var loops int
