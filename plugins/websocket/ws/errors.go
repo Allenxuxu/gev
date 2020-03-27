@@ -25,11 +25,11 @@ var (
 var (
 	ErrHandshakeBadProtocol = RejectConnectionError(
 		RejectionStatus(http.StatusHTTPVersionNotSupported),
-		RejectionReason(fmt.Sprintf("handshake error: bad HTTP protocol version")),
+		RejectionReason("handshake error: bad HTTP protocol version"),
 	)
 	ErrHandshakeBadMethod = RejectConnectionError(
 		RejectionStatus(http.StatusMethodNotAllowed),
-		RejectionReason(fmt.Sprintf("handshake error: bad HTTP request method")),
+		RejectionReason("handshake error: bad HTTP request method"),
 	)
 	ErrHandshakeBadHost = RejectConnectionError(
 		RejectionStatus(http.StatusBadRequest),
