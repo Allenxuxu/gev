@@ -51,7 +51,7 @@ func TestPlugin(t *testing.T) {
 	handler := new(example)
 	s, err := gev.NewServer(handler,
 		gev.Network("tcp"),
-		gev.Address(":1831"),
+		gev.Address(":1131"),
 		gev.NumLoops(1))
 	if err != nil {
 		t.Fatal(err)
