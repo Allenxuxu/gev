@@ -38,3 +38,7 @@ func (d *ExampleProtocol) Packet(c *connection.Connection, data []byte) []byte {
 	copy(ret[4:], data)
 	return ret
 }
+
+func (d *ExampleProtocol) String() string {
+	return "example protocol"
+}

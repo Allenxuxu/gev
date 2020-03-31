@@ -10,6 +10,7 @@ var _ Protocol = &DefaultProtocol{}
 type Protocol interface {
 	UnPacket(c *Connection, buffer *ringbuffer.RingBuffer) (interface{}, []byte)
 	Packet(c *Connection, data []byte) []byte
+	String() string
 }
 
 // DefaultProtocol 默认 Protocol
@@ -25,4 +26,9 @@ func (d *DefaultProtocol) UnPacket(c *Connection, buffer *ringbuffer.RingBuffer)
 // Packet 封包
 func (d *DefaultProtocol) Packet(c *Connection, data []byte) []byte {
 	return data
+}
+
+// String 名称
+func (d *DefaultProtocol) String() string {
+	return "default protocol"
 }

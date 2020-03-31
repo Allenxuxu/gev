@@ -59,3 +59,8 @@ func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuf
 func (p *Protocol) Packet(c *connection.Connection, data []byte) []byte {
 	return data
 }
+
+// String ...
+func (p *Protocol) String() string {
+	return "websocket protocol"
+}

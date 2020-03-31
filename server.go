@@ -2,6 +2,7 @@ package gev
 
 import (
 	"errors"
+	"os"
 	"runtime"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/listener"
 	"github.com/Allenxuxu/gev/log"
+	"github.com/Allenxuxu/gev/plugin"
 	"github.com/Allenxuxu/toolkit/sync"
 	"github.com/RussellLuo/timingwheel"
 	"golang.org/x/sys/unix"
@@ -73,6 +75,15 @@ func NewServer(handler Handler, opts ...Option) (server *Server, err error) {
 	}
 	server.workLoops = wloops
 
+	// 加载动态库
+	if path := os.Getenv("GEV_PLUGIN"); len(path) != 0 {
+		config, err := plugin.Load(path)
+		if err != nil {
+			return nil, err
+		}
+
+		server.opts.Protocol = config.Protocol
+	}
 	return
 }
 
