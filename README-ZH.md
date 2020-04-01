@@ -273,6 +273,37 @@ func (p *Protocol) Packet(c *connection.Connection, data []byte) []byte {
 ## 示例
 
 <details>
+  <summary> 不修改源码动态加载插件 </summary>
+
+在运行环境设置 `GEV_PLUGIN` 环境变量为指定的动态库路径，程序运行时将会覆盖代码中指定的插件，使用动态库中定义的协议插件。
+
+> plugin.go
+
+```go
+package main
+
+import (
+	"github.com/Allenxuxu/gev/plugin"
+	"github.com/Allenxuxu/gev/plugins/protobuf"
+)
+
+var Plugin = plugin.Config{
+	Protocol: protobuf.New(),
+}
+```
+
+```
+go build -buildmode=plugin -o ./plugin.so plugin.go
+```
+
+```
+export GEV_PLUGIN ./plugin.so
+./server
+```
+
+</details>
+
+<details>
   <summary> echo server</summary>
 
 ```go
