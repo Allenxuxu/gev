@@ -292,11 +292,11 @@ var Plugin = plugin.Config{
 }
 ```
 
-```
+```shell script
 go build -buildmode=plugin -o ./plugin.so plugin.go
 ```
 
-```
+```shell script
 export GEV_PLUGIN ./plugin.so
 ./server
 ```
