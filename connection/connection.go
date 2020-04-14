@@ -46,7 +46,7 @@ type Connection struct {
 var ErrConnectionClosed = errors.New("connection closed")
 
 // New 创建 Connection
-func New(fd int, loop *eventloop.EventLoop, sa *unix.Sockaddr, protocol Protocol, tw *timingwheel.TimingWheel, idleTime time.Duration, readCb ReadCallback, closeCb CloseCallback) *Connection {
+func New(fd int, loop *eventloop.EventLoop, sa unix.Sockaddr, protocol Protocol, tw *timingwheel.TimingWheel, idleTime time.Duration, readCb ReadCallback, closeCb CloseCallback) *Connection {
 	conn := &Connection{
 		fd:            fd,
 		peerAddr:      sockaddrToString(sa),
@@ -271,8 +271,8 @@ func (c *Connection) sendInLoop(data []byte) {
 	}
 }
 
-func sockaddrToString(sa *unix.Sockaddr) string {
-	switch sa := (*sa).(type) {
+func sockaddrToString(sa unix.Sockaddr) string {
+	switch sa := (sa).(type) {
 	case *unix.SockaddrInet4:
 		return net.JoinHostPort(net.IP(sa.Addr[:]).String(), strconv.Itoa(sa.Port))
 	case *unix.SockaddrInet6:
