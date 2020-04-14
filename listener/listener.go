@@ -13,7 +13,7 @@ import (
 )
 
 // HandleConnFunc 处理新连接
-type HandleConnFunc func(fd int, sa *unix.Sockaddr)
+type HandleConnFunc func(fd int, sa unix.Sockaddr)
 
 // Listener 监听TCP连接
 type Listener struct {
@@ -75,7 +75,7 @@ func (l *Listener) HandleEvent(fd int, events poller.Event) {
 			return
 		}
 
-		l.handleC(nfd, &sa)
+		l.handleC(nfd, sa)
 	}
 }
 

@@ -93,7 +93,7 @@ func (s *Server) nextLoop() *eventloop.EventLoop {
 	return loop
 }
 
-func (s *Server) handleNewConnection(fd int, sa *unix.Sockaddr) {
+func (s *Server) handleNewConnection(fd int, sa unix.Sockaddr) {
 	loop := s.nextLoop()
 
 	c := connection.New(fd, loop, sa, s.opts.Protocol, s.timingWheel, s.opts.IdleTime, s.callback.OnMessage, s.callback.OnClose)
