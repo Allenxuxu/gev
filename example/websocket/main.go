@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"math/rand"
 	"strconv"
@@ -62,7 +63,13 @@ func main() {
 	flag.IntVar(&loops, "loops", -1, "num loops")
 	flag.Parse()
 
-	s, err := NewWebSocketServer(handler, &ws.Upgrader{},
+	wsUpgrader := &ws.Upgrader{}
+	wsUpgrader.OnHeader = func(c *connection.Connection,key, value []byte) error {
+		fmt.Println(string(key),":" ,string(value))
+		return nil
+	}
+
+	s, err := NewWebSocketServer(handler, wsUpgrader,
 		gev.Network("tcp"),
 		gev.Address(":"+strconv.Itoa(port)),
 		gev.NumLoops(loops))

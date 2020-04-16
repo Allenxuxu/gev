@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/ringbuffer"
 	"github.com/Allenxuxu/toolkit/convert"
 	"github.com/gobwas/httphead"
@@ -56,7 +57,7 @@ type Upgrader struct {
 	// ProtocolCustrom allow user to parse Sec-WebSocket-Protocol header manually.
 	// Note that returned bytes must be valid until Upgrade returns.
 	// If ProtocolCustom is set, it used instead of Protocol function.
-	ProtocolCustom func([]byte) (string, bool)
+	ProtocolCustom func(*connection.Connection, []byte) (string, bool)
 
 	// Extension is a select function that is used to select extensions
 	// from list requested by client. If this field is set, then the all matched
@@ -79,7 +80,7 @@ type Upgrader struct {
 	// ExtensionCustorm allow user to parse Sec-WebSocket-Extensions header manually.
 	// Note that returned options should be valid until Upgrade returns.
 	// If ExtensionCustom is set, it used instead of Extension function.
-	ExtensionCustom func([]byte, []httphead.Option) ([]httphead.Option, bool)
+	ExtensionCustom func(*connection.Connection, []byte, []httphead.Option) ([]httphead.Option, bool)
 
 	// Header is an optional HandshakeHeader instance that could be used to
 	// write additional headers to the handshake response.
@@ -99,7 +100,7 @@ type Upgrader struct {
 	// sent with appropriate HTTP error code and body set to error message.
 	//
 	// RejectConnectionError could be used to get more control on response.
-	OnRequest func(uri []byte) error
+	OnRequest func(c *connection.Connection, uri []byte) error
 
 	// OnHost is a callback that will be called after "Host" header successful
 	// parsing.
@@ -114,7 +115,7 @@ type Upgrader struct {
 	// sent with appropriate HTTP error code and body set to error message.
 	//
 	// RejectConnectionError could be used to get more control on response.
-	OnHost func(host []byte) error
+	OnHost func(c *connection.Connection, host []byte) error
 
 	// OnHeader is a callback that will be called after successful parsing of
 	// header, that is not used during WebSocket handshake procedure. That is,
@@ -127,7 +128,7 @@ type Upgrader struct {
 	// sent with appropriate HTTP error code and body set to error message.
 	//
 	// RejectConnectionError could be used to get more control on response.
-	OnHeader func(key, value []byte) error
+	OnHeader func(c *connection.Connection, key, value []byte) error
 
 	// OnBeforeUpgrade is a callback that will be called before sending
 	// successful upgrade response.
@@ -142,7 +143,7 @@ type Upgrader struct {
 	// sent with appropriate HTTP error code and body set to error message.
 	//
 	// RejectConnectionError could be used to get more control on response.
-	OnBeforeUpgrade func() (header HandshakeHeader, err error)
+	OnBeforeUpgrade func(c *connection.Connection) (header HandshakeHeader, err error)
 }
 
 // Upgrade zero-copy upgrades connection to WebSocket. It interprets given conn
@@ -154,7 +155,7 @@ type Upgrader struct {
 // malformed and usually connection should be closed.
 // Even when error is non-nil Upgrade will write appropriate response into
 // connection in compliance with RFC.
-func (u *Upgrader) Upgrade(in *ringbuffer.RingBuffer) (out []byte, hs Handshake, err error) {
+func (u *Upgrader) Upgrade(c *connection.Connection, in *ringbuffer.RingBuffer) (out []byte, hs Handshake, err error) {
 	// headerSeen constants helps to report whether or not some header was seen
 	// during reading request bytes.
 	const (
@@ -220,7 +221,7 @@ func (u *Upgrader) Upgrade(in *ringbuffer.RingBuffer) (out []byte, hs Handshake,
 		err = ErrHandshakeBadMethod
 	default:
 		if onRequest := u.OnRequest; onRequest != nil {
-			err = onRequest(req.uri)
+			err = onRequest(c, req.uri)
 		}
 	}
 	// Start headers read/parse loop.
@@ -246,7 +247,7 @@ func (u *Upgrader) Upgrade(in *ringbuffer.RingBuffer) (out []byte, hs Handshake,
 		case headerHostCanonical:
 			headerSeen |= headerSeenHost
 			if onHost := u.OnHost; onHost != nil {
-				err = onHost(v)
+				err = onHost(c, v)
 			}
 		case headerUpgradeCanonical:
 			headerSeen |= headerSeenUpgrade
@@ -274,7 +275,7 @@ func (u *Upgrader) Upgrade(in *ringbuffer.RingBuffer) (out []byte, hs Handshake,
 			if custom, check := u.ProtocolCustom, u.Protocol; hs.Protocol == "" && (custom != nil || check != nil) {
 				var ok bool
 				if custom != nil {
-					hs.Protocol, ok = custom(v)
+					hs.Protocol, ok = custom(c, v)
 				} else {
 					hs.Protocol, ok = btsSelectProtocol(v, check)
 				}
@@ -286,7 +287,7 @@ func (u *Upgrader) Upgrade(in *ringbuffer.RingBuffer) (out []byte, hs Handshake,
 			if custom, check := u.ExtensionCustom, u.Extension; custom != nil || check != nil {
 				var ok bool
 				if custom != nil {
-					hs.Extensions, ok = custom(v, hs.Extensions)
+					hs.Extensions, ok = custom(c, v, hs.Extensions)
 				} else {
 					hs.Extensions, ok = btsSelectExtensions(v, hs.Extensions, check)
 				}
@@ -296,7 +297,7 @@ func (u *Upgrader) Upgrade(in *ringbuffer.RingBuffer) (out []byte, hs Handshake,
 			}
 		default:
 			if onHeader := u.OnHeader; onHeader != nil {
-				err = onHeader(k, v)
+				err = onHeader(c, k, v)
 			}
 		}
 	}
@@ -318,7 +319,7 @@ func (u *Upgrader) Upgrade(in *ringbuffer.RingBuffer) (out []byte, hs Handshake,
 		}
 
 	case err == nil && u.OnBeforeUpgrade != nil:
-		header[1], err = u.OnBeforeUpgrade()
+		header[1], err = u.OnBeforeUpgrade(c)
 	}
 	if err != nil {
 		var code int
