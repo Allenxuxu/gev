@@ -22,7 +22,7 @@ func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuf
 	upgraded := c.Context()
 	if upgraded == nil {
 		var err error
-		out, _, err = p.upgrade.Upgrade(buffer)
+		out, _, err = p.upgrade.Upgrade(c, buffer)
 		if err != nil {
 			log.Error("Websocket Upgrade :", err)
 			return

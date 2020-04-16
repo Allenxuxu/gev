@@ -64,7 +64,7 @@ func main() {
 	flag.Parse()
 
 	wsUpgrader := &ws.Upgrader{}
-	wsUpgrader.OnHeader = func(key, value []byte) error {
+	wsUpgrader.OnHeader = func(c *connection.Connection,key, value []byte) error {
 		fmt.Println(string(key),":" ,string(value))
 		return nil
 	}
