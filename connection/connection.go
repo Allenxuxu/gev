@@ -47,7 +47,7 @@ var ErrConnectionClosed = errors.New("connection closed")
 func New(fd int, loop *eventloop.EventLoop, sa unix.Sockaddr, protocol Protocol, tw *timingwheel.TimingWheel, idleTime time.Duration, callBack CallBack) *Connection {
 	conn := &Connection{
 		fd:          fd,
-		peerAddr:    sockaddrToString(sa),
+		peerAddr:    sockAddrToString(sa),
 		outBuffer:   pool.Get(),
 		inBuffer:    pool.Get(),
 		callBack:    callBack,
@@ -268,7 +268,7 @@ func (c *Connection) sendInLoop(data []byte) {
 	}
 }
 
-func sockaddrToString(sa unix.Sockaddr) string {
+func sockAddrToString(sa unix.Sockaddr) string {
 	switch sa := (sa).(type) {
 	case *unix.SockaddrInet4:
 		return net.JoinHostPort(net.IP(sa.Addr[:]).String(), strconv.Itoa(sa.Port))
