@@ -16,9 +16,8 @@ import (
 
 // Handler Server 注册接口
 type Handler interface {
+	connection.CallBack
 	OnConnect(c *connection.Connection)
-	OnMessage(c *connection.Connection, ctx interface{}, data []byte) []byte
-	OnClose(c *connection.Connection)
 }
 
 // Server gev Server
@@ -96,7 +95,7 @@ func (s *Server) nextLoop() *eventloop.EventLoop {
 func (s *Server) handleNewConnection(fd int, sa unix.Sockaddr) {
 	loop := s.nextLoop()
 
-	c := connection.New(fd, loop, sa, s.opts.Protocol, s.timingWheel, s.opts.IdleTime, s.callback.OnMessage, s.callback.OnClose)
+	c := connection.New(fd, loop, sa, s.opts.Protocol, s.timingWheel, s.opts.IdleTime, s.callback)
 
 	s.callback.OnConnect(c)
 	if err := loop.AddSocketAndEnableRead(fd, c); err != nil {
