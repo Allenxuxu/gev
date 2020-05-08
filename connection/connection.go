@@ -18,23 +18,21 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// ReadCallback 数据可读回调函数
-type ReadCallback func(c *Connection, ctx interface{}, data []byte) []byte
-
-// CloseCallback 关闭回调函数
-type CloseCallback func(c *Connection)
+type CallBack interface {
+	OnMessage(c *Connection, ctx interface{}, data []byte) []byte
+	OnClose(c *Connection)
+}
 
 // Connection TCP 连接
 type Connection struct {
-	fd            int
-	connected     atomic.Bool
-	outBuffer     *ringbuffer.RingBuffer // write buffer
-	inBuffer      *ringbuffer.RingBuffer // read buffer
-	readCallback  ReadCallback
-	closeCallback CloseCallback
-	loop          *eventloop.EventLoop
-	peerAddr      string
-	ctx           interface{}
+	fd        int
+	connected atomic.Bool
+	outBuffer *ringbuffer.RingBuffer // write buffer
+	inBuffer  *ringbuffer.RingBuffer // read buffer
+	callBack  CallBack
+	loop      *eventloop.EventLoop
+	peerAddr  string
+	ctx       interface{}
 
 	idleTime    time.Duration
 	activeTime  atomic.Int64
@@ -46,18 +44,17 @@ type Connection struct {
 var ErrConnectionClosed = errors.New("connection closed")
 
 // New 创建 Connection
-func New(fd int, loop *eventloop.EventLoop, sa unix.Sockaddr, protocol Protocol, tw *timingwheel.TimingWheel, idleTime time.Duration, readCb ReadCallback, closeCb CloseCallback) *Connection {
+func New(fd int, loop *eventloop.EventLoop, sa unix.Sockaddr, protocol Protocol, tw *timingwheel.TimingWheel, idleTime time.Duration, callBack CallBack) *Connection {
 	conn := &Connection{
-		fd:            fd,
-		peerAddr:      sockaddrToString(sa),
-		outBuffer:     pool.Get(),
-		inBuffer:      pool.Get(),
-		readCallback:  readCb,
-		closeCallback: closeCb,
-		loop:          loop,
-		idleTime:      idleTime,
-		timingWheel:   tw,
-		protocol:      protocol,
+		fd:          fd,
+		peerAddr:    sockaddrToString(sa),
+		outBuffer:   pool.Get(),
+		inBuffer:    pool.Get(),
+		callBack:    callBack,
+		loop:        loop,
+		idleTime:    idleTime,
+		timingWheel: tw,
+		protocol:    protocol,
 	}
 	conn.connected.Set(true)
 
@@ -156,7 +153,7 @@ func (c *Connection) handlerProtocol(buffer *ringbuffer.RingBuffer) []byte {
 	out := pbytes.GetCap(1024)
 	ctx, receivedData := c.protocol.UnPacket(c, buffer)
 	for ctx != nil || len(receivedData) != 0 {
-		sendData := c.readCallback(c, ctx, receivedData)
+		sendData := c.callBack.OnMessage(c, ctx, receivedData)
 		if len(sendData) > 0 {
 			out = append(out, c.protocol.Packet(c, sendData)...)
 		}
@@ -237,7 +234,7 @@ func (c *Connection) handleClose(fd int) {
 		c.connected.Set(false)
 		c.loop.DeleteFdInLoop(fd)
 
-		c.closeCallback(c)
+		c.callBack.OnClose(c)
 		if err := unix.Close(fd); err != nil {
 			log.Error("[close fd]", err)
 		}
