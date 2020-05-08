@@ -16,9 +16,8 @@ import (
 
 // Handler Server 注册接口
 type Handler interface {
+	connection.CallBack
 	OnConnect(c *connection.Connection)
-	OnMessage(c *connection.Connection, ctx interface{}, data []byte) []byte
-	OnClose(c *connection.Connection)
 }
 
 // Server gev Server
