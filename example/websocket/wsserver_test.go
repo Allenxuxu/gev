@@ -57,6 +57,7 @@ func (s *wsExample) OnClose(c *connection.Connection) {
 }
 
 func TestWebSocketServer_Start(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
 	handler := new(wsExample)
 
 	s, err := NewWebSocketServer(handler, &ws.Upgrader{},
@@ -104,7 +105,7 @@ func startWebSocketClient(addr string) {
 		}
 
 		data2 := make([]byte, len(data))
-		if n, err := c.Read(data2); err != nil || n != len(data) {
+		if n, err := io.ReadFull(c, data2); err != nil || n != len(data) {
 			if err != io.EOF {
 				panic(err)
 			} else {
