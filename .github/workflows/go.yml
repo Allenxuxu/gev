@@ -5,10 +5,10 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-    - name: Set up Go 1.13
+    - name: Set up Go 1.14
       uses: actions/setup-go@v1
       with:
-        go-version: 1.13
+        go-version: 1.14
       id: go
     - name: Code
       uses: actions/checkout@v1
@@ -25,10 +25,10 @@ jobs:
       matrix:
         os: [macOS-latest,ubuntu-latest]
     steps:
-    - name: Set up Go 1.13
+    - name: Set up Go 1.14
       uses: actions/setup-go@v1
       with:
-        go-version: 1.13
+        go-version: 1.14
       id: go
     - name: Code
       uses: actions/checkout@v1
