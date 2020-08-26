@@ -1,6 +1,6 @@
 module github.com/Allenxuxu/gev
 
-go 1.13
+go 1.14
 
 require (
 	github.com/Allenxuxu/eviop v0.0.0-20190901123806-035c218f739a
