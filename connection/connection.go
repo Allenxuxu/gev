@@ -59,7 +59,7 @@ func New(fd int, loop *eventloop.EventLoop, sa unix.Sockaddr, protocol Protocol,
 	conn.connected.Set(true)
 
 	if conn.idleTime > 0 {
-		_ = conn.activeTime.Swap(int(time.Now().Unix()))
+		_ = conn.activeTime.Swap(time.Now().Unix())
 		conn.timingWheel.AfterFunc(conn.idleTime, conn.closeTimeoutConn())
 	}
 
@@ -131,7 +131,7 @@ func (c *Connection) ShutdownWrite() error {
 // HandleEvent 内部使用，event loop 回调
 func (c *Connection) HandleEvent(fd int, events poller.Event) {
 	if c.idleTime > 0 {
-		_ = c.activeTime.Swap(int(time.Now().Unix()))
+		_ = c.activeTime.Swap(time.Now().Unix())
 	}
 
 	if events&poller.EventErr != 0 {

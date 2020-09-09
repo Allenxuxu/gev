@@ -4,8 +4,8 @@ github.com/Allenxuxu/ringbuffer v0.0.0-20190803184500-fa400f2fe92b h1:vYIM1lYjI+
 github.com/Allenxuxu/ringbuffer v0.0.0-20190803184500-fa400f2fe92b/go.mod h1:9Rg4D7ixiHGlU50BJWJEg6vwDFcGiOYKQFcHK6Vx9m4=
 github.com/Allenxuxu/ringbuffer v0.0.6 h1:C1dRDXNPazonGogzgWRamLFDFgbHrqoNnG/MRdkIrgk=
 github.com/Allenxuxu/ringbuffer v0.0.6/go.mod h1:F2Ela+/miJmKYwnXr3X0+spOmSEwL/iFAEzeUJ4SFMI=
-github.com/Allenxuxu/toolkit v0.0.0-20190930031734-928c4d41e573 h1:ReuyJYr268gPqjonbliV6jKm5959pPtPdd18/FARdYs=
-github.com/Allenxuxu/toolkit v0.0.0-20190930031734-928c4d41e573/go.mod h1:kamv5tj0iNT29zmKIYaxoIcYgDnzerxnOZiHBKbVp/o=
+github.com/Allenxuxu/toolkit v0.0.0-20200827004847-cb9a6f0d072f h1:DqHu2M6MxT+R6KN2UdsWjcZ6Yhw4ENSKYlXTKZ24P+c=
+github.com/Allenxuxu/toolkit v0.0.0-20200827004847-cb9a6f0d072f/go.mod h1:kamv5tj0iNT29zmKIYaxoIcYgDnzerxnOZiHBKbVp/o=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/RussellLuo/timingwheel v0.0.0-20191015104426-744130d33fdc h1:G8FpZoNs9aARNhSddx2OU6nXUbLX3sfghzoYCfPiLTg=
 github.com/RussellLuo/timingwheel v0.0.0-20191015104426-744130d33fdc/go.mod h1:3VIJp8oOAlnDUnPy3kwyBGqsMiJJujqTP6ic9Jv6NbM=
