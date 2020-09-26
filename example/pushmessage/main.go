@@ -2,12 +2,15 @@ package main
 
 import (
 	"container/list"
-	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/connection"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/Allenxuxu/gev"
+	"github.com/Allenxuxu/gev/connection"
 )
+
+const clientsKey = "demo_push_message_key"
 
 // Server example
 type Server struct {
@@ -63,7 +66,7 @@ func (s *Server) OnConnect(c *connection.Connection) {
 	s.mu.Lock()
 	e := s.conn.PushBack(c)
 	s.mu.Unlock()
-	c.SetContext(e)
+	c.Set(clientsKey, e)
 }
 
 // OnMessage callback
@@ -76,10 +79,14 @@ func (s *Server) OnMessage(c *connection.Connection, ctx interface{}, data []byt
 // OnClose callback
 func (s *Server) OnClose(c *connection.Connection) {
 	log.Println("OnClose")
-	e := c.Context().(*list.Element)
+	v, ok := c.Get(clientsKey)
+	if !ok {
+		log.Println("OnClose : get key fail")
+		return
+	}
 
 	s.mu.Lock()
-	s.conn.Remove(e)
+	s.conn.Remove(v.(*list.Element))
 	s.mu.Unlock()
 }
 

@@ -25,6 +25,8 @@ type CallBack interface {
 
 // Connection TCP 连接
 type Connection struct {
+	Context
+
 	fd        int
 	connected atomic.Bool
 	outBuffer *ringbuffer.RingBuffer // write buffer
@@ -32,7 +34,6 @@ type Connection struct {
 	callBack  CallBack
 	loop      *eventloop.EventLoop
 	peerAddr  string
-	ctx       interface{}
 
 	idleTime    time.Duration
 	activeTime  atomic.Int64
@@ -76,16 +77,6 @@ func (c *Connection) closeTimeoutConn() func() {
 			c.timingWheel.AfterFunc(c.idleTime-intervals, c.closeTimeoutConn())
 		}
 	}
-}
-
-// Context 获取 Context
-func (c *Connection) Context() interface{} {
-	return c.ctx
-}
-
-// SetContext 设置 Context
-func (c *Connection) SetContext(ctx interface{}) {
-	c.ctx = ctx
 }
 
 // PeerAddr 获取客户端地址信息

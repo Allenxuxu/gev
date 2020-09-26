@@ -7,6 +7,8 @@ import (
 	"github.com/Allenxuxu/ringbuffer"
 )
 
+const upgradedKey = "gev_ws_upgraded"
+
 // Protocol websocket
 type Protocol struct {
 	upgrade *ws.Upgrader
@@ -19,15 +21,15 @@ func New(u *ws.Upgrader) *Protocol {
 
 // UnPacket 解析 websocket 协议，返回 header ，payload
 func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuffer) (ctx interface{}, out []byte) {
-	upgraded := c.Context()
-	if upgraded == nil {
+	_, ok := c.Get(upgradedKey)
+	if !ok {
 		var err error
 		out, _, err = p.upgrade.Upgrade(c, buffer)
 		if err != nil {
 			log.Error("Websocket Upgrade :", err)
 			return
 		}
-		c.SetContext(true)
+		c.Set(upgradedKey, true)
 	} else {
 		header, err := ws.VirtualReadHeader(buffer)
 		if err != nil {
