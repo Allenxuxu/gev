@@ -20,12 +20,8 @@ func (c *Context) Set(key string, value interface{}) {
 
 func (c *Context) Delete(key string) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.Keys == nil {
-		return
-	}
 	delete(c.Keys, key)
+	c.mu.Unlock()
 }
 
 func (c *Context) Get(key string) (value interface{}, exists bool) {
