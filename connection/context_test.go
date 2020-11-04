@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func TestContext(t *testing.T) {
-	ctx := Context{}
+func TestKeyValueContext(t *testing.T) {
+	ctx := KeyValueContext{}
 
 	// Delete non-existent key
 	ctx.Delete("1")

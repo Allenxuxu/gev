@@ -2,37 +2,37 @@ package connection
 
 import "sync"
 
-type Context struct {
+type KeyValueContext struct {
 	mu sync.RWMutex
 
-	Keys map[string]interface{}
+	kv map[string]interface{}
 }
 
-func (c *Context) Set(key string, value interface{}) {
+func (c *KeyValueContext) Set(key string, value interface{}) {
 	c.mu.Lock()
-	if c.Keys == nil {
-		c.Keys = make(map[string]interface{})
+	if c.kv == nil {
+		c.kv = make(map[string]interface{})
 	}
 
-	c.Keys[key] = value
+	c.kv[key] = value
 	c.mu.Unlock()
 }
 
-func (c *Context) Delete(key string) {
+func (c *KeyValueContext) Delete(key string) {
 	c.mu.Lock()
-	delete(c.Keys, key)
+	delete(c.kv, key)
 	c.mu.Unlock()
 }
 
-func (c *Context) Get(key string) (value interface{}, exists bool) {
+func (c *KeyValueContext) Get(key string) (value interface{}, exists bool) {
 	c.mu.RLock()
-	value, exists = c.Keys[key]
+	value, exists = c.kv[key]
 	c.mu.RUnlock()
 	return
 }
 
-func (c *Context) reset() {
+func (c *KeyValueContext) reset() {
 	c.mu.Lock()
-	c.Keys = nil
+	c.kv = nil
 	c.mu.Unlock()
 }
