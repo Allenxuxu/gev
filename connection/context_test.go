@@ -8,6 +8,9 @@ import (
 func TestContext(t *testing.T) {
 	ctx := Context{}
 
+	// Delete non-existent key
+	ctx.Delete("1")
+
 	// Set
 	ctx.Set("1", 1)
 	ctx.Set("2", 2)
