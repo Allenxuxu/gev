@@ -6,6 +6,7 @@ import (
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"golang.org/x/sys/unix"
+	"runtime"
 )
 
 const readEvent = unix.EPOLLIN | unix.EPOLLPRI
@@ -134,15 +135,24 @@ func (ep *Poller) Poll(handler func(fd int, event Event)) {
 	}()
 
 	events := make([]unix.EpollEvent, waitEventsBegin)
-	var wake bool
+	var (
+		wake bool
+		msec int
+	)
 	ep.running.Set(true)
 	for {
-		n, err := unix.EpollWait(ep.fd, events, -1)
+		n, err := unix.EpollWait(ep.fd, events, msec)
 
 		if err != nil && err != unix.EINTR {
 			log.Error("EpollWait: ", err)
 			continue
 		}
+		if n <= 0 {
+			msec = -1
+			runtime.Gosched()
+			continue
+		}
+		msec = 0
 
 		for i := 0; i < n; i++ {
 			fd := int(events[i].Fd)
