@@ -175,7 +175,7 @@ func (c *Connection) handleRead(fd int) {
 		return
 	}
 
-	if c.inBuffer.Length() == 0 {
+	if c.inBuffer.IsFull() {
 		buffer := ringbuffer.NewWithData(buf[:n])
 		out := c.handlerProtocol(buffer)
 
