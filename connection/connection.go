@@ -25,14 +25,16 @@ type CallBack interface {
 
 // Connection TCP 连接
 type Connection struct {
-	fd        int
-	connected atomic.Bool
-	outBuffer *ringbuffer.RingBuffer // write buffer
-	inBuffer  *ringbuffer.RingBuffer // read buffer
-	callBack  CallBack
-	loop      *eventloop.EventLoop
-	peerAddr  string
-	ctx       interface{}
+	fd           int
+	connected    atomic.Bool
+	outBuffer    *ringbuffer.RingBuffer // write buffer
+	outBufferLen atomic.Int64
+	inBuffer     *ringbuffer.RingBuffer // read buffer
+	inBufferLen  atomic.Int64
+	callBack     CallBack
+	loop         *eventloop.EventLoop
+	peerAddr     string
+	ctx          interface{}
 	KeyValueContext
 
 	idleTime    time.Duration
@@ -129,6 +131,16 @@ func (c *Connection) ShutdownWrite() error {
 	return unix.Shutdown(c.fd, unix.SHUT_WR)
 }
 
+// ReadBufferLength read buffer 当前积压的数据长度
+func (c *Connection) ReadBufferLength() int64 {
+	return c.inBufferLen.Get()
+}
+
+// WriteBufferLength write buffer 当前积压的数据长度
+func (c *Connection) WriteBufferLength() int64 {
+	return c.outBufferLen.Get()
+}
+
 // HandleEvent 内部使用，event loop 回调
 func (c *Connection) HandleEvent(fd int, events poller.Event) {
 	if c.idleTime > 0 {
@@ -147,6 +159,9 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 	} else if events&poller.EventRead != 0 {
 		c.handleRead(fd)
 	}
+
+	c.inBufferLen.Swap(int64(c.inBuffer.Length()))
+	c.outBufferLen.Swap(int64(c.outBuffer.Length()))
 }
 
 func (c *Connection) handlerProtocol(buffer *ringbuffer.RingBuffer) []byte {
