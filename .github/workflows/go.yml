@@ -11,7 +11,7 @@ jobs:
         go-version: 1.16
       id: go
     - name: Go version
-      uses: go version
+      run: go version
     - name: Code
       uses: actions/checkout@v1
     - name: Intsall Golangci-lint 
@@ -33,7 +33,7 @@ jobs:
         go-version: 1.16
       id: go
     - name: Go version
-      uses: go version
+      run: go version
     - name: Code
       uses: actions/checkout@v1
     - name: Go Get dependencies
