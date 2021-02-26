@@ -122,7 +122,7 @@ func (s *example) OnClose(c *connection.Connection) {
 	log.Println("OnClose")
 
 	s.Lock()
-	s.Unlock()
+	defer s.Unlock()
 
 	delete(s.sessions, c)
 }
@@ -132,12 +132,17 @@ func loopBoardcast(serv *example) {
 		serv.Lock()
 
 		for _, session := range serv.sessions {
+			if session == nil {
+				serv.Unlock()
+				continue
+			}
+
 			msg, err := util.PackData(ws.MessageText, []byte("publish message"))
 			if err != nil {
 				serv.Unlock()
 				continue
 			}
-			session.conn.Send(msg)
+			_ = session.conn.Send(msg)
 		}
 		serv.Unlock()
 
@@ -172,14 +177,14 @@ func main() {
 		}
 		header.Set(string(key), string(value))
 
-		c.Set("requestHeader", header)
+		c.Set(keyRequestHeader, header)
 		return nil
 	}
 
 	wsUpgrader.OnRequest = func(c *connection.Connection, uri []byte) error {
 		log.Println("OnRequest: ", string(uri))
 
-		c.Set("uri", string(uri))
+		c.Set(keyUri, string(uri))
 		return nil
 	}
 
