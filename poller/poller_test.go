@@ -13,7 +13,7 @@ func TestPoller_Poll(t *testing.T) {
 
 	go s.Poll(func(fd int, event Event) {
 		if fd != -1 {
-			t.Fatal()
+			t.Fatal("fd should be -1")
 		}
 	})
 	time.Sleep(time.Millisecond * 500)

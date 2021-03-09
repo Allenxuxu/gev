@@ -9,7 +9,7 @@ import (
 	"github.com/Allenxuxu/gev/connection"
 	pb "github.com/Allenxuxu/gev/example/protobuf/proto"
 	"github.com/Allenxuxu/gev/plugins/protobuf"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 type example struct{}
