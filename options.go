@@ -17,6 +17,8 @@ type Options struct {
 	wheelSize int64
 	IdleTime  time.Duration
 	Protocol  connection.Protocol
+
+	metricsPath, metricsAddress string
 }
 
 // Option ...
@@ -87,5 +89,12 @@ func Protocol(p connection.Protocol) Option {
 func IdleTime(t time.Duration) Option {
 	return func(o *Options) {
 		o.IdleTime = t
+	}
+}
+
+func MetricsServer(path, address string) Option {
+	return func(o *Options) {
+		o.metricsPath = path
+		o.metricsAddress = address
 	}
 }

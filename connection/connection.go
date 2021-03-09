@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Allenxuxu/gev/metrics"
+
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/poller"
@@ -143,8 +145,9 @@ func (c *Connection) WriteBufferLength() int64 {
 
 // HandleEvent 内部使用，event loop 回调
 func (c *Connection) HandleEvent(fd int, events poller.Event) {
+	now := time.Now()
 	if c.idleTime > 0 {
-		_ = c.activeTime.Swap(time.Now().Unix())
+		_ = c.activeTime.Swap(now.Unix())
 	}
 
 	if events&poller.EventErr != 0 {
@@ -162,6 +165,24 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 
 	c.inBufferLen.Swap(int64(c.inBuffer.Length()))
 	c.outBufferLen.Swap(int64(c.outBuffer.Length()))
+
+	if metrics.Enable.Get() {
+		metrics.ConnBufferCap.WithLabelValues("in", c.PeerAddr()).Set(float64(c.inBuffer.Capacity()))
+		metrics.ConnBufferLen.WithLabelValues("in", c.PeerAddr()).Set(float64(c.inBuffer.Length()))
+
+		metrics.ConnBufferCap.WithLabelValues("out", c.PeerAddr()).Set(float64(c.outBuffer.Capacity()))
+		metrics.ConnBufferLen.WithLabelValues("out", c.PeerAddr()).Set(float64(c.outBuffer.Length()))
+
+		var action string
+		if events&poller.EventWrite != 0 {
+			action = "write"
+		} else if events&poller.EventRead != 0 {
+			action = "read"
+		}
+		if len(action) > 0 {
+			metrics.ConnHandlerDuration.WithLabelValues(action).Set(float64(time.Since(now).Microseconds()))
+		}
+	}
 }
 
 func (c *Connection) handlerProtocol(buffer *ringbuffer.RingBuffer) []byte {

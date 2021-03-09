@@ -5,6 +5,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/Allenxuxu/gev/metrics"
+
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/listener"
@@ -105,6 +107,15 @@ func (s *Server) handleNewConnection(fd int, sa unix.Sockaddr) {
 
 // Start 启动 Server
 func (s *Server) Start() {
+	// metrics server
+	if len(s.opts.metricsAddress) != 0 {
+		go func() {
+			if err := metrics.Run(s.opts.metricsPath, s.opts.metricsAddress); err != nil {
+				panic(err)
+			}
+		}()
+	}
+
 	sw := sync.WaitGroupWrapper{}
 	s.timingWheel.Start()
 
