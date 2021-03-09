@@ -1,6 +1,7 @@
 package poller
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -11,14 +12,23 @@ func TestPoller_Poll(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	errs := make(chan error, 1)
 	go s.Poll(func(fd int, event Event) {
 		if fd != -1 {
-			t.Fatal("fd should be -1")
+			errs <- errors.New("fd should be -1")
 		}
 	})
+
 	time.Sleep(time.Millisecond * 500)
 	if err = s.Close(); err != nil {
 		t.Fatal(err)
+	}
+	close(errs)
+
+	for err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
