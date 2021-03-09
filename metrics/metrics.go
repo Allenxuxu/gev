@@ -44,7 +44,7 @@ func PrometheusMustRegister(cs ...prometheus.Collector) {
 	rg.MustRegister(cs...)
 }
 
-func Run(path, address string) error {
+func MustRun(path, address string) {
 	if len(path) == 0 {
 		path = defaultMetricsPath
 	}
@@ -62,5 +62,7 @@ func Run(path, address string) error {
 	defer Enable.Set(false)
 
 	http.Handle(path, promhttp.HandlerFor(rg, promhttp.HandlerOpts{}))
-	return http.ListenAndServe(address, nil)
+	if err := http.ListenAndServe(address, nil); err != nil {
+		panic(err)
+	}
 }

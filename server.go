@@ -109,11 +109,7 @@ func (s *Server) handleNewConnection(fd int, sa unix.Sockaddr) {
 func (s *Server) Start() {
 	// metrics server
 	if len(s.opts.metricsAddress) != 0 {
-		go func() {
-			if err := metrics.Run(s.opts.metricsPath, s.opts.metricsAddress); err != nil {
-				panic(err)
-			}
-		}()
+		go metrics.MustRun(s.opts.metricsPath, s.opts.metricsAddress)
 	}
 
 	sw := sync.WaitGroupWrapper{}

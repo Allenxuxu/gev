@@ -47,7 +47,9 @@ func main() {
 		gev.Network("tcp"),
 		gev.Address(":"+strconv.Itoa(port)),
 		gev.NumLoops(loops),
-		gev.IdleTime(5*time.Second))
+		gev.IdleTime(5*time.Second),
+		gev.MetricsServer("", ":9091"),
+	)
 	if err != nil {
 		panic(err)
 	}
