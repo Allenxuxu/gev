@@ -50,7 +50,9 @@ func main() {
 	s, err := gev.NewServer(handler,
 		gev.Network("tcp"),
 		gev.Address(":"+strconv.Itoa(port)),
-		gev.NumLoops(loops))
+		gev.NumLoops(loops),
+		gev.MetricsServer("", ":9091"),
+	)
 	if err != nil {
 		panic(err)
 	}

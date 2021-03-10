@@ -8,7 +8,7 @@ import (
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/poller"
-	reuseport "github.com/libp2p/go-reuseport"
+	"github.com/libp2p/go-reuseport"
 	"golang.org/x/sys/unix"
 )
 

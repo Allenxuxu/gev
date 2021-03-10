@@ -2,6 +2,9 @@ package eventloop
 
 import (
 	"sync"
+	"time"
+
+	"github.com/Allenxuxu/gev/metrics"
 
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/poller"
@@ -131,6 +134,13 @@ func (l *EventLoop) doPendingFunc() {
 	l.mu.Unlock()
 
 	length := len(pf)
+	if metrics.Enable.Get() && length > 0 {
+		now := time.Now()
+		defer func() {
+			metrics.DoPendingFuncDuration.Set(float64(time.Since(now).Microseconds()))
+		}()
+	}
+
 	for i := 0; i < length; i++ {
 		pf[i]()
 	}
