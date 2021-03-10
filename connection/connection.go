@@ -286,14 +286,12 @@ func (c *Connection) sendInLoop(data []byte) {
 		_, _ = c.outBuffer.Write(data)
 	} else {
 		n, err := unix.Write(c.fd, data)
-		if err != nil {
-			if err == unix.EAGAIN {
-				return
-			}
+		if err != nil && err != unix.EAGAIN {
 			c.handleClose(c.fd)
 			return
 		}
-		if n == 0 {
+
+		if n <= 0 {
 			_, _ = c.outBuffer.Write(data)
 		} else if n < len(data) {
 			_, _ = c.outBuffer.Write(data[n:])
