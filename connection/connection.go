@@ -7,10 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Allenxuxu/gev/metrics"
-
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/log"
+	"github.com/Allenxuxu/gev/metrics"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/Allenxuxu/ringbuffer"
 	"github.com/Allenxuxu/ringbuffer/pool"
