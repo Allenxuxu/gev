@@ -7,10 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Allenxuxu/gev/metrics"
-
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/log"
+	"github.com/Allenxuxu/gev/metrics"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/Allenxuxu/ringbuffer"
 	"github.com/Allenxuxu/ringbuffer/pool"
@@ -286,14 +285,12 @@ func (c *Connection) sendInLoop(data []byte) {
 		_, _ = c.outBuffer.Write(data)
 	} else {
 		n, err := unix.Write(c.fd, data)
-		if err != nil {
-			if err == unix.EAGAIN {
-				return
-			}
+		if err != nil && err != unix.EAGAIN {
 			c.handleClose(c.fd)
 			return
 		}
-		if n == 0 {
+
+		if n <= 0 {
 			_, _ = c.outBuffer.Write(data)
 		} else if n < len(data) {
 			_, _ = c.outBuffer.Write(data[n:])

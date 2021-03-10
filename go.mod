@@ -16,4 +16,5 @@ require (
 	github.com/tidwall/evio v1.0.2
 	golang.org/x/net v0.0.0-20200625001655-4c5254603344
 	golang.org/x/sys v0.0.0-20201214210602-f9fddec55a1e
+	google.golang.org/protobuf v1.23.0
 )
