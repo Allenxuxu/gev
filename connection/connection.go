@@ -12,7 +12,6 @@ import (
 	"github.com/Allenxuxu/gev/metrics"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/Allenxuxu/ringbuffer"
-	"github.com/Allenxuxu/ringbuffer/pool"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"github.com/RussellLuo/timingwheel"
 	"github.com/gobwas/pool/pbytes"
@@ -52,8 +51,8 @@ func New(fd int, loop *eventloop.EventLoop, sa unix.Sockaddr, protocol Protocol,
 	conn := &Connection{
 		fd:          fd,
 		peerAddr:    sockAddrToString(sa),
-		outBuffer:   pool.Get(),
-		inBuffer:    pool.Get(),
+		outBuffer:   ringbuffer.GetFromPool(),
+		inBuffer:    ringbuffer.GetFromPool(),
 		callBack:    callBack,
 		loop:        loop,
 		idleTime:    idleTime,
@@ -275,8 +274,8 @@ func (c *Connection) handleClose(fd int) {
 			log.Error("[close fd]", err)
 		}
 
-		pool.Put(c.inBuffer)
-		pool.Put(c.outBuffer)
+		ringbuffer.PutInPool(c.inBuffer)
+		ringbuffer.PutInPool(c.outBuffer)
 	}
 }
 
