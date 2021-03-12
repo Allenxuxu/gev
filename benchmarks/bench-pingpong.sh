@@ -39,3 +39,5 @@ gobench "GEV"  bin/gev-echo-server echo/echo.go 5000
 gobench "GNET" bin/gnet-echo-server gnet-echo-server/main.go 5001
 gobench "GO STDLIB" bin/net-echo-server net-echo-server/main.go 5004
 
+exit 0
+
