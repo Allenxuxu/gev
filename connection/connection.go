@@ -14,7 +14,6 @@ import (
 	"github.com/Allenxuxu/ringbuffer"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"github.com/RussellLuo/timingwheel"
-	"github.com/gobwas/pool/pbytes"
 	"golang.org/x/sys/unix"
 )
 
@@ -183,19 +182,16 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 	}
 }
 
-func (c *Connection) handlerProtocol(buffer *ringbuffer.RingBuffer) []byte {
-	// 在调用方函数里归还
-	out := pbytes.GetCap(1024)
+func (c *Connection) handlerProtocol(tmpBuffer *[]byte, buffer *ringbuffer.RingBuffer) {
 	ctx, receivedData := c.protocol.UnPacket(c, buffer)
 	for ctx != nil || len(receivedData) != 0 {
 		sendData := c.callBack.OnMessage(c, ctx, receivedData)
 		if len(sendData) > 0 {
-			out = append(out, c.protocol.Packet(c, sendData)...)
+			*tmpBuffer = append(*tmpBuffer, c.protocol.Packet(c, sendData)...)
 		}
 
 		ctx, receivedData = c.protocol.UnPacket(c, buffer)
 	}
-	return out
 }
 
 func (c *Connection) handleRead(fd int) {
@@ -211,25 +207,21 @@ func (c *Connection) handleRead(fd int) {
 
 	if c.inBuffer.Length() == 0 {
 		buffer := ringbuffer.NewWithData(buf[:n])
-		out := c.handlerProtocol(buffer)
+		buf = buf[n:n]
+		c.handlerProtocol(&buf, buffer)
 
 		if buffer.Length() > 0 {
 			first, _ := buffer.PeekAll()
 			_, _ = c.inBuffer.Write(first)
 		}
-		if len(out) != 0 {
-			c.sendInLoop(out)
-		}
-
-		pbytes.Put(out)
 	} else {
 		_, _ = c.inBuffer.Write(buf[:n])
-		out := c.handlerProtocol(c.inBuffer)
-		if len(out) != 0 {
-			c.sendInLoop(out)
-		}
+		buf = buf[:0]
+		c.handlerProtocol(&buf, c.inBuffer)
+	}
 
-		pbytes.Put(out)
+	if len(buf) != 0 {
+		c.sendInLoop(buf)
 	}
 }
 
