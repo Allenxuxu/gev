@@ -30,12 +30,12 @@ function gobench {
 
     sleep 1
     echo "*** 1000 connections, 10 seconds, 4096 byte packets"
-    GOMAXPROCS=4 go run client/main.go -c 1000 -t 10 -m 4096 -a 127.0.0.1:$4
+    GOMAXPROCS=4 go run client/main.go -c 1000 -t 30 -m 4096 -a 127.0.0.1:$4
     echo "--- DONE ---"
     echo ""
 }
 
-gobench "GEV"  bin/gev-echo-server ../example/echo/echo.go 5000
+gobench "GEV"  bin/gev-echo-server echo/echo.go 5000
 gobench "GNET" bin/gnet-echo-server gnet-echo-server/main.go 5001
 gobench "EVIOP" bin/eviop-echo-server eviop-echo-server/main.go 5002
 gobench "EVIO" bin/evio-echo-server evio-echo-server/main.go 5003
