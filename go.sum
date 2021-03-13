@@ -3,8 +3,8 @@ cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 github.com/Allenxuxu/eviop v0.0.0-20190901123806-035c218f739a h1:TSzycgSvz9M0Ced2hMR+c1S3O1+mm9pZmBIoWgGhvdg=
 github.com/Allenxuxu/eviop v0.0.0-20190901123806-035c218f739a/go.mod h1:I5+IvzRy5ddv0t9uiuUf4LsfJOXczEb9rxSuPWFfE0w=
 github.com/Allenxuxu/ringbuffer v0.0.0-20190803184500-fa400f2fe92b/go.mod h1:9Rg4D7ixiHGlU50BJWJEg6vwDFcGiOYKQFcHK6Vx9m4=
-github.com/Allenxuxu/ringbuffer v0.0.6 h1:C1dRDXNPazonGogzgWRamLFDFgbHrqoNnG/MRdkIrgk=
-github.com/Allenxuxu/ringbuffer v0.0.6/go.mod h1:F2Ela+/miJmKYwnXr3X0+spOmSEwL/iFAEzeUJ4SFMI=
+github.com/Allenxuxu/ringbuffer v0.0.7 h1:qW1hI5AtNFxWPX0WxaVbU5SvyjLNcdTQAz3G61e+b20=
+github.com/Allenxuxu/ringbuffer v0.0.7/go.mod h1:F2Ela+/miJmKYwnXr3X0+spOmSEwL/iFAEzeUJ4SFMI=
 github.com/Allenxuxu/toolkit v0.0.0-20200827004847-cb9a6f0d072f h1:DqHu2M6MxT+R6KN2UdsWjcZ6Yhw4ENSKYlXTKZ24P+c=
 github.com/Allenxuxu/toolkit v0.0.0-20200827004847-cb9a6f0d072f/go.mod h1:kamv5tj0iNT29zmKIYaxoIcYgDnzerxnOZiHBKbVp/o=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=

@@ -35,9 +35,9 @@ function gobench {
     echo ""
 }
 
-gobench "GEV"  bin/gev-echo-server ../example/echo/echo.go 5000
+gobench "GEV"  bin/gev-echo-server echo/echo.go 5000
 gobench "GNET" bin/gnet-echo-server gnet-echo-server/main.go 5001
-gobench "EVIOP" bin/eviop-echo-server eviop-echo-server/main.go 5002
-gobench "EVIO" bin/evio-echo-server evio-echo-server/main.go 5003
 gobench "GO STDLIB" bin/net-echo-server net-echo-server/main.go 5004
+
+exit 0
 
