@@ -6,7 +6,6 @@ import (
 
 	"github.com/Allenxuxu/ringbuffer"
 	"github.com/Allenxuxu/toolkit/convert"
-	"github.com/gobwas/pool/pbytes"
 )
 
 // Errors used by frame reader.
@@ -17,14 +16,13 @@ var (
 )
 
 // VirtualReadHeader reads a frame header from r.
-func VirtualReadHeader(in *ringbuffer.RingBuffer) (h Header, err error) {
+func VirtualReadHeader(bts []byte, in *ringbuffer.RingBuffer) (h Header, err error) {
 	if in.Length() < 6 {
 		err = ErrHeaderNotReady
 		return
 	}
 
-	bts := pbytes.Get(2, MaxHeaderSize-2)
-	defer pbytes.Put(bts)
+	bts = bts[:2]
 	// Prepare to hold first 2 bytes to choose size of next read.
 	_, _ = in.VirtualRead(bts)
 

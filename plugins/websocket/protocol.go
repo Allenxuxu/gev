@@ -7,7 +7,10 @@ import (
 	"github.com/Allenxuxu/ringbuffer"
 )
 
-const upgradedKey = "gev_ws_upgraded"
+const (
+	upgradedKey     = "gev_ws_upgraded"
+	headerbufferKey = "gev_header_buf"
+)
 
 // Protocol websocket
 type Protocol struct {
@@ -30,8 +33,10 @@ func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuf
 			return
 		}
 		c.Set(upgradedKey, true)
+		c.Set(headerbufferKey, make([]byte, 0, ws.MaxHeaderSize-2))
 	} else {
-		header, err := ws.VirtualReadHeader(buffer)
+		bts, _ := c.Get(headerbufferKey)
+		header, err := ws.VirtualReadHeader(bts.([]byte), buffer)
 		if err != nil {
 			if err != ws.ErrHeaderNotReady {
 				log.Error(err)
