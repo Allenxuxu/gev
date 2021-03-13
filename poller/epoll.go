@@ -3,12 +3,13 @@
 package poller
 
 import (
-	"github.com/Allenxuxu/gev/log"
-	"github.com/Allenxuxu/toolkit/sync/atomic"
-	"golang.org/x/sys/unix"
 	"runtime"
 	"syscall"
 	"unsafe"
+
+	"github.com/Allenxuxu/gev/log"
+	"github.com/Allenxuxu/toolkit/sync/atomic"
+	"golang.org/x/sys/unix"
 )
 
 const readEvent = unix.EPOLLIN | unix.EPOLLPRI
