@@ -3,6 +3,7 @@ package eventloop
 import (
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/Allenxuxu/gev/metrics"
 
@@ -20,14 +21,21 @@ type Socket interface {
 
 // EventLoop 事件循环
 type EventLoop struct {
-	poll    *poller.Poller
-	sockets sync.Map
-	packet  []byte
+	eventLoopLocal
+	// nolint
+	// Prevents false sharing on widespread platforms with
+	// 128 mod (cache line size) = 0 .
+	pad [128 - unsafe.Sizeof(eventLoopLocal{})%128]byte
+}
 
+// nolint
+type eventLoopLocal struct {
 	eventHandling atomic.Bool
-
-	pendingFunc []func()
-	mu          spinlock.SpinLock
+	poll          *poller.Poller
+	mu            spinlock.SpinLock
+	sockets       *sync.Map
+	packet        []byte
+	pendingFunc   []func()
 }
 
 // New 创建一个 EventLoop
@@ -38,8 +46,11 @@ func New() (*EventLoop, error) {
 	}
 
 	return &EventLoop{
-		poll:   p,
-		packet: make([]byte, 0xFFFF),
+		eventLoopLocal: eventLoopLocal{
+			poll:    p,
+			packet:  make([]byte, 0xFFFF),
+			sockets: &sync.Map{},
+		},
 	}, nil
 }
 
