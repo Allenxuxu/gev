@@ -4,6 +4,7 @@ package poller
 
 import (
 	"errors"
+	"runtime"
 	"sync"
 
 	"github.com/Allenxuxu/gev/log"
@@ -152,14 +153,24 @@ func (p *Poller) Poll(handler func(fd int, event Event)) {
 	}()
 
 	events := make([]unix.Kevent_t, waitEventsBegin)
-	var wake bool
+	var (
+		wake bool
+		ts   unix.Timespec
+		tsp  *unix.Timespec
+	)
 	p.running.Set(true)
 	for {
-		n, err := unix.Kevent(p.fd, nil, events, nil)
+		n, err := unix.Kevent(p.fd, nil, events, tsp)
 		if err != nil && err != unix.EINTR {
 			log.Error("EpollWait: ", err)
 			continue
 		}
+		if n <= 0 {
+			tsp = nil
+			runtime.Gosched()
+			continue
+		}
+		tsp = &ts
 
 		for i := 0; i < n; i++ {
 			fd := int(events[i].Ident)
