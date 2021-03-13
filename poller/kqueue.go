@@ -4,10 +4,11 @@ package poller
 
 import (
 	"errors"
-	"sync"
+	"strconv"
 
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
+	cmap "github.com/orcaman/concurrent-map"
 	"golang.org/x/sys/unix"
 )
 
@@ -16,7 +17,7 @@ type Poller struct {
 	fd       int
 	running  atomic.Bool
 	waitDone chan struct{}
-	sockets  sync.Map // [fd]events
+	sockets  cmap.ConcurrentMap
 }
 
 // Create 创建Poller
@@ -36,6 +37,7 @@ func Create() (*Poller, error) {
 
 	return &Poller{
 		fd:       fd,
+		sockets:  cmap.New(),
 		waitDone: make(chan struct{}),
 	}, nil
 }
@@ -68,7 +70,7 @@ func (p *Poller) Close() (err error) {
 
 // AddRead 注册fd到kqueue并注册可读事件
 func (p *Poller) AddRead(fd int) error {
-	p.sockets.Store(fd, EventRead)
+	p.sockets.Set(strconv.Itoa(fd), EventRead)
 
 	kEvents := p.kEvents(EventNone, EventRead, fd)
 	_, err := unix.Kevent(p.fd, kEvents, nil, nil)
@@ -77,7 +79,8 @@ func (p *Poller) AddRead(fd int) error {
 
 // Del 从kqueue删除fd
 func (p *Poller) Del(fd int) error {
-	v, ok := p.sockets.Load(fd)
+	fds := strconv.Itoa(fd)
+	v, ok := p.sockets.Get(fds)
 	if !ok {
 		return errors.New("sync map load error")
 	}
@@ -85,14 +88,15 @@ func (p *Poller) Del(fd int) error {
 	kEvents := p.kEvents(v.(Event), EventNone, fd)
 	_, err := unix.Kevent(p.fd, kEvents, nil, nil)
 	if err != nil {
-		p.sockets.Delete(fd)
+		p.sockets.Remove(fds)
 	}
 	return err
 }
 
 // EnableReadWrite 修改fd注册事件为可读可写事件
 func (p *Poller) EnableReadWrite(fd int) error {
-	oldEvents, ok := p.sockets.Load(fd)
+	fds := strconv.Itoa(fd)
+	oldEvents, ok := p.sockets.Get(fds)
 	if !ok {
 		return errors.New("sync map load error")
 	}
@@ -101,14 +105,15 @@ func (p *Poller) EnableReadWrite(fd int) error {
 	kEvents := p.kEvents(oldEvents.(Event), newEvents, fd)
 	_, err := unix.Kevent(p.fd, kEvents, nil, nil)
 	if err != nil {
-		p.sockets.Store(fd, newEvents)
+		p.sockets.Set(fds, newEvents)
 	}
 	return err
 }
 
 // EnableRead 修改fd注册事件为可读事件
 func (p *Poller) EnableRead(fd int) error {
-	oldEvents, ok := p.sockets.Load(fd)
+	fds := strconv.Itoa(fd)
+	oldEvents, ok := p.sockets.Get(fds)
 	if !ok {
 		return errors.New("sync map load error")
 	}
@@ -117,7 +122,7 @@ func (p *Poller) EnableRead(fd int) error {
 	kEvents := p.kEvents(oldEvents.(Event), newEvents, fd)
 	_, err := unix.Kevent(p.fd, kEvents, nil, nil)
 	if err != nil {
-		p.sockets.Store(fd, newEvents)
+		p.sockets.Set(fds, newEvents)
 	}
 	return err
 }

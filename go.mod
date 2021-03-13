@@ -11,6 +11,7 @@ require (
 	github.com/gobwas/pool v0.2.0
 	github.com/golang/protobuf v1.4.3
 	github.com/libp2p/go-reuseport v0.0.1
+	github.com/orcaman/concurrent-map v0.0.0-20210106121528-16402b402231
 	github.com/panjf2000/gnet v0.0.1-rc.4
 	github.com/prometheus/client_golang v1.9.0
 	github.com/tidwall/evio v1.0.2

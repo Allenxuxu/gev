@@ -1,15 +1,15 @@
 package eventloop
 
 import (
-	"sync"
+	"strconv"
 	"time"
 
-	"github.com/Allenxuxu/gev/metrics"
-
 	"github.com/Allenxuxu/gev/log"
+	"github.com/Allenxuxu/gev/metrics"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"github.com/Allenxuxu/toolkit/sync/spinlock"
+	cmap "github.com/orcaman/concurrent-map"
 )
 
 // Socket 接口
@@ -21,7 +21,7 @@ type Socket interface {
 // EventLoop 事件循环
 type EventLoop struct {
 	poll    *poller.Poller
-	sockets sync.Map
+	sockets cmap.ConcurrentMap
 	packet  []byte
 
 	eventHandling atomic.Bool
@@ -38,8 +38,9 @@ func New() (*EventLoop, error) {
 	}
 
 	return &EventLoop{
-		poll:   p,
-		packet: make([]byte, 0xFFFF),
+		poll:    p,
+		sockets: cmap.New(),
+		packet:  make([]byte, 0xFFFF),
 	}, nil
 }
 
@@ -53,16 +54,16 @@ func (l *EventLoop) DeleteFdInLoop(fd int) {
 	if err := l.poll.Del(fd); err != nil {
 		log.Error("[DeleteFdInLoop]", err)
 	}
-	l.sockets.Delete(fd)
+	l.sockets.Remove(strconv.Itoa(fd))
 }
 
 // AddSocketAndEnableRead 增加 Socket 到时间循环中，并注册可读事件
 func (l *EventLoop) AddSocketAndEnableRead(fd int, s Socket) error {
 	var err error
-	l.sockets.Store(fd, s)
+	l.sockets.Set(strconv.Itoa(fd), s)
 
 	if err = l.poll.AddRead(fd); err != nil {
-		l.sockets.Delete(fd)
+		l.sockets.Remove(strconv.Itoa(fd))
 		return err
 	}
 	return nil
@@ -85,17 +86,20 @@ func (l *EventLoop) RunLoop() {
 
 // Stop 关闭事件循环
 func (l *EventLoop) Stop() error {
-	l.sockets.Range(func(key, value interface{}) bool {
-		s, ok := value.(Socket)
-		if !ok {
+
+	for item := range l.sockets.IterBuffered() {
+		s := item.Val
+		if s == nil {
 			log.Error("value.(Socket) fail")
 		} else {
-			if err := s.Close(); err != nil {
+			if err := s.(Socket).Close(); err != nil {
 				log.Error(err)
 			}
 		}
-		return true
-	})
+	}
+
+	l.sockets.Clear()
+
 	return l.poll.Close()
 }
 
@@ -116,7 +120,7 @@ func (l *EventLoop) handlerEvent(fd int, events poller.Event) {
 	l.eventHandling.Set(true)
 
 	if fd != -1 {
-		s, ok := l.sockets.Load(fd)
+		s, ok := l.sockets.Get(strconv.Itoa(fd))
 		if ok {
 			s.(Socket).HandleEvent(fd, events)
 		}
