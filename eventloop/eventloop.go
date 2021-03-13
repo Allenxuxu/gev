@@ -30,12 +30,12 @@ type EventLoop struct {
 
 // nolint
 type eventLoopLocal struct {
-	poll          *poller.Poller
-	sockets       sync.Map
-	packet        []byte
 	eventHandling atomic.Bool
-	pendingFunc   []func()
+	poll          *poller.Poller
 	mu            spinlock.SpinLock
+	sockets       *sync.Map
+	packet        []byte
+	pendingFunc   []func()
 }
 
 // New 创建一个 EventLoop
@@ -47,8 +47,9 @@ func New() (*EventLoop, error) {
 
 	return &EventLoop{
 		eventLoopLocal: eventLoopLocal{
-			poll:   p,
-			packet: make([]byte, 0xFFFF),
+			poll:    p,
+			packet:  make([]byte, 0xFFFF),
+			sockets: &sync.Map{},
 		},
 	}, nil
 }
