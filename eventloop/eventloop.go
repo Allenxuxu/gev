@@ -3,6 +3,7 @@ package eventloop
 import (
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/Allenxuxu/gev/metrics"
 
@@ -20,6 +21,13 @@ type Socket interface {
 
 // EventLoop 事件循环
 type EventLoop struct {
+	eventLoopLocal
+	// Prevents false sharing on widespread platforms with
+	// 128 mod (cache line size) = 0 .
+	pad [128 - unsafe.Sizeof(eventLoopLocal{})%128]byte
+}
+
+type eventLoopLocal struct {
 	poll    *poller.Poller
 	sockets sync.Map
 	packet  []byte
@@ -38,8 +46,10 @@ func New() (*EventLoop, error) {
 	}
 
 	return &EventLoop{
-		poll:   p,
-		packet: make([]byte, 0xFFFF),
+		eventLoopLocal: eventLoopLocal{
+			poll:   p,
+			packet: make([]byte, 0xFFFF),
+		},
 	}, nil
 }
 
