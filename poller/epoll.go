@@ -4,8 +4,6 @@ package poller
 
 import (
 	"runtime"
-	"syscall"
-	"unsafe"
 
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
@@ -145,7 +143,6 @@ func (ep *Poller) Poll(handler func(fd int, event Event)) {
 	ep.running.Set(true)
 	for {
 		n, err := unix.EpollWait(ep.fd, events, msec)
-
 		if err != nil && err != unix.EINTR {
 			log.Error("EpollWait: ", err)
 			continue
@@ -190,33 +187,4 @@ func (ep *Poller) Poll(handler func(fd int, event Event)) {
 			events = make([]unix.EpollEvent, n*2)
 		}
 	}
-}
-
-// TODO test it
-
-type epollEvent struct {
-	events uint32
-	data   [8]byte // unaligned uintptr
-}
-
-func EpollCtl(epfd int, op int, fd int, event *epollEvent) (err error) {
-	_, _, err = syscall.RawSyscall6(syscall.SYS_EPOLL_CTL, uintptr(epfd), uintptr(op), uintptr(fd), uintptr(unsafe.Pointer(event)), 0, 0)
-	if err == syscall.Errno(0) {
-		err = nil
-	}
-	return err
-}
-
-func EpollWait(epfd int, events []epollEvent, msec int) (n int, err error) {
-	var r0 uintptr
-	var _p0 = unsafe.Pointer(&events[0])
-	if msec == 0 {
-		r0, _, err = syscall.RawSyscall6(syscall.SYS_EPOLL_WAIT, uintptr(epfd), uintptr(_p0), uintptr(len(events)), 0, 0, 0)
-	} else {
-		r0, _, err = syscall.Syscall6(syscall.SYS_EPOLL_WAIT, uintptr(epfd), uintptr(_p0), uintptr(len(events)), uintptr(msec), 0, 0)
-	}
-	if err == syscall.Errno(0) {
-		err = nil
-	}
-	return int(r0), err
 }
