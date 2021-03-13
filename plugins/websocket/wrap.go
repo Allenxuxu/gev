@@ -5,6 +5,7 @@ import (
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws/util"
+	"github.com/gobwas/pool/pbytes"
 )
 
 // WSHandler WebSocket Server 注册接口
@@ -91,4 +92,8 @@ func (s *HandlerWrap) OnMessage(c *connection.Connection, ctx interface{}, paylo
 // OnClose wrap
 func (s *HandlerWrap) OnClose(c *connection.Connection) {
 	s.wsHandler.OnClose(c)
+
+	if bts, ok := c.Get(headerbufferKey); ok {
+		pbytes.Put(bts.([]byte))
+	}
 }

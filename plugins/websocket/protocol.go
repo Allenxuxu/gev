@@ -5,6 +5,7 @@ import (
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"github.com/Allenxuxu/ringbuffer"
+	"github.com/gobwas/pool/pbytes"
 )
 
 const (
@@ -33,7 +34,7 @@ func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuf
 			return
 		}
 		c.Set(upgradedKey, true)
-		c.Set(headerbufferKey, make([]byte, 0, ws.MaxHeaderSize-2))
+		c.Set(headerbufferKey, pbytes.Get(0, ws.MaxHeaderSize-2))
 	} else {
 		bts, _ := c.Get(headerbufferKey)
 		header, err := ws.VirtualReadHeader(bts.([]byte), buffer)
