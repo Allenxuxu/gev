@@ -153,12 +153,18 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 		return
 	}
 
-	if c.outBuffer.Length() != 0 {
+	if !c.outBuffer.IsEmpty() {
 		if events&poller.EventWrite != 0 {
 			c.handleWrite(fd)
+			if c.outBuffer.IsEmpty() {
+				c.outBuffer.Reset()
+			}
 		}
 	} else if events&poller.EventRead != 0 {
 		c.handleRead(fd)
+		if c.inBuffer.IsEmpty() {
+			c.inBuffer.Reset()
+		}
 	}
 
 	c.inBufferLen.Swap(int64(c.inBuffer.Length()))
@@ -188,12 +194,12 @@ func (c *Connection) handleRead(fd int) {
 		return
 	}
 
-	if c.inBuffer.Length() == 0 {
+	if c.inBuffer.IsEmpty() {
 		buffer := ringbuffer.NewWithData(buf[:n])
 		buf = buf[n:n]
 		c.handlerProtocol(&buf, buffer)
 
-		if buffer.Length() > 0 {
+		if !buffer.IsEmpty() {
 			first, _ := buffer.PeekAll()
 			_, _ = c.inBuffer.Write(first)
 		}
@@ -232,7 +238,7 @@ func (c *Connection) handleWrite(fd int) {
 		c.outBuffer.Retrieve(n)
 	}
 
-	if c.outBuffer.Length() == 0 {
+	if c.outBuffer.IsEmpty() {
 		if err := c.loop.EnableRead(fd); err != nil {
 			log.Error("[EnableRead]", err)
 		}
@@ -255,7 +261,7 @@ func (c *Connection) handleClose(fd int) {
 }
 
 func (c *Connection) sendInLoop(data []byte) {
-	if c.outBuffer.Length() > 0 {
+	if !c.outBuffer.IsEmpty() {
 		_, _ = c.outBuffer.Write(data)
 	} else {
 		n, err := unix.Write(c.fd, data)
@@ -270,7 +276,7 @@ func (c *Connection) sendInLoop(data []byte) {
 			_, _ = c.outBuffer.Write(data[n:])
 		}
 
-		if c.outBuffer.Length() > 0 {
+		if !c.outBuffer.IsEmpty() {
 			_ = c.loop.EnableReadWrite(c.fd)
 		}
 	}
