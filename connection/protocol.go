@@ -17,7 +17,7 @@ type DefaultProtocol struct{}
 
 // UnPacket 拆包
 func (d *DefaultProtocol) UnPacket(c *Connection, buffer *ringbuffer.RingBuffer) (interface{}, []byte) {
-	ret := buffer.Bytes()
+	ret, _ := buffer.PeekAll()
 	buffer.RetrieveAll()
 	return nil, ret
 }
