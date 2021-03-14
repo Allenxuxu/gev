@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gobwas/pool/pbytes"
-
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/poller"
@@ -42,7 +40,6 @@ type Connection struct {
 	timingWheel *timingwheel.TimingWheel
 
 	protocol Protocol
-	Buffer   []byte
 }
 
 var ErrConnectionClosed = errors.New("connection closed")
@@ -65,7 +62,6 @@ func New(fd int,
 		idleTime:    idleTime,
 		timingWheel: tw,
 		protocol:    protocol,
-		Buffer:      pbytes.GetCap(1024),
 	}
 	conn.connected.Set(true)
 
@@ -75,6 +71,10 @@ func New(fd int,
 	}
 
 	return conn
+}
+
+func (c *Connection) UserBuffer() *[]byte {
+	return c.loop.UserBuffer
 }
 
 func (c *Connection) closeTimeoutConn() func() {
@@ -267,9 +267,6 @@ func (c *Connection) handleClose(fd int) {
 
 		ringbuffer.PutInPool(c.inBuffer)
 		ringbuffer.PutInPool(c.outBuffer)
-		if cap(c.Buffer) > 0 {
-			pbytes.Put(c.Buffer)
-		}
 	}
 }
 

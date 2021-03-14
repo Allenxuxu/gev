@@ -32,6 +32,7 @@ type eventLoopLocal struct {
 	sockets       map[int]Socket
 	packet        []byte
 	pendingFunc   []func()
+	UserBuffer    *[]byte
 }
 
 // New 创建一个 EventLoop
@@ -41,11 +42,13 @@ func New() (*EventLoop, error) {
 		return nil, err
 	}
 
+	userBuffer := make([]byte, 1024)
 	return &EventLoop{
 		eventLoopLocal: eventLoopLocal{
-			poll:    p,
-			packet:  make([]byte, 0xFFFF),
-			sockets: make(map[int]Socket),
+			poll:       p,
+			packet:     make([]byte, 0xFFFF),
+			sockets:    make(map[int]Socket),
+			UserBuffer: &userBuffer,
 		},
 	}, nil
 }

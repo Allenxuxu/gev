@@ -2,7 +2,6 @@ package connection
 
 import (
 	"github.com/Allenxuxu/ringbuffer"
-	"github.com/gobwas/pool/pbytes"
 )
 
 var _ Protocol = &DefaultProtocol{}
@@ -21,15 +20,16 @@ func (d *DefaultProtocol) UnPacket(c *Connection, buffer *ringbuffer.RingBuffer)
 	s, e := buffer.PeekAll()
 	if len(e) > 0 {
 		size := len(s) + len(e)
-		if size > cap(c.Buffer) {
-			pbytes.Put(c.Buffer)
-			c.Buffer = pbytes.GetCap(size)
+		userBuffer := *c.UserBuffer()
+		if size > cap(userBuffer) {
+			userBuffer = make([]byte, size)
+			*c.UserBuffer() = userBuffer
 		}
 
-		copy(c.Buffer, s)
-		copy(c.Buffer[len(s):], e)
+		copy(userBuffer, s)
+		copy(userBuffer[len(s):], e)
 
-		return nil, c.Buffer
+		return nil, userBuffer
 	} else {
 		buffer.RetrieveAll()
 
