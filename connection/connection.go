@@ -107,7 +107,9 @@ func (c *Connection) Send(buffer []byte) error {
 	}
 
 	c.loop.QueueInLoop(func() {
-		c.sendInLoop(c.protocol.Packet(c, buffer))
+		if c.connected.Get() {
+			c.sendInLoop(c.protocol.Packet(c, buffer))
+		}
 	})
 	return nil
 }

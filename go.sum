@@ -10,8 +10,8 @@ github.com/Allenxuxu/toolkit v0.0.0-20200827004847-cb9a6f0d072f/go.mod h1:kamv5t
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible/go.mod h1:r7JcOSlj0wfOMncg0iLm8Leh48TZaKVeNIfJntJ2wa0=
-github.com/RussellLuo/timingwheel v0.0.0-20191015104426-744130d33fdc h1:G8FpZoNs9aARNhSddx2OU6nXUbLX3sfghzoYCfPiLTg=
-github.com/RussellLuo/timingwheel v0.0.0-20191015104426-744130d33fdc/go.mod h1:3VIJp8oOAlnDUnPy3kwyBGqsMiJJujqTP6ic9Jv6NbM=
+github.com/RussellLuo/timingwheel v0.0.0-20201029015908-64de9d088c74 h1:kAsSVLB5MpjNyLoQ96YBqPaTHc870iNa99HQvLUQb/A=
+github.com/RussellLuo/timingwheel v0.0.0-20201029015908-64de9d088c74/go.mod h1:3VIJp8oOAlnDUnPy3kwyBGqsMiJJujqTP6ic9Jv6NbM=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=
 github.com/VividCortex/gohistogram v1.0.0/go.mod h1:Pf5mBqqDxYaXu3hDrrU+w6nw50o/4+TcAqDqk/vUH7g=
