@@ -9,7 +9,6 @@ import (
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/listener"
 	"github.com/Allenxuxu/gev/log"
-	"github.com/Allenxuxu/gev/metrics"
 	"github.com/Allenxuxu/toolkit/sync"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"github.com/RussellLuo/timingwheel"
@@ -108,11 +107,6 @@ func (s *Server) handleNewConnection(fd int, sa unix.Sockaddr) {
 
 // Start 启动 Server
 func (s *Server) Start() {
-	// metrics server
-	if len(s.opts.metricsAddress) != 0 {
-		go metrics.MustRun(s.opts.metricsPath, s.opts.metricsAddress)
-	}
-
 	sw := sync.WaitGroupWrapper{}
 	s.timingWheel.Start()
 
