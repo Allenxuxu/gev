@@ -1,10 +1,9 @@
 package eventloop
 
 import (
-	"time"
+	"unsafe"
 
 	"github.com/Allenxuxu/gev/log"
-	"github.com/Allenxuxu/gev/metrics"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"github.com/Allenxuxu/toolkit/sync/spinlock"
@@ -18,14 +17,21 @@ type Socket interface {
 
 // EventLoop 事件循环
 type EventLoop struct {
-	poll    *poller.Poller
-	sockets map[int]Socket
-	packet  []byte
+	eventLoopLocal
+	// nolint
+	// Prevents false sharing on widespread platforms with
+	// 128 mod (cache line size) = 0 .
+	pad [128 - unsafe.Sizeof(eventLoopLocal{})%128]byte
+}
 
+// nolint
+type eventLoopLocal struct {
 	eventHandling atomic.Bool
-
-	pendingFunc []func()
-	mu          spinlock.SpinLock
+	poll          *poller.Poller
+	mu            spinlock.SpinLock
+	sockets       map[int]Socket
+	packet        []byte
+	pendingFunc   []func()
 }
 
 // New 创建一个 EventLoop
@@ -36,9 +42,11 @@ func New() (*EventLoop, error) {
 	}
 
 	return &EventLoop{
-		poll:    p,
-		sockets: make(map[int]Socket),
-		packet:  make([]byte, 0xFFFF),
+		eventLoopLocal: eventLoopLocal{
+			poll:    p,
+			packet:  make([]byte, 0xFFFF),
+			sockets: make(map[int]Socket),
+		},
 	}, nil
 }
 
@@ -131,12 +139,6 @@ func (l *EventLoop) doPendingFunc() {
 	l.mu.Unlock()
 
 	length := len(pf)
-	if metrics.Enable.Get() && length > 0 {
-		now := time.Now()
-		defer func() {
-			metrics.DoPendingFuncDuration.Set(float64(time.Since(now).Microseconds()))
-		}()
-	}
 
 	for i := 0; i < length; i++ {
 		pf[i]()
