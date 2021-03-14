@@ -99,10 +99,12 @@ func (s *Server) handleNewConnection(fd int, sa unix.Sockaddr) {
 
 	c := connection.New(fd, loop, sa, s.opts.Protocol, s.timingWheel, s.opts.IdleTime, s.callback)
 
-	s.callback.OnConnect(c)
-	if err := loop.AddSocketAndEnableRead(fd, c); err != nil {
-		log.Error("[AddSocketAndEnableRead]", err)
-	}
+	loop.QueueInLoop(func() {
+		s.callback.OnConnect(c)
+		if err := loop.AddSocketAndEnableRead(fd, c); err != nil {
+			log.Error("[AddSocketAndEnableRead]", err)
+		}
+	})
 }
 
 // Start 启动 Server
