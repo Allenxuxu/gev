@@ -2,6 +2,7 @@ package connection
 
 import (
 	"github.com/Allenxuxu/ringbuffer"
+	"github.com/gobwas/pool/pbytes"
 )
 
 var _ Protocol = &DefaultProtocol{}
@@ -19,8 +20,14 @@ type DefaultProtocol struct{}
 func (d *DefaultProtocol) UnPacket(c *Connection, buffer *ringbuffer.RingBuffer) (interface{}, []byte) {
 	s, e := buffer.PeekAll()
 	if len(e) > 0 {
-		c.Buffer = append(c.Buffer, s...)
-		c.Buffer = append(c.Buffer, e...)
+		size := len(s) + len(e)
+		if size > cap(c.Buffer) {
+			pbytes.Put(c.Buffer)
+			c.Buffer = pbytes.GetCap(size)
+		}
+
+		copy(c.Buffer, s)
+		copy(c.Buffer[len(s):], e)
 
 		return nil, c.Buffer
 	} else {
