@@ -5,13 +5,12 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/Allenxuxu/gev/metrics"
-
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/listener"
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/toolkit/sync"
+	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"github.com/RussellLuo/timingwheel"
 	"golang.org/x/sys/unix"
 )
@@ -31,6 +30,7 @@ type Server struct {
 
 	timingWheel *timingwheel.TimingWheel
 	opts        *Options
+	running     atomic.Bool
 }
 
 // NewServer 创建 Server
@@ -107,11 +107,6 @@ func (s *Server) handleNewConnection(fd int, sa unix.Sockaddr) {
 
 // Start 启动 Server
 func (s *Server) Start() {
-	// metrics server
-	if len(s.opts.metricsAddress) != 0 {
-		go metrics.MustRun(s.opts.metricsPath, s.opts.metricsAddress)
-	}
-
 	sw := sync.WaitGroupWrapper{}
 	s.timingWheel.Start()
 
@@ -121,21 +116,27 @@ func (s *Server) Start() {
 	}
 
 	sw.AddAndRun(s.loop.RunLoop)
+	s.running.Set(true)
 	sw.Wait()
 }
 
 // Stop 关闭 Server
 func (s *Server) Stop() {
-	s.timingWheel.Stop()
-	if err := s.loop.Stop(); err != nil {
-		log.Error(err)
-	}
+	if s.running.Get() {
+		s.running.Set(false)
 
-	for k := range s.workLoops {
-		if err := s.workLoops[k].Stop(); err != nil {
+		s.timingWheel.Stop()
+		if err := s.loop.Stop(); err != nil {
 			log.Error(err)
 		}
+
+		for k := range s.workLoops {
+			if err := s.workLoops[k].Stop(); err != nil {
+				log.Error(err)
+			}
+		}
 	}
+
 }
 
 // Options 返回 options
