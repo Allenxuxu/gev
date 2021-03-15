@@ -2,7 +2,10 @@ package main
 
 import (
 	"flag"
+	"net/http"
 	"strconv"
+
+	_ "net/http/pprof"
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
@@ -20,6 +23,12 @@ func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []by
 func (s *example) OnClose(c *connection.Connection) {}
 
 func main() {
+	go func() {
+		if err := http.ListenAndServe(":6061", nil); err != nil {
+			panic(err)
+		}
+	}()
+
 	handler := new(example)
 	var port int
 	var loops int
