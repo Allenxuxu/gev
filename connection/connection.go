@@ -25,6 +25,7 @@ type CallBack interface {
 type Connection struct {
 	fd           int
 	connected    atomic.Bool
+	buffer       *ringbuffer.RingBuffer
 	outBuffer    *ringbuffer.RingBuffer // write buffer
 	outBufferLen atomic.Int64
 	inBuffer     *ringbuffer.RingBuffer // read buffer
@@ -62,6 +63,7 @@ func New(fd int,
 		idleTime:    idleTime,
 		timingWheel: tw,
 		protocol:    protocol,
+		buffer:      ringbuffer.New(0),
 	}
 	conn.connected.Set(true)
 
@@ -205,14 +207,12 @@ func (c *Connection) handleRead(fd int) {
 	}
 
 	if c.inBuffer.IsEmpty() {
-		buffer := ringbuffer.GetFromPool()
-		_, _ = buffer.Write(buf[:n])
-		//buffer := ringbuffer.NewWithData(buf[:n])
+		c.buffer.WithData(buf[:n])
 		buf = buf[n:n]
-		c.handlerProtocol(&buf, buffer)
+		c.handlerProtocol(&buf, c.buffer)
 
-		if !buffer.IsEmpty() {
-			first, _ := buffer.PeekAll()
+		if !c.buffer.IsEmpty() {
+			first, _ := c.buffer.PeekAll()
 			_, _ = c.inBuffer.Write(first)
 		}
 	} else {
