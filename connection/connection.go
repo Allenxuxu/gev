@@ -23,17 +23,15 @@ type CallBack interface {
 
 // Connection TCP 连接
 type Connection struct {
-	fd           int
-	connected    atomic.Bool
-	buffer       *ringbuffer.RingBuffer
-	outBuffer    *ringbuffer.RingBuffer // write buffer
-	outBufferLen atomic.Int64
-	inBuffer     *ringbuffer.RingBuffer // read buffer
-	inBufferLen  atomic.Int64
-	callBack     CallBack
-	loop         *eventloop.EventLoop
-	peerAddr     string
-	ctx          interface{}
+	fd        int
+	connected atomic.Bool
+	buffer    *ringbuffer.RingBuffer
+	outBuffer *ringbuffer.RingBuffer // write buffer
+	inBuffer  *ringbuffer.RingBuffer // read buffer
+	callBack  CallBack
+	loop      *eventloop.EventLoop
+	peerAddr  string
+	ctx       interface{}
 	KeyValueContext
 
 	idleTime    time.Duration
@@ -143,14 +141,14 @@ func (c *Connection) ShutdownWrite() error {
 	return unix.Shutdown(c.fd, unix.SHUT_WR)
 }
 
-// ReadBufferLength read buffer 当前积压的数据长度
-func (c *Connection) ReadBufferLength() int64 {
-	return c.inBufferLen.Get()
+// ReadBuffer 非线程安全，需要在 OnMessage 回调中使用
+func (c *Connection) ReadBuffer() *ringbuffer.RingBuffer {
+	return c.inBuffer
 }
 
-// WriteBufferLength write buffer 当前积压的数据长度
-func (c *Connection) WriteBufferLength() int64 {
-	return c.outBufferLen.Get()
+// WriteBuffer 非线程安全，需要在 OnMessage 回调中使用
+func (c *Connection) WriteBuffer() *ringbuffer.RingBuffer {
+	return c.outBuffer
 }
 
 // HandleEvent 内部使用，event loop 回调
@@ -177,9 +175,6 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 			c.inBuffer.Reset()
 		}
 	}
-
-	c.inBufferLen.Swap(int64(c.inBuffer.Length()))
-	c.outBufferLen.Swap(int64(c.outBuffer.Length()))
 }
 
 func (c *Connection) handlerProtocol(tmpBuffer *[]byte, buffer *ringbuffer.RingBuffer) {
