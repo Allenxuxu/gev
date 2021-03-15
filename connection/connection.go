@@ -25,9 +25,10 @@ type CallBack interface {
 type Connection struct {
 	fd           int
 	connected    atomic.Bool
+	buffer       *ringbuffer.RingBuffer
 	outBuffer    *ringbuffer.RingBuffer // write buffer
-	outBufferLen atomic.Int64
 	inBuffer     *ringbuffer.RingBuffer // read buffer
+	outBufferLen atomic.Int64
 	inBufferLen  atomic.Int64
 	callBack     CallBack
 	loop         *eventloop.EventLoop
@@ -45,7 +46,13 @@ type Connection struct {
 var ErrConnectionClosed = errors.New("connection closed")
 
 // New 创建 Connection
-func New(fd int, loop *eventloop.EventLoop, sa unix.Sockaddr, protocol Protocol, tw *timingwheel.TimingWheel, idleTime time.Duration, callBack CallBack) *Connection {
+func New(fd int,
+	loop *eventloop.EventLoop,
+	sa unix.Sockaddr,
+	protocol Protocol,
+	tw *timingwheel.TimingWheel,
+	idleTime time.Duration,
+	callBack CallBack) *Connection {
 	conn := &Connection{
 		fd:          fd,
 		peerAddr:    sockAddrToString(sa),
@@ -56,6 +63,7 @@ func New(fd int, loop *eventloop.EventLoop, sa unix.Sockaddr, protocol Protocol,
 		idleTime:    idleTime,
 		timingWheel: tw,
 		protocol:    protocol,
+		buffer:      ringbuffer.New(0),
 	}
 	conn.connected.Set(true)
 
@@ -65,6 +73,10 @@ func New(fd int, loop *eventloop.EventLoop, sa unix.Sockaddr, protocol Protocol,
 	}
 
 	return conn
+}
+
+func (c *Connection) UserBuffer() *[]byte {
+	return c.loop.UserBuffer
 }
 
 func (c *Connection) closeTimeoutConn() func() {
@@ -143,9 +155,8 @@ func (c *Connection) WriteBufferLength() int64 {
 
 // HandleEvent 内部使用，event loop 回调
 func (c *Connection) HandleEvent(fd int, events poller.Event) {
-	now := time.Now()
 	if c.idleTime > 0 {
-		_ = c.activeTime.Swap(now.Unix())
+		_ = c.activeTime.Swap(time.Now().Unix())
 	}
 
 	if events&poller.EventErr != 0 {
@@ -153,12 +164,18 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 		return
 	}
 
-	if c.outBuffer.Length() != 0 {
+	if !c.outBuffer.IsEmpty() {
 		if events&poller.EventWrite != 0 {
 			c.handleWrite(fd)
+			if c.outBuffer.IsEmpty() {
+				c.outBuffer.Reset()
+			}
 		}
 	} else if events&poller.EventRead != 0 {
 		c.handleRead(fd)
+		if c.inBuffer.IsEmpty() {
+			c.inBuffer.Reset()
+		}
 	}
 
 	c.inBufferLen.Swap(int64(c.inBuffer.Length()))
@@ -188,13 +205,13 @@ func (c *Connection) handleRead(fd int) {
 		return
 	}
 
-	if c.inBuffer.Length() == 0 {
-		buffer := ringbuffer.NewWithData(buf[:n])
+	if c.inBuffer.IsEmpty() {
+		c.buffer.WithData(buf[:n])
 		buf = buf[n:n]
-		c.handlerProtocol(&buf, buffer)
+		c.handlerProtocol(&buf, c.buffer)
 
-		if buffer.Length() > 0 {
-			first, _ := buffer.PeekAll()
+		if !c.buffer.IsEmpty() {
+			first, _ := c.buffer.PeekAll()
 			_, _ = c.inBuffer.Write(first)
 		}
 	} else {
@@ -232,7 +249,7 @@ func (c *Connection) handleWrite(fd int) {
 		c.outBuffer.Retrieve(n)
 	}
 
-	if c.outBuffer.Length() == 0 {
+	if c.outBuffer.IsEmpty() {
 		if err := c.loop.EnableRead(fd); err != nil {
 			log.Error("[EnableRead]", err)
 		}
@@ -255,7 +272,7 @@ func (c *Connection) handleClose(fd int) {
 }
 
 func (c *Connection) sendInLoop(data []byte) {
-	if c.outBuffer.Length() > 0 {
+	if !c.outBuffer.IsEmpty() {
 		_, _ = c.outBuffer.Write(data)
 	} else {
 		n, err := unix.Write(c.fd, data)
@@ -270,7 +287,7 @@ func (c *Connection) sendInLoop(data []byte) {
 			_, _ = c.outBuffer.Write(data[n:])
 		}
 
-		if c.outBuffer.Length() > 0 {
+		if !c.outBuffer.IsEmpty() {
 			_ = c.loop.EnableReadWrite(c.fd)
 		}
 	}
