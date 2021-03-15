@@ -155,9 +155,8 @@ func (c *Connection) WriteBufferLength() int64 {
 
 // HandleEvent 内部使用，event loop 回调
 func (c *Connection) HandleEvent(fd int, events poller.Event) {
-	now := time.Now()
 	if c.idleTime > 0 {
-		_ = c.activeTime.Swap(now.Unix())
+		_ = c.activeTime.Swap(time.Now().Unix())
 	}
 
 	if events&poller.EventErr != 0 {
