@@ -205,7 +205,9 @@ func (c *Connection) handleRead(fd int) {
 	}
 
 	if c.inBuffer.IsEmpty() {
-		buffer := ringbuffer.NewWithData(buf[:n])
+		buffer := ringbuffer.GetFromPool()
+		_, _ = buffer.Write(buf[:n])
+		//buffer := ringbuffer.NewWithData(buf[:n])
 		buf = buf[n:n]
 		c.handlerProtocol(&buf, buffer)
 
