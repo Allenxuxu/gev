@@ -26,13 +26,13 @@ type EventLoop struct {
 
 // nolint
 type eventLoopLocal struct {
-	eventHandling atomic.Bool
-	poll          *poller.Poller
-	mu            spinlock.SpinLock
-	sockets       map[int]Socket
-	packet        []byte
-	pendingFunc   []func()
-	UserBuffer    *[]byte
+	needWake    atomic.Bool
+	poll        *poller.Poller
+	mu          spinlock.SpinLock
+	sockets     map[int]Socket
+	packet      []byte
+	pendingFunc []func()
+	UserBuffer  *[]byte
 }
 
 // New 创建一个 EventLoop
@@ -90,6 +90,7 @@ func (l *EventLoop) EnableRead(fd int) error {
 
 // RunLoop 启动事件循环
 func (l *EventLoop) RunLoop() {
+	l.needWake.Set(true)
 	l.poll.Poll(l.handlerEvent)
 }
 
@@ -113,26 +114,24 @@ func (l *EventLoop) QueueInLoop(f func()) {
 	l.pendingFunc = append(l.pendingFunc, f)
 	l.mu.Unlock()
 
-	if !l.eventHandling.Get() {
-		if err := l.poll.Wake(); err != nil {
-			log.Error("QueueInLoop Wake loop, ", err)
-		}
+	// ToDo csp
+	l.needWake.Set(false)
+	if err := l.poll.Wake(); err != nil {
+		log.Error("QueueInLoop Wake loop, ", err)
 	}
+
 }
 
 func (l *EventLoop) handlerEvent(fd int, events poller.Event) {
-	l.eventHandling.Set(true)
-
 	if fd != -1 {
 		s, ok := l.sockets[fd]
 		if ok {
 			s.HandleEvent(fd, events)
 		}
+	} else {
+		l.needWake.Set(true)
+		l.doPendingFunc()
 	}
-
-	l.eventHandling.Set(false)
-
-	l.doPendingFunc()
 }
 
 func (l *EventLoop) doPendingFunc() {
