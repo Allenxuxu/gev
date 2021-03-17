@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/Allenxuxu/eviop v0.0.0-20190901123806-035c218f739a
 	github.com/Allenxuxu/ringbuffer v0.0.9
-	github.com/Allenxuxu/toolkit v0.0.0-20200827004847-cb9a6f0d072f
+	github.com/Allenxuxu/toolkit v0.0.1
 	github.com/RussellLuo/timingwheel v0.0.0-20201029015908-64de9d088c74
 	github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee
 	github.com/gobwas/pool v0.2.0

@@ -26,7 +26,7 @@ type EventLoop struct {
 
 // nolint
 type eventLoopLocal struct {
-	needWake   atomic.Bool
+	needWake   *atomic.Bool
 	poll       *poller.Poller
 	mu         spinlock.SpinLock
 	sockets    map[int]Socket
@@ -51,6 +51,7 @@ func New() (*EventLoop, error) {
 			packet:     make([]byte, 0xFFFF),
 			sockets:    make(map[int]Socket),
 			UserBuffer: &userBuffer,
+			needWake:   atomic.New(true),
 			taskQueueW: make([]func(), 0, 1024),
 			taskQueueR: make([]func(), 0, 1024),
 		},
@@ -94,7 +95,6 @@ func (l *EventLoop) EnableRead(fd int) error {
 
 // RunLoop 启动事件循环
 func (l *EventLoop) RunLoop() {
-	l.needWake.Set(true)
 	l.poll.Poll(l.handlerEvent)
 }
 
@@ -118,12 +118,11 @@ func (l *EventLoop) QueueInLoop(f func()) {
 	l.taskQueueW = append(l.taskQueueW, f)
 	l.mu.Unlock()
 
-	// ToDo csp
-	l.needWake.Set(false)
-	if err := l.poll.Wake(); err != nil {
-		log.Error("QueueInLoop Wake loop, ", err)
+	if l.needWake.CompareAndSwap(true, false) {
+		if err := l.poll.Wake(); err != nil {
+			log.Error("QueueInLoop Wake loop, ", err)
+		}
 	}
-
 }
 
 func (l *EventLoop) handlerEvent(fd int, events poller.Event) {
