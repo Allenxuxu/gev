@@ -26,13 +26,15 @@ type EventLoop struct {
 
 // nolint
 type eventLoopLocal struct {
-	needWake    atomic.Bool
-	poll        *poller.Poller
-	mu          spinlock.SpinLock
-	sockets     map[int]Socket
-	packet      []byte
-	pendingFunc []func()
-	UserBuffer  *[]byte
+	needWake   atomic.Bool
+	poll       *poller.Poller
+	mu         spinlock.SpinLock
+	sockets    map[int]Socket
+	packet     []byte
+	taskQueueW []func()
+	taskQueueR []func()
+
+	UserBuffer *[]byte
 }
 
 // New 创建一个 EventLoop
@@ -49,6 +51,8 @@ func New() (*EventLoop, error) {
 			packet:     make([]byte, 0xFFFF),
 			sockets:    make(map[int]Socket),
 			UserBuffer: &userBuffer,
+			taskQueueW: make([]func(), 0, 1024),
+			taskQueueR: make([]func(), 0, 1024),
 		},
 	}, nil
 }
@@ -111,7 +115,7 @@ func (l *EventLoop) Stop() error {
 // QueueInLoop 添加 func 到事件循环中执行
 func (l *EventLoop) QueueInLoop(f func()) {
 	l.mu.Lock()
-	l.pendingFunc = append(l.pendingFunc, f)
+	l.taskQueueW = append(l.taskQueueW, f)
 	l.mu.Unlock()
 
 	// ToDo csp
@@ -136,13 +140,13 @@ func (l *EventLoop) handlerEvent(fd int, events poller.Event) {
 
 func (l *EventLoop) doPendingFunc() {
 	l.mu.Lock()
-	pf := l.pendingFunc
-	l.pendingFunc = nil
+	l.taskQueueW, l.taskQueueR = l.taskQueueR, l.taskQueueW
 	l.mu.Unlock()
 
-	length := len(pf)
-
+	length := len(l.taskQueueR)
 	for i := 0; i < length; i++ {
-		pf[i]()
+		l.taskQueueR[i]()
 	}
+
+	l.taskQueueR = l.taskQueueR[:0]
 }
