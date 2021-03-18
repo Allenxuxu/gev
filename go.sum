@@ -5,8 +5,8 @@ github.com/Allenxuxu/eviop v0.0.0-20190901123806-035c218f739a/go.mod h1:I5+IvzRy
 github.com/Allenxuxu/ringbuffer v0.0.0-20190803184500-fa400f2fe92b/go.mod h1:9Rg4D7ixiHGlU50BJWJEg6vwDFcGiOYKQFcHK6Vx9m4=
 github.com/Allenxuxu/ringbuffer v0.0.9 h1:KxG2kqM1iCL0VqTTuQS6XqugoffP8IM7YhVnzEPf8cc=
 github.com/Allenxuxu/ringbuffer v0.0.9/go.mod h1:F2Ela+/miJmKYwnXr3X0+spOmSEwL/iFAEzeUJ4SFMI=
-github.com/Allenxuxu/toolkit v0.0.0-20200827004847-cb9a6f0d072f h1:DqHu2M6MxT+R6KN2UdsWjcZ6Yhw4ENSKYlXTKZ24P+c=
-github.com/Allenxuxu/toolkit v0.0.0-20200827004847-cb9a6f0d072f/go.mod h1:kamv5tj0iNT29zmKIYaxoIcYgDnzerxnOZiHBKbVp/o=
+github.com/Allenxuxu/toolkit v0.0.1 h1:xY4AK/nmjxQC1sVbolUUqVeH27+TalfCPLd85y2VfS0=
+github.com/Allenxuxu/toolkit v0.0.1/go.mod h1:kamv5tj0iNT29zmKIYaxoIcYgDnzerxnOZiHBKbVp/o=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=

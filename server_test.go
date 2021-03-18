@@ -28,7 +28,8 @@ func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []by
 	//log.Println("OnMessage")
 
 	//out = data
-	if err := c.Send(data); err != nil {
+	msg := append([]byte{}, data...)
+	if err := c.Send(msg); err != nil {
 		panic(err)
 	}
 	return

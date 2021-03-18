@@ -17,19 +17,23 @@ var msg []byte
 
 func main() {
 	flag.Parse()
+
+	fmt.Printf("*** %d connections, %d seconds, %d byte packets ***\n", *num, *timeOut, *msgLen)
+
 	msg = make([]byte, *msgLen)
 	rand.Read(msg)
 
 	startC := make(chan interface{})
 	closeC := make(chan interface{})
 	result := make(chan int64, *num)
+	req := make(chan int64, *num)
 
 	for i := 0; i < *num; i++ {
 		conn, err := net.Dial("tcp", *addr)
 		if err != nil {
 			panic(err)
 		}
-		go handler(conn, startC, closeC, result)
+		go handler(conn, startC, closeC, result, req)
 	}
 
 	// start
@@ -39,16 +43,18 @@ func main() {
 	// stop
 	close(closeC)
 
-	var totalMessagesRead int64
+	var totalMessagesRead, reqCount int64
 	for i := 0; i < *num; i++ {
 		totalMessagesRead += <-result
+		reqCount += <-req
 	}
 
 	fmt.Println(totalMessagesRead/int64(*timeOut*1024*1024), " MiB/s throughput")
+	fmt.Println(reqCount/int64(*timeOut), " qps")
 }
 
-func handler(conn net.Conn, startC chan interface{}, closeC chan interface{}, result chan int64) {
-	var count int64
+func handler(conn net.Conn, startC chan interface{}, closeC chan interface{}, result, req chan int64) {
+	var count, reqCount int64
 	buf := make([]byte, 2*(*msgLen))
 	<-startC
 
@@ -61,12 +67,14 @@ func handler(conn net.Conn, startC chan interface{}, closeC chan interface{}, re
 		select {
 		case <-closeC:
 			result <- count
+			req <- reqCount
 			conn.Close()
 			return
 		default:
 			n, err := conn.Read(buf)
 			if n > 0 {
 				count += int64(n)
+				reqCount++
 			}
 			if err != nil {
 				fmt.Print("Error to read message because of ", err)

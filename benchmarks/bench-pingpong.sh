@@ -9,8 +9,8 @@ echo ""
 cd $(dirname "${BASH_SOURCE[0]}")
 function cleanup() {
   echo "--- BENCH PING PONG DONE ---"
-  #    kill -9 $(jobs -rp)
-  #    wait $(jobs -rp) 2>/dev/null
+  kill -9 $(jobs -rp)
+  wait $(jobs -rp) 2>/dev/null
 }
 trap cleanup EXIT
 
@@ -26,16 +26,20 @@ function gobench() {
   if [ "$3" != "" ]; then
     go build -o $2 $3
   fi
-  GOMAXPROCS=4 $2 --port $4 --loops 8 &
+  $2 --port $4 --loops 8 &
 
   sleep 1
-  echo "*** 1000 connections, 60 seconds, 4096 byte packets"
-  GOMAXPROCS=4 go run client/main.go -c 1000 -t 60 -m 4096 -a 127.0.0.1:$4
+  go run client/main.go -c 3000 -t 10 -m 4096 -a 127.0.0.1:$4
+
+  pkill -9 $2 || printf ""
   echo "--- DONE ---"
   echo ""
 }
 
 gobench "GEV" bin/gev-echo-server gev-echo-server/echo.go 5000
 
-gobench "GNET" bin/gnet-echo-server gnet-echo-server/main.go 5010
+gobench "NET" bin/net-echo-server net-echo-server/main.go 5001
 
+gobench "EVIO" bin/evio-echo-server evio-echo-server/main.go 5002
+
+gobench "GNET" bin/gnet-echo-server gnet-echo-server/main.go 5010
