@@ -31,10 +31,10 @@ func newOptions(opt ...Option) *Options {
 		o(&opts)
 	}
 
-	if len(opts.Network) == 0 {
+	if opts.Network == "" {
 		opts.Network = "tcp"
 	}
-	if len(opts.Address) == 0 {
+	if opts.Address == "" {
 		opts.Address = ":1388"
 	}
 	if opts.tick == 0 {

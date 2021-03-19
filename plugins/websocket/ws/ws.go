@@ -269,7 +269,7 @@ func (u *Upgrader) Upgrade(c *connection.Connection, in *ringbuffer.RingBuffer) 
 			if len(v) != nonceSize {
 				err = ErrHandshakeBadSecKey
 			} else {
-				copy(nonce[:], v)
+				copy(nonce, v)
 			}
 		case headerSecProtocolCanonical:
 			if custom, check := u.ProtocolCustom, u.Protocol; hs.Protocol == "" && (custom != nil || check != nil) {
