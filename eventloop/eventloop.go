@@ -10,6 +10,12 @@ import (
 	"github.com/Allenxuxu/toolkit/sync/spinlock"
 )
 
+var (
+	DefaultPacketSize    = 65536
+	DefaultBufferSize    = 4096
+	DefaultTaskQueueSize = 1024
+)
+
 // Socket 接口
 type Socket interface {
 	HandleEvent(fd int, events poller.Event)
@@ -45,16 +51,16 @@ func New() (*EventLoop, error) {
 		return nil, err
 	}
 
-	userBuffer := make([]byte, 1024)
+	userBuffer := make([]byte, DefaultBufferSize)
 	return &EventLoop{
 		eventLoopLocal: eventLoopLocal{
 			poll:       p,
-			packet:     make([]byte, 0xFFFF),
+			packet:     make([]byte, DefaultPacketSize),
 			sockets:    make(map[int]Socket),
 			UserBuffer: &userBuffer,
 			needWake:   atomic.New(true),
-			taskQueueW: make([]func(), 0, 1024),
-			taskQueueR: make([]func(), 0, 1024),
+			taskQueueW: make([]func(), 0, DefaultTaskQueueSize),
+			taskQueueR: make([]func(), 0, DefaultTaskQueueSize),
 		},
 	}, nil
 }
