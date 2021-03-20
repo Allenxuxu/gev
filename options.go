@@ -8,10 +8,11 @@ import (
 
 // Options 服务配置
 type Options struct {
-	Network   string
-	Address   string
-	NumLoops  int
-	ReusePort bool
+	Network      string
+	Address      string
+	NumLoops     int
+	ReusePort    bool
+	LockOSThread bool
 
 	tick      time.Duration
 	wheelSize int64
@@ -82,6 +83,13 @@ func NumLoops(n int) Option {
 func Protocol(p connection.Protocol) Option {
 	return func(o *Options) {
 		o.Protocol = p
+	}
+}
+
+// LockOSThread 为每一个 event loop lock os thread
+func LockOSThread(l bool) Option {
+	return func(o *Options) {
+		o.LockOSThread = l
 	}
 }
 

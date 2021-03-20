@@ -1,6 +1,7 @@
 package eventloop
 
 import (
+	"runtime"
 	"unsafe"
 
 	"github.com/Allenxuxu/gev/log"
@@ -95,6 +96,9 @@ func (l *EventLoop) EnableRead(fd int) error {
 
 // RunLoop 启动事件循环
 func (l *EventLoop) RunLoop() {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	l.poll.Poll(l.handlerEvent)
 }
 
