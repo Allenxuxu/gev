@@ -14,7 +14,7 @@ type Options struct {
 	ReusePort bool
 	IdleTime  time.Duration
 	Protocol  connection.Protocol
-	Strategy  BalanceStrategy
+	Strategy  LoadBalanceStrategy
 
 	tick                        time.Duration
 	wheelSize                   int64
@@ -95,7 +95,7 @@ func IdleTime(t time.Duration) Option {
 	}
 }
 
-func LoadBalance(strategy BalanceStrategy) Option {
+func LoadBalance(strategy LoadBalanceStrategy) Option {
 	return func(o *Options) {
 		o.Strategy = strategy
 	}
