@@ -33,6 +33,7 @@ type EventLoop struct {
 
 // nolint
 type eventLoopLocal struct {
+	ConnCunt   atomic.Int64
 	needWake   *atomic.Bool
 	poll       *poller.Poller
 	mu         spinlock.SpinLock
@@ -70,23 +71,28 @@ func (l *EventLoop) PacketBuf() []byte {
 	return l.packet
 }
 
+func (l *EventLoop) ConnectionCount() int64 {
+	return l.ConnCunt.Get()
+}
+
 // DeleteFdInLoop 删除 fd
 func (l *EventLoop) DeleteFdInLoop(fd int) {
 	if err := l.poll.Del(fd); err != nil {
 		log.Error("[DeleteFdInLoop]", err)
 	}
 	delete(l.sockets, fd)
+	l.ConnCunt.Add(-1)
 }
 
 // AddSocketAndEnableRead 增加 Socket 到时间循环中，并注册可读事件
 func (l *EventLoop) AddSocketAndEnableRead(fd int, s Socket) error {
-	var err error
 	l.sockets[fd] = s
-
-	if err = l.poll.AddRead(fd); err != nil {
+	if err := l.poll.AddRead(fd); err != nil {
 		delete(l.sockets, fd)
 		return err
 	}
+
+	l.ConnCunt.Add(1)
 	return nil
 }
 
@@ -119,6 +125,7 @@ func (l *EventLoop) Stop() error {
 		l.sockets = nil
 	})
 
+	_ = l.ConnCunt.Swap(0)
 	return l.poll.Close()
 }
 

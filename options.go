@@ -13,12 +13,12 @@ type Options struct {
 	NumLoops     int
 	ReusePort    bool
 	LockOSThread bool
+	IdleTime     time.Duration
+	Protocol     connection.Protocol
+	Strategy     BalanceStrategy
 
-	tick      time.Duration
-	wheelSize int64
-	IdleTime  time.Duration
-	Protocol  connection.Protocol
-
+	tick                        time.Duration
+	wheelSize                   int64
 	metricsPath, metricsAddress string
 }
 
@@ -46,6 +46,9 @@ func newOptions(opt ...Option) *Options {
 	}
 	if opts.Protocol == nil {
 		opts.Protocol = &connection.DefaultProtocol{}
+	}
+	if opts.Strategy == nil {
+		opts.Strategy = RoundRobin()
 	}
 
 	return &opts
@@ -97,6 +100,12 @@ func LockOSThread(l bool) Option {
 func IdleTime(t time.Duration) Option {
 	return func(o *Options) {
 		o.IdleTime = t
+	}
+}
+
+func LoadBalance(strategy BalanceStrategy) Option {
+	return func(o *Options) {
+		o.Strategy = strategy
 	}
 }
 

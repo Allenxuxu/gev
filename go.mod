@@ -13,6 +13,7 @@ require (
 	github.com/libp2p/go-reuseport v0.0.1
 	github.com/panjf2000/gnet v1.4.0
 	github.com/prometheus/client_golang v1.9.0
+	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/tidwall/evio v1.0.2
 	golang.org/x/net v0.0.0-20200625001655-4c5254603344
 	golang.org/x/sys v0.0.0-20201214210602-f9fddec55a1e
