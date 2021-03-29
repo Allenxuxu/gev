@@ -9,6 +9,12 @@ import (
 	"github.com/Allenxuxu/toolkit/sync/spinlock"
 )
 
+var (
+	DefaultPacketSize    = 65536
+	DefaultBufferSize    = 4096
+	DefaultTaskQueueSize = 1024
+)
+
 // Socket 接口
 type Socket interface {
 	HandleEvent(fd int, events poller.Event)
@@ -26,6 +32,7 @@ type EventLoop struct {
 
 // nolint
 type eventLoopLocal struct {
+	ConnCunt   atomic.Int64
 	needWake   *atomic.Bool
 	poll       *poller.Poller
 	mu         spinlock.SpinLock
@@ -44,16 +51,16 @@ func New() (*EventLoop, error) {
 		return nil, err
 	}
 
-	userBuffer := make([]byte, 1024)
+	userBuffer := make([]byte, DefaultBufferSize)
 	return &EventLoop{
 		eventLoopLocal: eventLoopLocal{
 			poll:       p,
-			packet:     make([]byte, 0xFFFF),
+			packet:     make([]byte, DefaultPacketSize),
 			sockets:    make(map[int]Socket),
 			UserBuffer: &userBuffer,
 			needWake:   atomic.New(true),
-			taskQueueW: make([]func(), 0, 1024),
-			taskQueueR: make([]func(), 0, 1024),
+			taskQueueW: make([]func(), 0, DefaultTaskQueueSize),
+			taskQueueR: make([]func(), 0, DefaultTaskQueueSize),
 		},
 	}, nil
 }
@@ -63,23 +70,28 @@ func (l *EventLoop) PacketBuf() []byte {
 	return l.packet
 }
 
+func (l *EventLoop) ConnectionCount() int64 {
+	return l.ConnCunt.Get()
+}
+
 // DeleteFdInLoop 删除 fd
 func (l *EventLoop) DeleteFdInLoop(fd int) {
 	if err := l.poll.Del(fd); err != nil {
 		log.Error("[DeleteFdInLoop]", err)
 	}
 	delete(l.sockets, fd)
+	l.ConnCunt.Add(-1)
 }
 
 // AddSocketAndEnableRead 增加 Socket 到时间循环中，并注册可读事件
 func (l *EventLoop) AddSocketAndEnableRead(fd int, s Socket) error {
-	var err error
 	l.sockets[fd] = s
-
-	if err = l.poll.AddRead(fd); err != nil {
+	if err := l.poll.AddRead(fd); err != nil {
 		delete(l.sockets, fd)
 		return err
 	}
+
+	l.ConnCunt.Add(1)
 	return nil
 }
 
@@ -109,6 +121,7 @@ func (l *EventLoop) Stop() error {
 		l.sockets = nil
 	})
 
+	_ = l.ConnCunt.Swap(0)
 	return l.poll.Close()
 }
 

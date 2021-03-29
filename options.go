@@ -12,12 +12,12 @@ type Options struct {
 	Address   string
 	NumLoops  int
 	ReusePort bool
-
-	tick      time.Duration
-	wheelSize int64
 	IdleTime  time.Duration
 	Protocol  connection.Protocol
+	Strategy  LoadBalanceStrategy
 
+	tick                        time.Duration
+	wheelSize                   int64
 	metricsPath, metricsAddress string
 }
 
@@ -45,6 +45,9 @@ func newOptions(opt ...Option) *Options {
 	}
 	if opts.Protocol == nil {
 		opts.Protocol = &connection.DefaultProtocol{}
+	}
+	if opts.Strategy == nil {
+		opts.Strategy = RoundRobin()
 	}
 
 	return &opts
@@ -89,6 +92,12 @@ func Protocol(p connection.Protocol) Option {
 func IdleTime(t time.Duration) Option {
 	return func(o *Options) {
 		o.IdleTime = t
+	}
+}
+
+func LoadBalance(strategy LoadBalanceStrategy) Option {
+	return func(o *Options) {
+		o.Strategy = strategy
 	}
 }
 

@@ -23,10 +23,9 @@ type Handler interface {
 
 // Server gev Server
 type Server struct {
-	loop          *eventloop.EventLoop
-	workLoops     []*eventloop.EventLoop
-	nextLoopIndex int
-	callback      Handler
+	loop      *eventloop.EventLoop
+	workLoops []*eventloop.EventLoop
+	callback  Handler
 
 	timingWheel *timingwheel.TimingWheel
 	opts        *Options
@@ -87,15 +86,8 @@ func (s *Server) RunEvery(d time.Duration, f func()) *timingwheel.Timer {
 	return s.timingWheel.ScheduleFunc(&everyScheduler{Interval: d}, f)
 }
 
-func (s *Server) nextLoop() *eventloop.EventLoop {
-	// TODO 更多的负载方式
-	loop := s.workLoops[s.nextLoopIndex]
-	s.nextLoopIndex = (s.nextLoopIndex + 1) % len(s.workLoops)
-	return loop
-}
-
 func (s *Server) handleNewConnection(fd int, sa unix.Sockaddr) {
-	loop := s.nextLoop()
+	loop := s.opts.Strategy(s.workLoops)
 
 	c := connection.New(fd, loop, sa, s.opts.Protocol, s.timingWheel, s.opts.IdleTime, s.callback)
 
