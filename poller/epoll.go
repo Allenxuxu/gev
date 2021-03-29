@@ -17,6 +17,7 @@ const writeEvent = unix.EPOLLOUT
 type Poller struct {
 	fd       int
 	eventFd  int
+	buf      []byte
 	running  atomic.Bool
 	waitDone chan struct{}
 }
@@ -47,6 +48,7 @@ func Create() (*Poller, error) {
 	return &Poller{
 		fd:       fd,
 		eventFd:  eventFd,
+		buf:      make([]byte, 8),
 		waitDone: make(chan struct{}),
 	}, nil
 }
@@ -59,10 +61,8 @@ func (ep *Poller) Wake() error {
 	return err
 }
 
-var buf = make([]byte, 8)
-
 func (ep *Poller) wakeHandlerRead() {
-	n, err := unix.Read(ep.eventFd, buf)
+	n, err := unix.Read(ep.eventFd, ep.buf)
 	if err != nil || n != 8 {
 		log.Error("wakeHandlerRead", err, n)
 	}
