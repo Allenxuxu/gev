@@ -125,7 +125,7 @@ func TestIdleTime(t *testing.T) {
 }
 
 func TestConnLoadBalanceLeastConnection(t *testing.T) {
-	runtime.GOMAXPROCS(1)
+	runtime.GOMAXPROCS(4)
 	handler := new(example3)
 
 	s, err := NewServer(handler,
