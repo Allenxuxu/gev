@@ -3,7 +3,6 @@ package gev
 import (
 	"io"
 	"net"
-	"runtime"
 	"testing"
 	"time"
 
@@ -125,7 +124,6 @@ func TestIdleTime(t *testing.T) {
 }
 
 func TestConnLoadBalanceLeastConnection(t *testing.T) {
-	runtime.GOMAXPROCS(4)
 	handler := new(example3)
 
 	s, err := NewServer(handler,
@@ -145,6 +143,7 @@ func TestConnLoadBalanceLeastConnection(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		time.Sleep(time.Millisecond * 20)
 	}
 
 	time.Sleep(time.Millisecond * 20)
