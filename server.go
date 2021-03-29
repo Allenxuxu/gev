@@ -23,10 +23,9 @@ type Handler interface {
 
 // Server gev Server
 type Server struct {
-	loop          *eventloop.EventLoop
-	workLoops     []*eventloop.EventLoop
-	nextLoopIndex int
-	callback      Handler
+	loop      *eventloop.EventLoop
+	workLoops []*eventloop.EventLoop
+	callback  Handler
 
 	timingWheel *timingwheel.TimingWheel
 	opts        *Options
