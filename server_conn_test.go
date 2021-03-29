@@ -3,6 +3,7 @@ package gev
 import (
 	"io"
 	"net"
+	"runtime"
 	"testing"
 	"time"
 
@@ -40,7 +41,7 @@ func TestConnClose(t *testing.T) {
 
 	s, err := NewServer(handler,
 		Network("tcp"),
-		Address(":1833"),
+		Address(":1843"),
 		NumLoops(8),
 		ReusePort(true))
 	if err != nil {
@@ -49,7 +50,7 @@ func TestConnClose(t *testing.T) {
 
 	go s.Start()
 
-	conn, err := net.DialTimeout("tcp", "127.0.0.1:1833", time.Second*60)
+	conn, err := net.DialTimeout("tcp", "127.0.0.1:1843", time.Second*60)
 	if err != nil {
 		log.Error(err)
 		return
@@ -124,6 +125,7 @@ func TestIdleTime(t *testing.T) {
 }
 
 func TestConnLoadBalanceLeastConnection(t *testing.T) {
+	runtime.GOMAXPROCS(1)
 	handler := new(example3)
 
 	s, err := NewServer(handler,
