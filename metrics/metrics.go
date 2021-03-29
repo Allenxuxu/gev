@@ -45,7 +45,7 @@ func PrometheusMustRegister(cs ...prometheus.Collector) {
 }
 
 func MustRun(path, address string) {
-	if len(path) == 0 {
+	if path == "" {
 		path = defaultMetricsPath
 	}
 
