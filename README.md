@@ -9,7 +9,7 @@
 
 #### [中文](README-ZH.md) | English
 
-`gev` is a lightweight, fast non-blocking TCP network library based on Reactor mode. 
+`gev` is a lightweight, fast non-blocking TCP network library / websocket server based on Reactor mode. 
 
 Support custom protocols to quickly and easily build high-performance servers.
 
@@ -21,9 +21,9 @@ Support custom protocols to quickly and easily build high-performance servers.
 - Asynchronous read and write
 - SO_REUSEPORT port reuse support
 - Automatically clean up idle connections
-- Support WebSocket/Protobuf
+- Support WebSocket/Protobuf, custom protocols
 - Support for scheduled tasks, delayed tasks
-- Support for custom protocols
+- High performance websocket server
 
 ## Network model
 
