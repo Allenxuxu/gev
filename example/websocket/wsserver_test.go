@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/Allenxuxu/gev/log"
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
@@ -147,10 +150,11 @@ func TestWebSocketServer_CloseConnection(t *testing.T) {
 			addr    = "ws://localhost" + s.Options().Address
 		)
 
+		log.SetLevel(log.LevelDebug)
 		for i := 0; i < n; i++ {
 			conn[i], err = websocket.Dial(addr, "", addr)
 			if err != nil {
-				panic(err)
+				panic(fmt.Errorf("%d %s", i, err.Error()))
 			}
 
 		}
