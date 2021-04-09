@@ -12,12 +12,17 @@ import (
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws/util"
 	"github.com/Allenxuxu/toolkit/sync"
+	"github.com/Allenxuxu/toolkit/sync/atomic"
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/websocket"
 )
 
-type wsExample struct{}
+type wsExample struct {
+	ClientNum atomic.Int64
+}
 
 func (s *wsExample) OnConnect(c *connection.Connection) {
+	s.ClientNum.Add(1)
 	//log.Println(" OnConnect ： ", c.PeerAddr())
 }
 func (s *wsExample) OnMessage(c *connection.Connection, data []byte) (messageType ws.MessageType, out []byte) {
@@ -53,6 +58,7 @@ func (s *wsExample) OnMessage(c *connection.Connection, data []byte) (messageTyp
 }
 
 func (s *wsExample) OnClose(c *connection.Connection) {
+	s.ClientNum.Add(-1)
 	//log.Println("OnClose")
 }
 
@@ -116,4 +122,50 @@ func startWebSocketClient(addr string) {
 			panic("mismatch")
 		}
 	}
+}
+
+func TestWebSocketServer_CloseConnection(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+	handler := new(wsExample)
+
+	s, err := NewWebSocketServer(handler, &ws.Upgrader{},
+		gev.Address(":1833"),
+		gev.NumLoops(8),
+		gev.ReusePort(true))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go func() {
+		time.Sleep(time.Second)
+
+		var (
+			err     error
+			n       = 100
+			toClose = 50
+			conn    = make([]*websocket.Conn, n)
+			addr    = "ws://localhost" + s.Options().Address
+		)
+
+		for i := 0; i < n; i++ {
+			conn[i], err = websocket.Dial(addr, "", addr)
+			if err != nil {
+				panic(err)
+			}
+
+		}
+		assert.Equal(t, n, int(handler.ClientNum.Get()))
+
+		for i := 0; i < toClose; i++ {
+			if err := conn[i].Close(); err != nil {
+				panic(err)
+			}
+		}
+		time.Sleep(time.Second)
+		assert.Equal(t, n-toClose, int(handler.ClientNum.Get()))
+
+		s.Stop()
+	}()
+
+	s.Start()
 }

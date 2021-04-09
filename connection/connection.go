@@ -139,7 +139,6 @@ func (c *Connection) Close() error {
 
 // ShutdownWrite 关闭可写端，等待读取完接收缓冲区所有数据
 func (c *Connection) ShutdownWrite() error {
-	c.connected.Set(false)
 	return unix.Shutdown(c.fd, unix.SHUT_WR)
 }
 
