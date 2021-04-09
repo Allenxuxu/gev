@@ -71,8 +71,7 @@ func TestWebSocketServer_Start(t *testing.T) {
 
 	s, err := NewWebSocketServer(handler, &ws.Upgrader{},
 		gev.Address(":1834"),
-		gev.NumLoops(8),
-		gev.ReusePort(true))
+		gev.NumLoops(8))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,8 +132,7 @@ func TestWebSocketServer_CloseConnection(t *testing.T) {
 
 	s, err := NewWebSocketServer(handler, &ws.Upgrader{},
 		gev.Address(":2021"),
-		gev.NumLoops(8),
-		gev.ReusePort(true))
+		gev.NumLoops(8))
 	if err != nil {
 		t.Fatal(err)
 	}
