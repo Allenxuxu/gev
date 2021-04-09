@@ -132,7 +132,7 @@ func TestWebSocketServer_CloseConnection(t *testing.T) {
 	handler := new(wsExample)
 
 	s, err := NewWebSocketServer(handler, &ws.Upgrader{},
-		gev.Address(":1833"),
+		gev.Address(":2021"),
 		gev.NumLoops(8),
 		gev.ReusePort(true))
 	if err != nil {
