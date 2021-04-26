@@ -256,7 +256,7 @@ func (u *Upgrader) Upgrade(c *connection.Connection, in *ringbuffer.RingBuffer) 
 			}
 		case headerConnectionCanonical:
 			headerSeen |= headerSeenConnection
-			if !bytes.Equal(v, specHeaderValueConnection) {
+			if !bytes.Equal(v, specHeaderValueConnection) && !bytes.Equal(v, specHeaderValueConnectionLower) {
 				err = ErrHandshakeBadConnection
 			}
 		case headerSecVersionCanonical:
