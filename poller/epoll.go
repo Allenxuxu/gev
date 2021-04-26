@@ -31,6 +31,7 @@ func Create() (*Poller, error) {
 
 	r0, _, errno := unix.Syscall(unix.SYS_EVENTFD2, 0, 0, 0)
 	if errno != 0 {
+		_ = unix.Close(fd)
 		return nil, errno
 	}
 	eventFd := int(r0)
