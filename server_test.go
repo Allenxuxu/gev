@@ -37,7 +37,6 @@ func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []by
 
 func (s *example) OnClose(c *connection.Connection) {
 	s.Count.Add(-1)
-	//log.Println("OnClose")
 }
 
 func TestServer_Start(t *testing.T) {
@@ -95,6 +94,131 @@ func startClient(network, addr string) {
 			panic("mismatch")
 		}
 	}
+}
+
+func TestServer_StopWithClient(t *testing.T) {
+	handler := new(example)
+
+	s, err := NewServer(handler,
+		Network("tcp"),
+		Address("127.0.0.1:1831"),
+		NumLoops(8),
+		ReusePort(true))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go s.Start()
+
+	cb := new(clientCallback)
+	time.Sleep(time.Second)
+	var success, failed atomic.Int64
+	wg := &sync.WaitGroupWrapper{}
+	for i := 0; i < 100; i++ {
+		wg.AddAndRun(func() {
+			conn, err := newClientConnection(cb, "tcp", "127.0.0.1:1831")
+			if err != nil {
+				failed.Add(1)
+				log.Info("error", err)
+				return
+			}
+			success.Add(1)
+			if err := conn.Close(); err != nil {
+				panic(err)
+			}
+			conn.Stop()
+		})
+	}
+
+	wg.Wait()
+	log.Infof("Success: %d Failed: %d\n", success, failed)
+
+	time.Sleep(time.Second * 2)
+	count := handler.Count.Get()
+	if count != 0 {
+		t.Fatal(count)
+	}
+
+	s.Stop()
+}
+
+func TestServer_StopAndSendWithClient(t *testing.T) {
+	handler := new(example)
+
+	s, err := NewServer(handler,
+		Network("tcp"),
+		Address("127.0.0.1:1831"),
+		NumLoops(8),
+		ReusePort(true))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go s.Start()
+	cb := new(clientCallback)
+	time.Sleep(time.Second * 1)
+	var success, failed atomic.Int64
+	wg := &sync.WaitGroupWrapper{}
+	for i := 0; i < 100; i++ {
+		wg.AddAndRun(func() {
+			conn, err := newClientConnection(cb, "tcp", "127.0.0.1:1831")
+			if err != nil {
+				failed.Add(1)
+				return
+			}
+			err = conn.Send([]byte("data_test"))
+			if err != nil {
+				panic(err)
+			}
+			// waiting for callback executed
+			time.Sleep(time.Second)
+			if err := conn.Close(); err != nil {
+				panic(err)
+			}
+			success.Add(1)
+			conn.Stop()
+		})
+	}
+
+	wg.Wait()
+	log.Infof("Success: %d Failed: %d\n", success, failed)
+
+	time.Sleep(time.Second * 2)
+	count := handler.Count.Get()
+	if count != 0 {
+		t.Fatal(count)
+	}
+	if cb.reqCount.Get() != 100 {
+		t.Fatal(cb.reqCount.Get())
+	}
+
+	s.Stop()
+}
+
+type clientCallback struct {
+	reqCount atomic.Int64
+}
+
+func (cc *clientCallback) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
+	//	log.Info("client OnMessage", string(data))
+	cc.reqCount.Add(1)
+	return
+}
+
+func (cc *clientCallback) OnClose(c *connection.Connection) {
+	//	log.Info("client OnClose")
+}
+
+func newClientConnection(cb connection.CallBack, network, addr string) (*Client, error) {
+	conn, err := NewClientConnection(cb,
+		Network(network),
+		Address(addr))
+	if err != nil {
+		return nil, err
+	}
+	go conn.Start()
+
+	return conn, nil
 }
 
 func ExampleServer_RunAfter() {
