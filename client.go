@@ -14,7 +14,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"unsafe"
 )
 
 type Client struct {
@@ -24,16 +23,6 @@ type Client struct {
 	timingWheel *timingwheel.TimingWheel
 	loop        *eventloop.EventLoop
 	running     atomic.Bool
-}
-
-func IsSet(s *unix.FdSet, fd uintptr) bool {
-	bits := 8 * unsafe.Sizeof(s.Bits[0])
-	if fd >= bits*uintptr(len(s.Bits)) {
-		panic("fdset: fd out of range")
-	}
-	n := fd / bits
-	m := fd % bits
-	return s.Bits[n]&(1<<m) != 0
 }
 
 func NewClientConnection(callback connection.CallBack, opts ...Option) (client *Client, err error) {
@@ -108,24 +97,22 @@ func NewClientConnection(callback connection.CallBack, opts ...Option) (client *
 				}
 
 				if n > 0 {
-					if IsSet(wFdSet, uintptr(fd)) {
-						nerr, err := unix.GetsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_ERROR)
-						if err != nil {
-							return err
-						}
-						switch err := unix.Errno(nerr); err {
-						case unix.EINPROGRESS, unix.EALREADY, unix.EINTR:
-						case unix.EISCONN:
-							return nil
-						case unix.Errno(0):
-							if _, err := unix.Getpeername(fd); err == nil {
-								return nil
-							}
-							return err
-						}
-
-						runtime.KeepAlive(fd)
+					nerr, err := unix.GetsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_ERROR)
+					if err != nil {
+						return err
 					}
+					switch err := unix.Errno(nerr); err {
+					case unix.EINPROGRESS, unix.EALREADY, unix.EINTR:
+					case unix.EISCONN:
+						return nil
+					case unix.Errno(0):
+						if _, err := unix.Getpeername(fd); err == nil {
+							return nil
+						}
+						return err
+					}
+
+					runtime.KeepAlive(fd)
 				}
 
 			}
@@ -134,6 +121,7 @@ func NewClientConnection(callback connection.CallBack, opts ...Option) (client *
 
 	err = check()
 	if err != nil {
+		_ = unix.Close(fd)
 		return
 	}
 
