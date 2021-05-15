@@ -8,10 +8,10 @@ import (
 	"github.com/Allenxuxu/toolkit/sync"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"github.com/RussellLuo/timingwheel"
+	"github.com/libp2p/go-reuseport"
 	"golang.org/x/sys/unix"
 	"net"
 	"runtime"
-	"strings"
 	"syscall"
 	"time"
 )
@@ -35,32 +35,50 @@ func NewClientConnection(callback connection.CallBack, opts ...Option) (client *
 	client.opts = options
 	client.timingWheel = timingwheel.NewTimingWheel(options.tick, options.wheelSize)
 
+	addr, err := reuseport.ResolveAddr(options.Network, options.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	var sa unix.Sockaddr
+
+	// net dial.go
+	var domain, typ int
+	switch ra := addr.(type) {
+	case *net.TCPAddr:
+		domain = unix.AF_INET
+		typ = unix.SOCK_STREAM
+		ipaddr := ra.IP.To4()
+		if len(ipaddr) == net.IPv4len {
+			addr := &unix.SockaddrInet4{Port: ra.Port}
+			copy(addr.Addr[:], ipaddr)
+			sa = addr
+		} else if len(ipaddr) == net.IPv6len {
+			addr := &unix.SockaddrInet6{Port: ra.Port}
+			copy(addr.Addr[:], ipaddr)
+			sa = addr
+		}
+	case *net.UnixAddr:
+		domain = unix.AF_UNIX
+		typ = unix.SOCK_STREAM
+		sa = &unix.SockaddrUnix{Name: ra.Name}
+
+	case *net.UDPAddr:
+		domain = unix.SOCK_DGRAM
+		typ =
+	default:
+		return nil, errors.New("unexpected type")
+	}
 	loop, err := eventloop.New()
 	if err != nil {
 		return nil, err
 	}
 	client.loop = loop
 
-	fd, err := unix.Socket(unix.AF_INET, unix.SOCK_STREAM, unix.PROT_NONE)
+	fd, err := unix.Socket(domain, typ, unix.PROT_NONE)
 	if err != nil {
 		log.Error("unix-socket err:", err)
 		return
-	}
-
-	ip_str := options.Address[:strings.Index(options.Address, ":")]
-	ipaddr := net.ParseIP(ip_str).To4()
-	var sa unix.Sockaddr
-	if len(ipaddr) == net.IPv4len {
-		addr := &unix.SockaddrInet4{Port: 1831}
-		copy(addr.Addr[:], net.ParseIP("127.0.0.1").To4())
-		sa = addr
-	} else if len(ipaddr) == net.IPv6len {
-		addr := &unix.SockaddrInet6{Port: 1831}
-		copy(addr.Addr[:], net.ParseIP("127.0.0.1").To16())
-		sa = addr
-	} else if ipaddr == nil {
-		addr := &unix.SockaddrUnix{Name: options.Address}
-		sa = addr
 	}
 
 	if err = unix.SetNonblock(fd, true); err != nil {
@@ -114,7 +132,6 @@ func NewClientConnection(callback connection.CallBack, opts ...Option) (client *
 
 					runtime.KeepAlive(fd)
 				}
-
 			}
 		}
 	}
@@ -158,7 +175,6 @@ func (c *Client) Stop() {
 			log.Error(err)
 		}
 	}
-
 }
 
 func (c *Client) Options() Options {
