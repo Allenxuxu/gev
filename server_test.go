@@ -113,10 +113,18 @@ func TestServer_StopWithClient(t *testing.T) {
 	cb := new(clientCallback)
 	time.Sleep(time.Second)
 	var success, failed atomic.Int64
+
+	connector, err := NewConnector()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer connector.Stop()
+	go connector.Start()
+
 	wg := &sync.WaitGroupWrapper{}
 	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
-			conn, err := newClientConnection(cb, "tcp", "127.0.0.1:1831")
+			conn, err := connector.NewConn(cb, "tcp", "127.0.0.1:1831", 0)
 			if err != nil {
 				failed.Add(1)
 				log.Info("error", err)
@@ -126,14 +134,13 @@ func TestServer_StopWithClient(t *testing.T) {
 			if err := conn.Close(); err != nil {
 				panic(err)
 			}
-			conn.Stop()
 		})
 	}
 
 	wg.Wait()
 	log.Infof("Success: %d Failed: %d\n", success, failed)
 
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second)
 	count := handler.Count.Get()
 	if count != 0 {
 		t.Fatal(count)
@@ -159,13 +166,25 @@ func TestServer_StopAndSendWithClient(t *testing.T) {
 	time.Sleep(time.Second * 1)
 	var success, failed atomic.Int64
 	wg := &sync.WaitGroupWrapper{}
+
+	connector, err := NewConnector()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer connector.Stop()
+	go connector.Start()
+
+	log.Info("start handling")
 	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
-			conn, err := newClientConnection(cb, "tcp", "127.0.0.1:1831")
+			conn, err := connector.NewConn(cb, "tcp", "127.0.0.1:1831", 0)
 			if err != nil {
 				failed.Add(1)
+				log.Info("error", err)
 				return
 			}
+
 			err = conn.Send([]byte("data_test"))
 			if err != nil {
 				panic(err)
@@ -176,7 +195,6 @@ func TestServer_StopAndSendWithClient(t *testing.T) {
 				panic(err)
 			}
 			success.Add(1)
-			conn.Stop()
 		})
 	}
 
@@ -207,18 +225,6 @@ func (cc *clientCallback) OnMessage(c *connection.Connection, ctx interface{}, d
 
 func (cc *clientCallback) OnClose(c *connection.Connection) {
 	//	log.Info("client OnClose")
-}
-
-func newClientConnection(cb connection.CallBack, network, addr string) (*Client, error) {
-	conn, err := NewClientConnection(cb,
-		Network(network),
-		Address(addr))
-	if err != nil {
-		return nil, err
-	}
-	go conn.Start()
-
-	return conn, nil
 }
 
 func ExampleServer_RunAfter() {

@@ -16,28 +16,17 @@ import (
 	"time"
 )
 
-type Client struct {
-	*connection.Connection
-
+type Connector struct {
+	workLoops   []*eventloop.EventLoop
 	opts        *Options
 	timingWheel *timingwheel.TimingWheel
-	loop        *eventloop.EventLoop
 	running     atomic.Bool
 }
 
-func NewClientConnection(callback connection.CallBack, opts ...Option) (client *Client, err error) {
-	if callback == nil {
-		return nil, errors.New("callback is nil")
-	}
-
-	client = new(Client)
-	options := newOptions(opts...)
-	client.opts = options
-	client.timingWheel = timingwheel.NewTimingWheel(options.tick, options.wheelSize)
-
-	addr, err := reuseport.ResolveAddr(options.Network, options.Address)
+func connect(network, address string) (int, error) {
+	addr, err := reuseport.ResolveAddr(network, address)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	var sa unix.Sockaddr
@@ -63,34 +52,26 @@ func NewClientConnection(callback connection.CallBack, opts ...Option) (client *
 		typ = unix.SOCK_STREAM
 		sa = &unix.SockaddrUnix{Name: ra.Name}
 
-	case *net.UDPAddr:
-		domain = unix.SOCK_DGRAM
-		typ =
 	default:
-		return nil, errors.New("unexpected type")
+		return 0, errors.New("unsupported network/address type")
 	}
-	loop, err := eventloop.New()
-	if err != nil {
-		return nil, err
-	}
-	client.loop = loop
 
 	fd, err := unix.Socket(domain, typ, unix.PROT_NONE)
 	if err != nil {
 		log.Error("unix-socket err:", err)
-		return
+		return 0, err
 	}
 
 	if err = unix.SetNonblock(fd, true); err != nil {
 		log.Error("unix-setnonblock err:", err)
 		_ = unix.Close(fd)
-		return
+		return 0, err
 	}
 
 	err = unix.Connect(fd, sa)
 	if err != nil && err != unix.EINPROGRESS {
 		_ = unix.Close(fd)
-		return
+		return 0, err
 	} else if err != nil {
 		err = nil
 	}
@@ -139,44 +120,85 @@ func NewClientConnection(callback connection.CallBack, opts ...Option) (client *
 	err = check()
 	if err != nil {
 		_ = unix.Close(fd)
-		return
+		return 0, err
 	}
 
-	client.Connection = connection.New(fd, loop, nil, options.Protocol, client.timingWheel, options.IdleTime, callback)
+	return fd, nil
+}
+
+func (c *Connector) NewConn(callback connection.CallBack, network, address string, idleTime time.Duration) (*connection.Connection, error) {
+	if callback == nil {
+		return nil, errors.New("callback is nil")
+	}
+
+	fd, err := connect(network, address)
+	if err != nil {
+		return nil, err
+	}
+
+	loop := c.opts.Strategy(c.workLoops)
+	conn := connection.New(fd, loop, nil, c.opts.Protocol, c.timingWheel, idleTime, callback)
 	loop.QueueInLoop(func() {
-		if err := loop.AddSocketAndEnableRead(fd, client.Connection); err != nil {
-			log.Info("[AddSocketAndEnableRead]", err)
+		if err := loop.AddSocketAndEnableRead(fd, conn); err != nil {
+			log.Error("[AddSocketAndEnableRead]", err)
 		}
 	})
+
+	return conn, nil
+}
+
+func NewConnector(opts ...Option) (connector *Connector, err error) {
+	connector = new(Connector)
+	connector.opts = newOptions(opts...)
+
+	connector.timingWheel = timingwheel.NewTimingWheel(connector.opts.tick, connector.opts.wheelSize)
+	if connector.opts.NumLoops <= 0 {
+		connector.opts.NumLoops = runtime.NumCPU()
+	}
+
+	wloops := make([]*eventloop.EventLoop, connector.opts.NumLoops)
+	for i := 0; i < connector.opts.NumLoops; i++ {
+		l, err := eventloop.New()
+		if err != nil {
+			for j := 0; j < i; j++ {
+				_ = wloops[j].Stop()
+			}
+			return nil, err
+		}
+		wloops[i] = l
+	}
+
+	connector.workLoops = wloops
 	return
 }
 
-func (c *Client) Close() error {
-	return c.Connection.Close()
-}
-
-func (c *Client) Start() {
+func (c *Connector) Start() {
 	sw := sync.WaitGroupWrapper{}
 	c.timingWheel.Start()
 
-	var running atomic.Bool
+	length := len(c.workLoops)
+	for i := 0; i < length; i++ {
+		sw.AddAndRun(c.workLoops[i].RunLoop)
+	}
 
-	sw.AddAndRun(c.loop.RunLoop)
-	running.Set(true)
+	c.running.Set(true)
 	sw.Wait()
 }
 
-func (c *Client) Stop() {
+func (c *Connector) Stop() {
 	if c.running.Get() {
 		c.running.Set(false)
 
 		c.timingWheel.Stop()
-		if err := c.loop.Stop(); err != nil {
-			log.Error(err)
+
+		for k := range c.workLoops {
+			if err := c.workLoops[k].Stop(); err != nil {
+				log.Error(err)
+			}
 		}
 	}
 }
 
-func (c *Client) Options() Options {
+func (c *Connector) Options() Options {
 	return *c.opts
 }
