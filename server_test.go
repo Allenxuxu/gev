@@ -16,11 +16,13 @@ import (
 )
 
 type example struct {
-	Count atomic.Int64
+	Count     atomic.Int64
+	JustCount atomic.Int64
 }
 
 func (s *example) OnConnect(c *connection.Connection) {
 	s.Count.Add(1)
+	s.JustCount.Add(1)
 	//log.Println(" OnConnect ： ", c.PeerAddr())
 }
 
@@ -138,11 +140,16 @@ func TestServer_StopWithClient(t *testing.T) {
 	}
 
 	wg.Wait()
+	time.Sleep(time.Second * 3)
 	log.Infof("Success: %d Failed: %d\n", success, failed)
 
-	time.Sleep(time.Second)
 	count := handler.Count.Get()
 	if count != 0 {
+		t.Fatal(count)
+	}
+
+	count = handler.JustCount.Get()
+	if count != 100 {
 		t.Fatal(count)
 	}
 
