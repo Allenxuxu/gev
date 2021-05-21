@@ -126,7 +126,7 @@ func TestServer_StopWithClient(t *testing.T) {
 	wg := &sync.WaitGroupWrapper{}
 	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
-			conn, err := connector.NewConn(cb, "tcp", "127.0.0.1:1831", 0)
+			conn, err := connector.Dial(cb, "tcp", "127.0.0.1:1831", 0)
 			if err != nil {
 				failed.Add(1)
 				log.Info("error", err)
@@ -185,7 +185,7 @@ func TestServer_StopAndSendWithClient(t *testing.T) {
 	log.Info("start handling")
 	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
-			conn, err := connector.NewConn(cb, "tcp", "127.0.0.1:1831", 0)
+			conn, err := connector.Dial(cb, "tcp", "127.0.0.1:1831", 0)
 			if err != nil {
 				failed.Add(1)
 				log.Info("error", err)

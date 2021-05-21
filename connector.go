@@ -128,12 +128,33 @@ func connect(ctx context.Context, network, address string) (int, unix.Sockaddr, 
 	return fd, sa, nil
 }
 
-func (c *Connector) NewConn(callback connection.CallBack, network, address string, idleTime time.Duration) (*connection.Connection, error) {
+func (c *Connector) Dial(callback connection.CallBack, network, address string, idleTime time.Duration) (*connection.Connection, error) {
 	if callback == nil {
 		return nil, errors.New("callback is nil")
 	}
 
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*5))
+	fd, sa, err := connect(context.Background(), network, address)
+	if err != nil {
+		return nil, err
+	}
+
+	loop := c.opts.Strategy(c.workLoops)
+	conn := connection.New(fd, loop, sa, c.opts.Protocol, c.timingWheel, idleTime, callback)
+	loop.QueueInLoop(func() {
+		if err := loop.AddSocketAndEnableRead(fd, conn); err != nil {
+			log.Error("[AddSocketAndEnableRead]", err)
+		}
+	})
+
+	return conn, nil
+}
+
+func (c *Connector) DialWithTimeout(timeout time.Duration, callback connection.CallBack, network, address string, idleTime time.Duration) (*connection.Connection, error) {
+	if callback == nil {
+		return nil, errors.New("callback is nil")
+	}
+
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(timeout))
 	defer cancel()
 
 	fd, sa, err := connect(ctx, network, address)
