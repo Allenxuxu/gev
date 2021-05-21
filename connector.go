@@ -1,6 +1,7 @@
 package gev
 
 import (
+	"context"
 	"errors"
 	"net"
 	"runtime"
@@ -19,12 +20,14 @@ import (
 
 type Connector struct {
 	workLoops   []*eventloop.EventLoop
-	opts        *Options
+	opts        *ConnectorOptions
 	timingWheel *timingwheel.TimingWheel
 	running     atomic.Bool
 }
 
-func connect(network, address string) (int, unix.Sockaddr, error) {
+var ErrDialTimeout = errors.New("i/o timeout")
+
+func connect(ctx context.Context, network, address string) (int, unix.Sockaddr, error) {
 	addr, err := reuseport.ResolveAddr(network, address)
 	if err != nil {
 		return 0, nil, err
@@ -77,15 +80,13 @@ func connect(network, address string) (int, unix.Sockaddr, error) {
 		err = nil
 	}
 
-	l := time.After(time.Second * 5)
 	check := func() (unix.Sockaddr, error) {
 		var n int
 		for {
 			select {
-			case <-l:
-				err = errors.New("timeout")
+			case <-ctx.Done():
 				_ = unix.Close(fd)
-				return nil, err
+				return nil, ErrDialTimeout
 
 			default:
 				wFdSet := &unix.FdSet{}
@@ -132,7 +133,10 @@ func (c *Connector) NewConn(callback connection.CallBack, network, address strin
 		return nil, errors.New("callback is nil")
 	}
 
-	fd, sa, err := connect(network, address)
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*5))
+	defer cancel()
+
+	fd, sa, err := connect(ctx, network, address)
 	if err != nil {
 		return nil, err
 	}
@@ -148,9 +152,9 @@ func (c *Connector) NewConn(callback connection.CallBack, network, address strin
 	return conn, nil
 }
 
-func NewConnector(opts ...Option) (connector *Connector, err error) {
+func NewConnector(opts ...ConnectorOption) (connector *Connector, err error) {
 	connector = new(Connector)
-	connector.opts = newOptions(opts...)
+	connector.opts = newConnectorOptions(opts...)
 
 	connector.timingWheel = timingwheel.NewTimingWheel(connector.opts.tick, connector.opts.wheelSize)
 	if connector.opts.NumLoops <= 0 {
@@ -200,6 +204,6 @@ func (c *Connector) Stop() {
 	}
 }
 
-func (c *Connector) Options() Options {
+func (c *Connector) Options() ConnectorOptions {
 	return *c.opts
 }
