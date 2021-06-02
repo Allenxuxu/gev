@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Allenxuxu/gev/eventloop"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Allenxuxu/toolkit/sync"
@@ -131,7 +133,7 @@ func TestConnLoadBalanceLeastConnection(t *testing.T) {
 		Address(":1840"),
 		NumLoops(4),
 		ReusePort(true),
-		LoadBalance(LeastConnection()))
+		LoadBalance(eventloop.LeastConnection()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +165,7 @@ func TestConnLoadBalanceRoundRobin(t *testing.T) {
 		Address(":1841"),
 		NumLoops(4),
 		ReusePort(true),
-		LoadBalance(RoundRobin()))
+		LoadBalance(eventloop.RoundRobin()))
 	if err != nil {
 		t.Fatal(err)
 	}
