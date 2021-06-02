@@ -9,9 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Allenxuxu/gev/connector"
-
 	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev/connector"
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/toolkit/sync"
 	"github.com/Allenxuxu/toolkit/sync/atomic"

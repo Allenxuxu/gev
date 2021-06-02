@@ -6,14 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Allenxuxu/gev/eventloop"
-
-	"github.com/stretchr/testify/assert"
-
-	"github.com/Allenxuxu/toolkit/sync"
-
 	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/log"
+	"github.com/Allenxuxu/toolkit/sync"
+	"github.com/stretchr/testify/assert"
 )
 
 type example2 struct {
