@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net"
 	"runtime"
-	"syscall"
 	"time"
 
 	"github.com/Allenxuxu/gev/connection"
@@ -26,6 +25,25 @@ type Connector struct {
 }
 
 var ErrDialTimeout = errors.New("i/o timeout")
+
+/*
+nerr, err := unix.GetsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_ERROR)
+					if err != nil {
+						return nil, err
+					}
+					switch err := unix.Errno(nerr); err {
+					case unix.EINPROGRESS, unix.EALREADY, unix.EINTR:
+					case unix.EISCONN:
+						return nil, nil
+					case unix.Errno(0):
+						if sa, err := unix.Getpeername(fd); err == nil {
+							return sa, nil
+						}
+						return nil, err
+					}
+
+					runtime.KeepAlive(fd)
+*/
 
 func connect(ctx context.Context, network, address string) (int, unix.Sockaddr, error) {
 	addr, err := reuseport.ResolveAddr(network, address)
@@ -78,51 +96,6 @@ func connect(ctx context.Context, network, address string) (int, unix.Sockaddr, 
 		return 0, nil, err
 	} else if err != nil {
 		err = nil
-	}
-
-	check := func() (unix.Sockaddr, error) {
-		var n int
-		for {
-			select {
-			case <-ctx.Done():
-				_ = unix.Close(fd)
-				return nil, ErrDialTimeout
-
-			default:
-				wFdSet := &unix.FdSet{}
-				wFdSet.Set(fd)
-
-				n, err = unix.Select(fd+1, wFdSet, wFdSet, nil, &unix.Timeval{Sec: 1, Usec: 0})
-				if err != nil {
-					return nil, err
-				}
-
-				if n > 0 {
-					nerr, err := unix.GetsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_ERROR)
-					if err != nil {
-						return nil, err
-					}
-					switch err := unix.Errno(nerr); err {
-					case unix.EINPROGRESS, unix.EALREADY, unix.EINTR:
-					case unix.EISCONN:
-						return nil, nil
-					case unix.Errno(0):
-						if sa, err := unix.Getpeername(fd); err == nil {
-							return sa, nil
-						}
-						return nil, err
-					}
-
-					runtime.KeepAlive(fd)
-				}
-			}
-		}
-	}
-
-	sa, err = check()
-	if err != nil {
-		_ = unix.Close(fd)
-		return 0, nil, err
 	}
 
 	return fd, sa, nil
