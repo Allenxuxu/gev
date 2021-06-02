@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Allenxuxu/gev/connector"
+
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/toolkit/sync"
@@ -116,7 +118,7 @@ func TestServer_StopWithClient(t *testing.T) {
 	time.Sleep(time.Second)
 	var success, failed atomic.Int64
 
-	connector, err := NewConnector(ConnectorNumLoops(8))
+	connector, err := connector.NewConnector(connector.ConnectorNumLoops(8))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +176,7 @@ func TestServer_StopAndSendWithClient(t *testing.T) {
 	var success, failed atomic.Int64
 	wg := &sync.WaitGroupWrapper{}
 
-	connector, err := NewConnector()
+	connector, err := connector.NewConnector()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,7 +210,7 @@ func TestServer_StopAndSendWithClient(t *testing.T) {
 	wg.Wait()
 	log.Infof("Success: %d Failed: %d\n", success, failed)
 
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 1)
 	count := handler.Count.Get()
 	if count != 0 {
 		t.Fatal(count)

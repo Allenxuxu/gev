@@ -1,12 +1,10 @@
-package gev
+package eventloop
 
-import "github.com/Allenxuxu/gev/eventloop"
-
-type LoadBalanceStrategy func([]*eventloop.EventLoop) *eventloop.EventLoop
+type LoadBalanceStrategy func([]*EventLoop) *EventLoop
 
 func RoundRobin() LoadBalanceStrategy {
 	var nextLoopIndex int
-	return func(loops []*eventloop.EventLoop) *eventloop.EventLoop {
+	return func(loops []*EventLoop) *EventLoop {
 		l := loops[nextLoopIndex]
 		nextLoopIndex = (nextLoopIndex + 1) % len(loops)
 		return l
@@ -14,7 +12,7 @@ func RoundRobin() LoadBalanceStrategy {
 }
 
 func LeastConnection() LoadBalanceStrategy {
-	return func(loops []*eventloop.EventLoop) *eventloop.EventLoop {
+	return func(loops []*EventLoop) *EventLoop {
 		l := loops[0]
 
 		for i := 1; i < len(loops); i++ {

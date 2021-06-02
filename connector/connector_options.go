@@ -1,7 +1,9 @@
-package gev
+package connector
 
 import (
 	"time"
+
+	"github.com/Allenxuxu/gev/eventloop"
 
 	"github.com/Allenxuxu/gev/connection"
 )
@@ -11,7 +13,7 @@ type ConnectorOptions struct {
 	NumLoops int
 	IdleTime time.Duration
 	Protocol connection.Protocol
-	Strategy LoadBalanceStrategy
+	Strategy eventloop.LoadBalanceStrategy
 
 	tick                        time.Duration
 	wheelSize                   int64
@@ -38,7 +40,7 @@ func newConnectorOptions(opt ...ConnectorOption) *ConnectorOptions {
 		opts.Protocol = &connection.DefaultProtocol{}
 	}
 	if opts.Strategy == nil {
-		opts.Strategy = RoundRobin()
+		opts.Strategy = eventloop.RoundRobin()
 	}
 
 	return &opts
@@ -65,7 +67,7 @@ func ConnectorIdleTime(t time.Duration) ConnectorOption {
 	}
 }
 
-func ConnectorLoadBalance(strategy LoadBalanceStrategy) ConnectorOption {
+func ConnectorLoadBalance(strategy eventloop.LoadBalanceStrategy) ConnectorOption {
 	return func(o *ConnectorOptions) {
 		o.Strategy = strategy
 	}

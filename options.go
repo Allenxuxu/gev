@@ -3,6 +3,8 @@ package gev
 import (
 	"time"
 
+	"github.com/Allenxuxu/gev/eventloop"
+
 	"github.com/Allenxuxu/gev/connection"
 )
 
@@ -14,7 +16,7 @@ type Options struct {
 	ReusePort bool
 	IdleTime  time.Duration
 	Protocol  connection.Protocol
-	Strategy  LoadBalanceStrategy
+	Strategy  eventloop.LoadBalanceStrategy
 
 	tick                        time.Duration
 	wheelSize                   int64
@@ -47,7 +49,7 @@ func newOptions(opt ...Option) *Options {
 		opts.Protocol = &connection.DefaultProtocol{}
 	}
 	if opts.Strategy == nil {
-		opts.Strategy = RoundRobin()
+		opts.Strategy = eventloop.RoundRobin()
 	}
 
 	return &opts
@@ -95,7 +97,7 @@ func IdleTime(t time.Duration) Option {
 	}
 }
 
-func LoadBalance(strategy LoadBalanceStrategy) Option {
+func LoadBalance(strategy eventloop.LoadBalanceStrategy) Option {
 	return func(o *Options) {
 		o.Strategy = strategy
 	}
