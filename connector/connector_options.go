@@ -3,9 +3,8 @@ package connector
 import (
 	"time"
 
-	"github.com/Allenxuxu/gev/eventloop"
-
 	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev/eventloop"
 )
 
 // ConnectorOptions 服务配置
