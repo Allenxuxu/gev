@@ -53,9 +53,6 @@ func newConnection(
 
 	fd, err := unixOpenConnect(network, address)
 	if err != nil {
-		if fd > 0 {
-			_ = unix.Close(fd)
-		}
 		return nil, err
 	}
 
@@ -164,10 +161,16 @@ func checkConn(fd int) error {
 	return nil
 }
 
-func unixOpenConnect(network, address string) (int, error) {
+func unixOpenConnect(network, address string) (fd int, err error) {
+	defer func() {
+		if fd > 0 {
+			_ = unix.Close(fd)
+		}
+	}()
+
 	addr, err := reuseport.ResolveAddr(network, address)
 	if err != nil {
-		return 0, err
+		return
 	}
 
 	var sa unix.Sockaddr
@@ -197,22 +200,22 @@ func unixOpenConnect(network, address string) (int, error) {
 		return 0, errors.New("unsupported network/address type")
 	}
 
-	fd, err := unix.Socket(domain, typ, unix.PROT_NONE)
+	fd, err = unix.Socket(domain, typ, unix.PROT_NONE)
 	if err != nil {
-		return fd, err
+		return
 	}
 
 	if err = unix.SetNonblock(fd, true); err != nil {
 		log.Error("unix-setnonblock err:", err)
-		return fd, err
+		return
 	}
 
 	err = unix.Connect(fd, sa)
 	if err != nil && err != unix.EINPROGRESS {
-		return fd, err
+		return
 	} else if err != nil {
 		err = nil
 	}
 
-	return fd, nil
+	return
 }
