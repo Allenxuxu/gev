@@ -95,7 +95,8 @@ func newConnection(
 		ctx = context.Background()
 	}
 
-	close(connectResult)
+	defer close(connectResult)
+
 	select {
 	case e := <-connectResult:
 		if e != nil {
