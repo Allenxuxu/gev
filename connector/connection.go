@@ -1,12 +1,13 @@
 package connector
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net"
 	"syscall"
 	"time"
+
+	"golang.org/x/net/context"
 
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/eventloop"
@@ -72,7 +73,6 @@ func newConnection(
 		callBack: callBack,
 	}
 
-	result := make(chan error)
 	loop.QueueInLoop(func() {
 		if err := loop.AddSocketAndEnableRead(fd, conn); err != nil {
 			log.Info("[AddSocketAndEnableRead]", err)
@@ -82,35 +82,32 @@ func newConnection(
 			log.Info("[EnableReadWrite] error ", err)
 		}
 	})
-	go func() {
-		var (
-			ctx    context.Context
-			cancel context.CancelFunc
-		)
 
-		if timeout > 0 {
-			ctx, cancel = context.WithDeadline(context.Background(), time.Now().Add(timeout))
-			defer cancel()
-		} else {
-			ctx = context.Background()
-		}
+	var (
+		ctx    context.Context
+		cancel context.CancelFunc
+	)
 
-		select {
-		case e := <-connectResult:
-			if e != nil {
-				conn.state = disconnectedConnectionSocketState
-			}
-			result <- e
-		case <-ctx.Done():
-			conn.state = disconnectedConnectionSocketState
-			result <- ErrDialTimeout
-		}
-	}()
+	if timeout > 0 {
+		ctx, cancel = context.WithDeadline(context.Background(), time.Now().Add(timeout))
+		defer cancel()
+	} else {
+		ctx = context.Background()
+	}
 
-	err = <-result
-	close(result)
 	close(connectResult)
-	return conn, err
+	select {
+	case e := <-connectResult:
+		if e != nil {
+			conn.state = disconnectedConnectionSocketState
+			return nil, e
+		}
+
+		return conn, nil
+	case <-ctx.Done():
+		conn.state = disconnectedConnectionSocketState
+		return nil, ErrDialTimeout
+	}
 }
 
 func (c *Connection) HandleEvent(fd int, events poller.Event) {
