@@ -117,7 +117,7 @@ func TestServer_StopWithClient(t *testing.T) {
 	time.Sleep(time.Second)
 	var success, failed atomic.Int64
 
-	connector, err := connector.NewConnector(connector.ConnectorNumLoops(8))
+	connector, err := connector.NewConnector(connector.NumLoops(8))
 	if err != nil {
 		t.Fatal(err)
 	}

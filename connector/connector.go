@@ -15,23 +15,27 @@ import (
 
 type Connector struct {
 	workLoops   []*eventloop.EventLoop
-	opts        *ConnectorOptions
+	opts        *Options
 	timingWheel *timingwheel.TimingWheel
 	running     atomic.Bool
 }
 
-func (c *Connector) Dial(callback connection.CallBack, network, address string, idleTime time.Duration) (*Connection, error) {
-	return c.DialWithTimeout(0, callback, network, address, idleTime)
+func (c *Connector) Dial(network, address string, callback connection.CallBack, protocol connection.Protocol, idleTime time.Duration) (*Connection, error) {
+	return c.DialWithTimeout(0, network, address, callback, protocol, idleTime)
 }
 
-func (c *Connector) DialWithTimeout(timeout time.Duration, callback connection.CallBack, network, address string, idleTime time.Duration) (*Connection, error) {
+func (c *Connector) DialWithTimeout(timeout time.Duration, network, address string, callback connection.CallBack, protocol connection.Protocol, idleTime time.Duration) (*Connection, error) {
 	if callback == nil {
 		return nil, errors.New("callback is nil")
 	}
 
+	if protocol == nil {
+		protocol = &connection.DefaultProtocol{}
+	}
+
 	loop := c.opts.Strategy(c.workLoops)
 
-	conn, err := newConnection(network, address, loop, timeout, c.opts.Protocol, c.timingWheel, idleTime, callback)
+	conn, err := newConnection(network, address, loop, timeout, protocol, c.timingWheel, idleTime, callback)
 	if err != nil {
 		return nil, err
 	}
@@ -39,9 +43,9 @@ func (c *Connector) DialWithTimeout(timeout time.Duration, callback connection.C
 	return conn, nil
 }
 
-func NewConnector(opts ...ConnectorOption) (connector *Connector, err error) {
+func NewConnector(opts ...Option) (connector *Connector, err error) {
 	connector = new(Connector)
-	connector.opts = newConnectorOptions(opts...)
+	connector.opts = newOptions(opts...)
 
 	connector.timingWheel = timingwheel.NewTimingWheel(connector.opts.tick, connector.opts.wheelSize)
 	if connector.opts.NumLoops <= 0 {
@@ -91,6 +95,6 @@ func (c *Connector) Stop() {
 	}
 }
 
-func (c *Connector) Options() ConnectorOptions {
+func (c *Connector) Options() Options {
 	return *c.opts
 }
