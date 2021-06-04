@@ -163,7 +163,7 @@ func checkConn(fd int) error {
 
 func unixOpenConnect(network, address string) (fd int, err error) {
 	defer func() {
-		if fd > 0 {
+		if fd > 0 && err != nil {
 			_ = unix.Close(fd)
 		}
 	}()
