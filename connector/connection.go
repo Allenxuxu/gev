@@ -125,6 +125,10 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 		c.stateMu.Lock()
 		defer c.stateMu.Unlock()
 
+		if c.state != connectingConnectionSocketState {
+			return
+		}
+
 		if events == poller.EventWrite {
 			if err := checkConn(fd); err != nil {
 				c.closeUnconnected()
@@ -148,6 +152,7 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 
 		c.state = disconnectedConnectionSocketState
 		c.closeUnconnected()
+
 		c.result <- fmt.Errorf("wrong_event %v", events)
 	} else if c.state == connectedConnectionSocketState {
 		c.Connection.HandleEvent(fd, events)
