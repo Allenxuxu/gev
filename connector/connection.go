@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sync"
 	"syscall"
 	"time"
 
@@ -29,13 +30,14 @@ const (
 )
 
 type Connection struct {
-	state connectionSocketState
-	loop  *eventloop.EventLoop
-	*connection.Connection
-	timeout time.Duration
-	result  chan error
-	fd      int
+	state   connectionSocketState
+	stateMu sync.Mutex
 
+	loop *eventloop.EventLoop
+	*connection.Connection
+	timeout  time.Duration
+	result   chan error
+	fd       int
 	protocol connection.Protocol
 	tw       *timingwheel.TimingWheel
 	idleTime time.Duration
@@ -97,19 +99,32 @@ func newConnection(
 	select {
 	case e := <-connectResult:
 		if e != nil {
-			conn.state = disconnectedConnectionSocketState
 			return nil, e
 		}
 
 		return conn, nil
 	case <-ctx.Done():
-		conn.state = disconnectedConnectionSocketState
-		return nil, ErrDialTimeout
+		conn.stateMu.Lock()
+		defer conn.stateMu.Unlock()
+
+		switch conn.state {
+		case connectingConnectionSocketState:
+			conn.state = disconnectedConnectionSocketState
+			conn.closeUnconnected()
+			return nil, ErrDialTimeout
+		case connectedConnectionSocketState:
+			return conn, nil
+		default:
+			return nil, ErrDialTimeout
+		}
 	}
 }
 
 func (c *Connection) HandleEvent(fd int, events poller.Event) {
 	if c.state == connectingConnectionSocketState {
+		c.stateMu.Lock()
+		defer c.stateMu.Unlock()
+
 		if events == poller.EventWrite {
 			if err := checkConn(fd); err != nil {
 				c.closeUnconnected()
@@ -131,6 +146,7 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 			return
 		}
 
+		c.state = disconnectedConnectionSocketState
 		c.closeUnconnected()
 		c.result <- fmt.Errorf("wrong_event %v", events)
 	} else if c.state == connectedConnectionSocketState {
