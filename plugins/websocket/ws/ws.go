@@ -246,7 +246,9 @@ func (u *Upgrader) Upgrade(in *ringbuffer.RingBuffer) (out []byte, hs Handshake,
 		case headerHostCanonical:
 			headerSeen |= headerSeenHost
 			if onHost := u.OnHost; onHost != nil {
-				err = onHost(v)
+				if e := onHost(v); e != nil {
+					err = e
+				}
 			}
 		case headerUpgradeCanonical:
 			headerSeen |= headerSeenUpgrade
@@ -296,7 +298,9 @@ func (u *Upgrader) Upgrade(in *ringbuffer.RingBuffer) (out []byte, hs Handshake,
 			}
 		default:
 			if onHeader := u.OnHeader; onHeader != nil {
-				err = onHeader(k, v)
+				if e := onHeader(k, v); e != nil {
+					err = e
+				}
 			}
 		}
 	}
