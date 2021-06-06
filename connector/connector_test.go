@@ -2,7 +2,6 @@ package connector
 
 import (
 	"testing"
-	"time"
 
 	"github.com/Allenxuxu/gev/connection"
 )
@@ -34,7 +33,7 @@ func init() {
 
 func TestConnection_ListenerNotExist(t *testing.T) {
 	cb := new(exampleCallback)
-	_, err := dialer.DialWithTimeout(time.Second*5, "tcp", "127.0.0.1:1830", cb, nil, 0)
+	_, err := dialer.Dial("tcp", "127.0.0.1:1830", cb, nil, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
