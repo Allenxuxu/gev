@@ -129,7 +129,7 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 			return
 		}
 
-		if events == poller.EventWrite {
+		if events&poller.EventWrite == 0 {
 			if err := checkConn(fd); err != nil {
 				c.closeUnconnected()
 				c.result <- err
@@ -147,6 +147,11 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 			c.state = connectedConnectionSocketState
 			c.result <- nil
 			c.Connection.HandleEvent(fd, events)
+			return
+		} else if events&poller.EventWrite&poller.EventErr == 0 || events&poller.EventRead&poller.EventErr == 0 {
+			c.state = disconnectedConnectionSocketState
+			c.closeUnconnected()
+			c.result <- fmt.Errorf("cannot handle connection")
 			return
 		}
 
