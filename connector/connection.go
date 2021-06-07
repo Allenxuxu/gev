@@ -130,12 +130,10 @@ func newConnection(
 		case connectingConnectionSocketState:
 			conn.state = disconnectedConnectionSocketState
 			conn.closeUnconnected()
-			log.Info("timeout", fd)
 			return nil, ErrDialTimeout
 		case connectedConnectionSocketState:
 			return conn, nil
 		default:
-			log.Info("timeout", fd)
 			return nil, ErrDialTimeout
 		}
 	}

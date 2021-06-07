@@ -104,7 +104,7 @@ func TestServer_StopWithClient(t *testing.T) {
 
 	s, err := NewServer(handler,
 		Network("tcp"),
-		Address("127.0.0.1:1832"),
+		Address("127.0.0.1:1835"),
 		NumLoops(8),
 		ReusePort(true))
 	if err != nil {
@@ -128,7 +128,7 @@ func TestServer_StopWithClient(t *testing.T) {
 	wg := &sync.WaitGroupWrapper{}
 	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
-			conn, err := connector.DialWithTimeout(time.Second*10, "tcp", "127.0.0.1:1831", cb, nil, 0)
+			conn, err := connector.DialWithTimeout(time.Second*10, "tcp", "127.0.0.1:1835", cb, nil, 0)
 			if err != nil {
 				failed.Add(1)
 				log.Info("error", err)
