@@ -224,6 +224,10 @@ func (u *Upgrader) Upgrade(c *connection.Connection, in *ringbuffer.RingBuffer) 
 			err = onRequest(c, req.uri)
 		}
 	}
+	if err != nil {
+		return
+	}
+
 	// Start headers read/parse loop.
 	var (
 		// headerSeen reports which header was seen by setting corresponding
@@ -232,7 +236,7 @@ func (u *Upgrader) Upgrade(c *connection.Connection, in *ringbuffer.RingBuffer) 
 		nonce      = make([]byte, nonceSize)
 	)
 	for i := 1; i < len(lines); i++ {
-		if len(lines[i]) == 0 {
+		if err != nil || len(lines[i]) == 0 {
 			// Blank line, no more lines to read.
 			break
 		}
