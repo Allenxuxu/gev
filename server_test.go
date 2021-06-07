@@ -143,7 +143,7 @@ func TestServer_StopWithClient(t *testing.T) {
 	}
 
 	wg.Wait()
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second * 3)
 	log.Infof("Success: %d Failed: %d\n", success, failed)
 
 	count := handler.Count.Get()
