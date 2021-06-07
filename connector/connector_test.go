@@ -2,6 +2,7 @@ package connector
 
 import (
 	"testing"
+	"time"
 
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/log"
@@ -30,6 +31,7 @@ func init() {
 	}
 
 	go dialer.Start()
+	time.Sleep(time.Second * 3)
 }
 
 func TestConnection_ListenerNotExist(t *testing.T) {
