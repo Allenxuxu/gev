@@ -28,7 +28,7 @@ func (s *example) OnConnect(c *connection.Connection) {
 }
 
 func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
-	log.Info("OnMessage", string(data))
+	log.Info("OnMessage")
 
 	//out = data
 	msg := append([]byte{}, data...)
