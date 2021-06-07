@@ -176,7 +176,6 @@ func TestServer_StopAndSendWithClient(t *testing.T) {
 
 	go s.Start()
 	cb := new(clientCallback)
-	time.Sleep(time.Second * 1)
 	var success, failed atomic.Int64
 	wg := &sync.WaitGroupWrapper{}
 
@@ -192,7 +191,7 @@ func TestServer_StopAndSendWithClient(t *testing.T) {
 	time.Sleep(time.Second * 3)
 	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
-			conn, err := connector.DialWithTimeout(time.Second*5, "tcp", "127.0.0.1:1834", cb, nil, 0)
+			conn, err := connector.DialWithTimeout(time.Second*10, "tcp", "127.0.0.1:1834", cb, nil, 0)
 			if err != nil {
 				failed.Add(1)
 				log.Info("error", err)
