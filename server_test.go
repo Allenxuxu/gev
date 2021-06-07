@@ -204,7 +204,7 @@ func TestServer_StopAndSendWithClient(t *testing.T) {
 				panic(err)
 			}
 			// waiting for callback executed
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 2)
 			if err := conn.Close(); err != nil {
 				panic(err)
 			}
