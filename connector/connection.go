@@ -50,9 +50,9 @@ type Connection struct {
 }
 
 func newConnection(
+	ctx context.Context,
 	network, address string,
 	loop *eventloop.EventLoop,
-	ctx context.Context,
 	protocol connection.Protocol,
 	tw *timingwheel.TimingWheel,
 	idleTime time.Duration,

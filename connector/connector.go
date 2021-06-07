@@ -49,7 +49,7 @@ func (c *Connector) DialWithTimeout(timeout time.Duration, network, address stri
 		case <-dialCtx.Done():
 			return nil, ErrDialTimeout
 		default:
-			conn, err := newConnection(network, address, loop, dialCtx, protocol, c.timingWheel, idleTime, callback)
+			conn, err := newConnection(dialCtx, network, address, loop, protocol, c.timingWheel, idleTime, callback)
 			if err != nil {
 				time.Sleep(time.Millisecond * 100)
 				continue
