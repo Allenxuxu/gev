@@ -24,11 +24,11 @@ type example struct {
 func (s *example) OnConnect(c *connection.Connection) {
 	s.Count.Add(1)
 	s.JustCount.Add(1)
-	//log.Println(" OnConnect ： ", c.PeerAddr())
+	log.Info(" OnConnect ： ", c.PeerAddr())
 }
 
 func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
-	//log.Println("OnMessage")
+	log.Info("OnMessage", string(data))
 
 	//out = data
 	msg := append([]byte{}, data...)
@@ -89,8 +89,10 @@ func startClient(network, addr string) {
 			panic(err)
 		}
 		log.Info("write start")
-		if _, err := c.Write(data); err != nil {
+		if n, err := c.Write(data); err != nil {
 			panic(err)
+		} else {
+			log.Info("writed", n)
 		}
 		data2 := make([]byte, len(data))
 		log.Info("read full")
