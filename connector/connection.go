@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"runtime"
 	"sync"
 	"syscall"
 	"time"
@@ -39,7 +40,7 @@ type Connection struct {
 
 	loop *eventloop.EventLoop
 	*connection.Connection
-	timeout  time.Duration
+	ctx      context.Context
 	result   chan error
 	fd       int
 	protocol connection.Protocol
@@ -51,51 +52,65 @@ type Connection struct {
 func newConnection(
 	network, address string,
 	loop *eventloop.EventLoop,
-	timeout time.Duration,
+	ctx context.Context,
 	protocol connection.Protocol,
 	tw *timingwheel.TimingWheel,
 	idleTime time.Duration,
 	callBack connection.CallBack) (*Connection, error) {
-
-	fd, err := unixOpenConnect(network, address)
-	if err != nil {
-		return nil, err
-	}
 
 	connectResult := make(chan error)
 
 	conn := &Connection{
 		state:    connectingConnectionSocketState,
 		loop:     loop,
-		timeout:  timeout,
+		ctx:      ctx,
 		result:   connectResult,
-		fd:       fd,
 		protocol: protocol,
 		tw:       tw,
 		idleTime: idleTime,
 		callBack: callBack,
 	}
 
+	fd, err := unixOpenConnect(network, address)
+	conn.fd = fd
+	switch err {
+	case unix.EINPROGRESS, unix.EALREADY, unix.EINTR:
+		conn.state = connectingConnectionSocketState
+	case nil, syscall.EISCONN:
+		runtime.KeepAlive(fd)
+		conn.state = connectedConnectionSocketState
+		if err := checkConn(fd); err != nil {
+			conn.closeUnconnected()
+			return nil, fmt.Errorf("checkConn err: %v", err)
+		}
+
+		sa, err := unix.Getpeername(fd)
+		if err != nil {
+			conn.closeUnconnected()
+			return nil, fmt.Errorf("getPeerName err: %v", err)
+		}
+
+		conn.Connection = connection.New(fd, loop, sa, protocol, tw, idleTime, callBack)
+
+	default:
+		return nil, err
+	}
+
 	loop.QueueInLoop(func() {
 		if err := loop.AddSocketAndEnableRead(fd, conn); err != nil {
-			log.Info("[AddSocketAndEnableRead]", err)
+			log.Info("[AddSocketAndEnableRead]", fd, err)
+			connectResult <- err
+			return
 		}
 
 		if err := loop.EnableReadWrite(fd); err != nil {
-			log.Info("[EnableReadWrite] error ", err)
+			log.Info("[EnableReadWrite] error ", fd, err)
+			connectResult <- err
 		}
 	})
 
-	var (
-		ctx    context.Context
-		cancel context.CancelFunc
-	)
-
-	if timeout > 0 {
-		ctx, cancel = context.WithDeadline(context.Background(), time.Now().Add(timeout))
-		defer cancel()
-	} else {
-		ctx = context.Background()
+	if conn.state == connectedConnectionSocketState {
+		return conn, nil
 	}
 
 	defer close(connectResult)
@@ -115,10 +130,12 @@ func newConnection(
 		case connectingConnectionSocketState:
 			conn.state = disconnectedConnectionSocketState
 			conn.closeUnconnected()
+			log.Info("timeout", fd)
 			return nil, ErrDialTimeout
 		case connectedConnectionSocketState:
 			return conn, nil
 		default:
+			log.Info("timeout", fd)
 			return nil, ErrDialTimeout
 		}
 	}
@@ -181,7 +198,11 @@ func (c *Connection) closeUnconnected() {
 }
 
 func (c *Connection) Close() error {
-	return c.Connection.Close()
+	if err := c.Connection.Close(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func checkConn(fd int) error {
@@ -200,8 +221,12 @@ func checkConn(fd int) error {
 
 func unixOpenConnect(network, address string) (fd int, err error) {
 	defer func() {
-		if fd > 0 && err != nil {
-			_ = unix.Close(fd)
+		if fd > 0 {
+			switch err {
+			case unix.EINPROGRESS, unix.EALREADY, unix.EINTR:
+			default:
+				_ = unix.Close(fd)
+			}
 		}
 	}()
 
@@ -242,17 +267,16 @@ func unixOpenConnect(network, address string) (fd int, err error) {
 		return
 	}
 
+	if fd == 0 {
+		err = errors.New("wrong fd value")
+		return
+	}
+
 	if err = unix.SetNonblock(fd, true); err != nil {
-		log.Error("unix-setnonblock err:", err)
+		err = fmt.Errorf("SetNonblock error: %v", err)
 		return
 	}
 
 	err = unix.Connect(fd, sa)
-	if err != nil && err != unix.EINPROGRESS {
-		return
-	} else if err != nil {
-		err = nil
-	}
-
 	return
 }

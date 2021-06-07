@@ -37,6 +37,6 @@ func init() {
 
 func TestConnection_ListenerNotExist(t *testing.T) {
 	cb := new(exampleCallback)
-	_, err := dialer.Dial("tcp", "127.0.0.1:2430", cb, nil, 0)
-	assert.Equal(t, ErrConnectionHandle, err)
+	_, err := dialer.DialWithTimeout(time.Second*5, "tcp", "127.0.0.1:2430", cb, nil, 0)
+	assert.Equal(t, ErrDialTimeout, err)
 }

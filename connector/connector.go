@@ -5,6 +5,8 @@ import (
 	"runtime"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/log"
@@ -35,12 +37,28 @@ func (c *Connector) DialWithTimeout(timeout time.Duration, network, address stri
 
 	loop := c.opts.Strategy(c.workLoops)
 
-	conn, err := newConnection(network, address, loop, timeout, protocol, c.timingWheel, idleTime, callback)
-	if err != nil {
-		return nil, err
+	dialCtx := context.Background()
+	if timeout > 0 {
+		subCtx, cancel := context.WithDeadline(dialCtx, time.Now().Add(timeout))
+		dialCtx = subCtx
+		defer cancel()
 	}
 
-	return conn, nil
+	for {
+		select {
+		case <-dialCtx.Done():
+			return nil, ErrDialTimeout
+		default:
+			conn, err := newConnection(network, address, loop, dialCtx, protocol, c.timingWheel, idleTime, callback)
+			if err != nil {
+				time.Sleep(time.Millisecond * 100)
+				continue
+			}
+
+			return conn, nil
+		}
+
+	}
 }
 
 func NewConnector(opts ...Option) (connector *Connector, err error) {

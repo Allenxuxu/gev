@@ -23,6 +23,7 @@ type example struct {
 
 func (s *example) OnConnect(c *connection.Connection) {
 	s.Count.Add(1)
+	s.JustCount.Add(1)
 	//log.Info(" OnConnect ： ", c.PeerAddr())
 }
 
@@ -115,7 +116,7 @@ func TestServer_StopWithClient(t *testing.T) {
 	cb := new(clientCallback)
 	var success, failed atomic.Int64
 
-	connector, err := connector.NewConnector(connector.NumLoops(8))
+	connector, err := connector.NewConnector()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +128,7 @@ func TestServer_StopWithClient(t *testing.T) {
 	wg := &sync.WaitGroupWrapper{}
 	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
-			conn, err := connector.Dial("tcp", "127.0.0.1:1831", cb, nil, 0)
+			conn, err := connector.DialWithTimeout(time.Second*10, "tcp", "127.0.0.1:1831", cb, nil, 0)
 			if err != nil {
 				failed.Add(1)
 				log.Info("error", err)
@@ -151,6 +152,11 @@ func TestServer_StopWithClient(t *testing.T) {
 
 	if failed.Get() > 0 {
 		t.Fatal(failed.Get())
+	}
+
+	connCount := handler.JustCount.Get()
+	if connCount != 100 {
+		t.Fatal(connCount)
 	}
 
 	s.Stop()
