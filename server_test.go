@@ -23,7 +23,6 @@ type example struct {
 
 func (s *example) OnConnect(c *connection.Connection) {
 	s.Count.Add(1)
-	s.JustCount.Add(1)
 	//log.Info(" OnConnect ： ", c.PeerAddr())
 }
 
@@ -114,7 +113,6 @@ func TestServer_StopWithClient(t *testing.T) {
 	go s.Start()
 
 	cb := new(clientCallback)
-	time.Sleep(time.Second)
 	var success, failed atomic.Int64
 
 	connector, err := connector.NewConnector(connector.NumLoops(8))
@@ -151,9 +149,8 @@ func TestServer_StopWithClient(t *testing.T) {
 		t.Fatal(count)
 	}
 
-	count = handler.JustCount.Get()
-	if count != 100 {
-		t.Fatal(count)
+	if failed.Get() > 0 {
+		t.Fatal(failed.Get())
 	}
 
 	s.Stop()
