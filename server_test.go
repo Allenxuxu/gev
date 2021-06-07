@@ -24,11 +24,11 @@ type example struct {
 func (s *example) OnConnect(c *connection.Connection) {
 	s.Count.Add(1)
 	s.JustCount.Add(1)
-	//log.Println(" OnConnect ： ", c.PeerAddr())
+	//log.Info(" OnConnect ： ", c.PeerAddr())
 }
 
 func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
-	//log.Println("OnMessage")
+	//log.Info("OnMessage")
 
 	//out = data
 	msg := append([]byte{}, data...)
@@ -55,9 +55,9 @@ func TestServer_Start(t *testing.T) {
 	}
 
 	go func() {
-		time.Sleep(time.Second * 3)
+		time.Sleep(time.Second * 1)
 		sw := sync.WaitGroupWrapper{}
-		for i := 0; i < 100; i++ {
+		for i := 0; i < 1; i++ {
 			sw.AddAndRun(func() {
 				startClient(s.opts.Network, s.opts.Address)
 			})
@@ -81,7 +81,7 @@ func startClient(network, addr string) {
 	duration := time.Duration((rand.Float64()*2+1)*float64(time.Second)) / 8
 	start := time.Now()
 	for time.Since(start) < duration {
-		sz := rand.Int()%(1024*1024) + 1
+		sz := rand.Int()%(1024) + 1
 		data := make([]byte, sz)
 		if _, err := rand.Read(data); err != nil {
 			panic(err)
@@ -104,7 +104,7 @@ func TestServer_StopWithClient(t *testing.T) {
 
 	s, err := NewServer(handler,
 		Network("tcp"),
-		Address("127.0.0.1:1831"),
+		Address("127.0.0.1:1835"),
 		NumLoops(8),
 		ReusePort(true))
 	if err != nil {
@@ -114,20 +114,21 @@ func TestServer_StopWithClient(t *testing.T) {
 	go s.Start()
 
 	cb := new(clientCallback)
-	time.Sleep(time.Second)
 	var success, failed atomic.Int64
 
-	connector, err := connector.NewConnector(connector.NumLoops(8))
+	connector, err := connector.NewConnector()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer connector.Stop()
 	go connector.Start()
 
+	time.Sleep(time.Second * 3)
+
 	wg := &sync.WaitGroupWrapper{}
 	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
-			conn, err := connector.Dial("tcp", "127.0.0.1:1831", cb, nil, 0)
+			conn, err := connector.DialWithTimeout(time.Second*10, "tcp", "127.0.0.1:1835", cb, nil, 0)
 			if err != nil {
 				failed.Add(1)
 				log.Info("error", err)
@@ -141,7 +142,7 @@ func TestServer_StopWithClient(t *testing.T) {
 	}
 
 	wg.Wait()
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second * 3)
 	log.Infof("Success: %d Failed: %d\n", success, failed)
 
 	count := handler.Count.Get()
@@ -149,9 +150,13 @@ func TestServer_StopWithClient(t *testing.T) {
 		t.Fatal(count)
 	}
 
-	count = handler.JustCount.Get()
-	if count != 100 {
-		t.Fatal(count)
+	if failed.Get() > 0 {
+		t.Fatal(failed.Get())
+	}
+
+	connCount := handler.JustCount.Get()
+	if connCount != 100 {
+		t.Fatal(connCount)
 	}
 
 	s.Stop()
@@ -162,7 +167,7 @@ func TestServer_StopAndSendWithClient(t *testing.T) {
 
 	s, err := NewServer(handler,
 		Network("tcp"),
-		Address("127.0.0.1:1831"),
+		Address("127.0.0.1:1836"),
 		NumLoops(8),
 		ReusePort(true))
 	if err != nil {
@@ -171,7 +176,6 @@ func TestServer_StopAndSendWithClient(t *testing.T) {
 
 	go s.Start()
 	cb := new(clientCallback)
-	time.Sleep(time.Second * 1)
 	var success, failed atomic.Int64
 	wg := &sync.WaitGroupWrapper{}
 
@@ -184,9 +188,10 @@ func TestServer_StopAndSendWithClient(t *testing.T) {
 	go connector.Start()
 
 	log.Info("start handling")
+	time.Sleep(time.Second * 3)
 	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
-			conn, err := connector.DialWithTimeout(time.Second*5, "tcp", "127.0.0.1:1831", cb, nil, 0)
+			conn, err := connector.DialWithTimeout(time.Second*10, "tcp", "127.0.0.1:1836", cb, nil, 0)
 			if err != nil {
 				failed.Add(1)
 				log.Info("error", err)
@@ -198,7 +203,7 @@ func TestServer_StopAndSendWithClient(t *testing.T) {
 				panic(err)
 			}
 			// waiting for callback executed
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 2)
 			if err := conn.Close(); err != nil {
 				panic(err)
 			}
@@ -209,7 +214,7 @@ func TestServer_StopAndSendWithClient(t *testing.T) {
 	wg.Wait()
 	log.Infof("Success: %d Failed: %d\n", success, failed)
 
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second * 3)
 	count := handler.Count.Get()
 	if count != 0 {
 		t.Fatal(count)

@@ -2,9 +2,11 @@ package connector
 
 import (
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/gev/log"
 )
 
 var (
@@ -19,7 +21,7 @@ func (e exampleCallback) OnMessage(c *connection.Connection, ctx interface{}, da
 }
 
 func (e exampleCallback) OnClose(c *connection.Connection) {
-	panic("implement me")
+	panic("implement ")
 }
 
 func init() {
@@ -30,13 +32,11 @@ func init() {
 	}
 
 	go dialer.Start()
+	time.Sleep(time.Second * 3)
 }
 
 func TestConnection_ListenerNotExist(t *testing.T) {
 	cb := new(exampleCallback)
-	_, err := dialer.Dial("tcp", "127.0.0.1:1830", cb, nil, 0)
-	if err != ErrConnectionHandle {
-		t.Fatal("error is not connection handle", err)
-	}
-	log.Info(err)
+	_, err := dialer.DialWithTimeout(time.Second*5, "tcp", "127.0.0.1:2430", cb, nil, 0)
+	assert.Equal(t, ErrDialTimeout, err)
 }
