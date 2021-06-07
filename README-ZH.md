@@ -6,10 +6,11 @@
 [![GoDoc](https://godoc.org/github.com/Allenxuxu/gev?status.svg)](https://godoc.org/github.com/Allenxuxu/gev)
 [![LICENSE](https://img.shields.io/badge/LICENSE-MIT-blue)](https://github.com/Allenxuxu/gev/blob/master/LICENSE)
 [![Code Size](https://img.shields.io/github/languages/code-size/Allenxuxu/gev.svg?style=flat)](https://img.shields.io/github/languages/code-size/Allenxuxu/gev.svg?style=flat)
+[![Sourcegraph](https://sourcegraph.com/github.com/Allenxuxu/gev/-/badge.svg)](https://sourcegraph.com/github.com/Allenxuxu/gev?badge)
 
 #### 中文 | [English](README.md)
 
-`gev` 是一个轻量、快速的基于 Reactor 模式的非阻塞 TCP 网络库，支持自定义协议，轻松快速搭建高性能服务器。
+`gev` 是一个轻量、快速的基于 Reactor 模式的非阻塞 TCP 网络库 / websocket server，支持自定义协议，轻松快速搭建高性能服务器。
 
 ## 特点
 
@@ -19,9 +20,9 @@
 - 异步读写
 - 自动清理空闲连接
 - SO_REUSEPORT 端口重用支持
-- 支持 WebSocket/Protobuf
+- 支持 WebSocket/Protobuf, 自定义协议
 - 支持定时任务，延时任务
-- 支持自定义协议
+- 开箱即用的高性能 websocket server
 
 ## 网络模型
 
@@ -709,7 +710,7 @@ import (
 	"github.com/Allenxuxu/gev/connection"
 	pb "github.com/Allenxuxu/gev/example/protobuf/proto"
 	"github.com/Allenxuxu/gev/plugins/protobuf"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 type example struct{}
@@ -780,7 +781,7 @@ import (
 
 	pb "github.com/Allenxuxu/gev/example/protobuf/proto"
 	"github.com/Allenxuxu/gev/plugins/protobuf"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 func main() {

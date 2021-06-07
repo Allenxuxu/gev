@@ -56,10 +56,10 @@ var (
 )
 
 var (
-	specHeaderValueUpgrade    = []byte("websocket")
-	specHeaderValueConnection = []byte("Upgrade")
-	//specHeaderValueConnectionLower = []byte("upgrade")
-	specHeaderValueSecVersion = []byte("13")
+	specHeaderValueUpgrade         = []byte("websocket")
+	specHeaderValueConnection      = []byte("Upgrade")
+	specHeaderValueConnectionLower = []byte("upgrade")
+	specHeaderValueSecVersion      = []byte("13")
 )
 
 var (

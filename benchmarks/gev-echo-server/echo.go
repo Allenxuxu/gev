@@ -3,38 +3,41 @@ package main
 import (
 	"flag"
 	"net/http"
-	_ "net/http/pprof"
 	"strconv"
-	"time"
+
+	"github.com/Allenxuxu/gev/log"
+
+	_ "net/http/pprof"
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/gev/log"
-	"github.com/Allenxuxu/toolkit/sync/atomic"
 )
 
 type example struct {
-	Count atomic.Int64
 }
 
-func (s *example) OnConnect(c *connection.Connection) {
-	s.Count.Add(1)
-	//log.Println(" OnConnect ： ", c.PeerAddr())
-}
+func (s *example) OnConnect(c *connection.Connection) {}
 func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
-	//log.Println("OnMessage")
+
 	out = data
+
+	//msg := append([]byte{}, data...)
+	//go func() {
+	//	if err := c.Send(msg); err != nil {
+	//		//log.Errorf("send error :%v", err)
+	//	}
+	//}()
 	return
 }
 
 func (s *example) OnClose(c *connection.Connection) {
-	s.Count.Add(-1)
-	//log.Println("OnClose")
+	//log.Error("onclose ")
 }
 
 func main() {
+	log.SetLevel(log.LevelDebug)
 	go func() {
-		if err := http.ListenAndServe(":6060", nil); err != nil {
+		if err := http.ListenAndServe(":6089", nil); err != nil {
 			panic(err)
 		}
 	}()
@@ -51,15 +54,10 @@ func main() {
 		gev.Network("tcp"),
 		gev.Address(":"+strconv.Itoa(port)),
 		gev.NumLoops(loops),
-		gev.MetricsServer("", ":9091"),
 	)
 	if err != nil {
 		panic(err)
 	}
-
-	s.RunEvery(time.Second*2, func() {
-		log.Info("connections :", handler.Count.Get())
-	})
 
 	s.Start()
 }

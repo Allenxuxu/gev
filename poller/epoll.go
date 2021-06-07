@@ -3,6 +3,8 @@
 package poller
 
 import (
+	"runtime"
+
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"golang.org/x/sys/unix"
@@ -15,6 +17,7 @@ const writeEvent = unix.EPOLLOUT
 type Poller struct {
 	fd       int
 	eventFd  int
+	buf      []byte
 	running  atomic.Bool
 	waitDone chan struct{}
 }
@@ -28,6 +31,7 @@ func Create() (*Poller, error) {
 
 	r0, _, errno := unix.Syscall(unix.SYS_EVENTFD2, 0, 0, 0)
 	if errno != 0 {
+		_ = unix.Close(fd)
 		return nil, errno
 	}
 	eventFd := int(r0)
@@ -45,6 +49,7 @@ func Create() (*Poller, error) {
 	return &Poller{
 		fd:       fd,
 		eventFd:  eventFd,
+		buf:      make([]byte, 8),
 		waitDone: make(chan struct{}),
 	}, nil
 }
@@ -57,10 +62,8 @@ func (ep *Poller) Wake() error {
 	return err
 }
 
-var buf = make([]byte, 8)
-
 func (ep *Poller) wakeHandlerRead() {
-	n, err := unix.Read(ep.eventFd, buf)
+	n, err := unix.Read(ep.eventFd, ep.buf)
 	if err != nil || n != 8 {
 		log.Error("wakeHandlerRead", err, n)
 	}
@@ -134,15 +137,23 @@ func (ep *Poller) Poll(handler func(fd int, event Event)) {
 	}()
 
 	events := make([]unix.EpollEvent, waitEventsBegin)
-	var wake bool
+	var (
+		wake bool
+		msec int
+	)
 	ep.running.Set(true)
 	for {
-		n, err := unix.EpollWait(ep.fd, events, -1)
-
+		n, err := unix.EpollWait(ep.fd, events, msec)
 		if err != nil && err != unix.EINTR {
 			log.Error("EpollWait: ", err)
 			continue
 		}
+		if n <= 0 {
+			msec = -1
+			runtime.Gosched()
+			continue
+		}
+		msec = 0
 
 		for i := 0; i < n; i++ {
 			fd := int(events[i].Fd)

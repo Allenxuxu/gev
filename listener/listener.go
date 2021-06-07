@@ -8,12 +8,12 @@ import (
 	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/poller"
-	reuseport "github.com/libp2p/go-reuseport"
+	"github.com/libp2p/go-reuseport"
 	"golang.org/x/sys/unix"
 )
 
 // HandleConnFunc 处理新连接
-type HandleConnFunc func(fd int, sa *unix.Sockaddr)
+type HandleConnFunc func(fd int, sa unix.Sockaddr)
 
 // Listener 监听TCP连接
 type Listener struct {
@@ -75,7 +75,7 @@ func (l *Listener) HandleEvent(fd int, events poller.Event) {
 			return
 		}
 
-		l.handleC(nfd, &sa)
+		l.handleC(nfd, sa)
 	}
 }
 

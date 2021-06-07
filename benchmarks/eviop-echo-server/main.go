@@ -34,7 +34,6 @@ func main() {
 	var events eviop.Events
 	events.NumLoops = loops
 	events.Serving = func(srv eviop.Server) (action eviop.Action) {
-		log.Printf("echo server started on port %d (loops: %d)", port, srv.NumLoops)
 		if reuseport {
 			log.Printf("reuseport")
 		}

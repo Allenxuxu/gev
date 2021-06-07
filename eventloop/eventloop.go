@@ -1,12 +1,18 @@
 package eventloop
 
 import (
-	"sync"
+	"unsafe"
 
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"github.com/Allenxuxu/toolkit/sync/spinlock"
+)
+
+var (
+	DefaultPacketSize    = 65536
+	DefaultBufferSize    = 4096
+	DefaultTaskQueueSize = 1024
 )
 
 // Socket 接口
@@ -17,14 +23,25 @@ type Socket interface {
 
 // EventLoop 事件循环
 type EventLoop struct {
-	poll    *poller.Poller
-	sockets sync.Map
-	packet  []byte
+	eventLoopLocal
+	// nolint
+	// Prevents false sharing on widespread platforms with
+	// 128 mod (cache line size) = 0 .
+	pad [128 - unsafe.Sizeof(eventLoopLocal{})%128]byte
+}
 
-	eventHandling atomic.Bool
+// nolint
+type eventLoopLocal struct {
+	ConnCunt   atomic.Int64
+	needWake   *atomic.Bool
+	poll       *poller.Poller
+	mu         spinlock.SpinLock
+	sockets    map[int]Socket
+	packet     []byte
+	taskQueueW []func()
+	taskQueueR []func()
 
-	pendingFunc []func()
-	mu          spinlock.SpinLock
+	UserBuffer *[]byte
 }
 
 // New 创建一个 EventLoop
@@ -34,9 +51,17 @@ func New() (*EventLoop, error) {
 		return nil, err
 	}
 
+	userBuffer := make([]byte, DefaultBufferSize)
 	return &EventLoop{
-		poll:   p,
-		packet: make([]byte, 0xFFFF),
+		eventLoopLocal: eventLoopLocal{
+			poll:       p,
+			packet:     make([]byte, DefaultPacketSize),
+			sockets:    make(map[int]Socket),
+			UserBuffer: &userBuffer,
+			needWake:   atomic.New(true),
+			taskQueueW: make([]func(), 0, DefaultTaskQueueSize),
+			taskQueueR: make([]func(), 0, DefaultTaskQueueSize),
+		},
 	}, nil
 }
 
@@ -45,23 +70,28 @@ func (l *EventLoop) PacketBuf() []byte {
 	return l.packet
 }
 
+func (l *EventLoop) ConnectionCount() int64 {
+	return l.ConnCunt.Get()
+}
+
 // DeleteFdInLoop 删除 fd
 func (l *EventLoop) DeleteFdInLoop(fd int) {
 	if err := l.poll.Del(fd); err != nil {
 		log.Error("[DeleteFdInLoop]", err)
 	}
-	l.sockets.Delete(fd)
+	delete(l.sockets, fd)
+	l.ConnCunt.Add(-1)
 }
 
 // AddSocketAndEnableRead 增加 Socket 到时间循环中，并注册可读事件
 func (l *EventLoop) AddSocketAndEnableRead(fd int, s Socket) error {
-	var err error
-	l.sockets.Store(fd, s)
-
-	if err = l.poll.AddRead(fd); err != nil {
-		l.sockets.Delete(fd)
+	l.sockets[fd] = s
+	if err := l.poll.AddRead(fd); err != nil {
+		delete(l.sockets, fd)
 		return err
 	}
+
+	l.ConnCunt.Add(1)
 	return nil
 }
 
@@ -82,27 +112,26 @@ func (l *EventLoop) RunLoop() {
 
 // Stop 关闭事件循环
 func (l *EventLoop) Stop() error {
-	l.sockets.Range(func(key, value interface{}) bool {
-		s, ok := value.(Socket)
-		if !ok {
-			log.Error("value.(Socket) fail")
-		} else {
-			if err := s.Close(); err != nil {
+	l.QueueInLoop(func() {
+		for _, v := range l.sockets {
+			if err := v.Close(); err != nil {
 				log.Error(err)
 			}
 		}
-		return true
+		l.sockets = nil
 	})
+
+	_ = l.ConnCunt.Swap(0)
 	return l.poll.Close()
 }
 
 // QueueInLoop 添加 func 到事件循环中执行
 func (l *EventLoop) QueueInLoop(f func()) {
 	l.mu.Lock()
-	l.pendingFunc = append(l.pendingFunc, f)
+	l.taskQueueW = append(l.taskQueueW, f)
 	l.mu.Unlock()
 
-	if !l.eventHandling.Get() {
+	if l.needWake.CompareAndSwap(true, false) {
 		if err := l.poll.Wake(); err != nil {
 			log.Error("QueueInLoop Wake loop, ", err)
 		}
@@ -110,28 +139,26 @@ func (l *EventLoop) QueueInLoop(f func()) {
 }
 
 func (l *EventLoop) handlerEvent(fd int, events poller.Event) {
-	l.eventHandling.Set(true)
-
 	if fd != -1 {
-		s, ok := l.sockets.Load(fd)
+		s, ok := l.sockets[fd]
 		if ok {
-			s.(Socket).HandleEvent(fd, events)
+			s.HandleEvent(fd, events)
 		}
+	} else {
+		l.needWake.Set(true)
+		l.doPendingFunc()
 	}
-
-	l.eventHandling.Set(false)
-
-	l.doPendingFunc()
 }
 
 func (l *EventLoop) doPendingFunc() {
 	l.mu.Lock()
-	pf := l.pendingFunc
-	l.pendingFunc = nil
+	l.taskQueueW, l.taskQueueR = l.taskQueueR, l.taskQueueW
 	l.mu.Unlock()
 
-	length := len(pf)
+	length := len(l.taskQueueR)
 	for i := 0; i < length; i++ {
-		pf[i]()
+		l.taskQueueR[i]()
 	}
+
+	l.taskQueueR = l.taskQueueR[:0]
 }

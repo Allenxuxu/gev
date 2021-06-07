@@ -4,6 +4,9 @@ import (
 	"log"
 	"testing"
 	"time"
+	"unsafe"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEventLoop_RunLoop(t *testing.T) {
@@ -28,4 +31,11 @@ func TestEventLoop_RunLoop(t *testing.T) {
 	}()
 
 	el.RunLoop()
+}
+
+func TestEventLoopSize(t *testing.T) {
+	t.Log(unsafe.Sizeof(eventLoopLocal{}))
+	t.Log(unsafe.Sizeof(EventLoop{}))
+
+	assert.Equal(t, 128, int(unsafe.Sizeof(EventLoop{})))
 }

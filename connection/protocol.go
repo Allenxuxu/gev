@@ -18,9 +18,24 @@ type DefaultProtocol struct{}
 
 // UnPacket 拆包
 func (d *DefaultProtocol) UnPacket(c *Connection, buffer *ringbuffer.RingBuffer) (interface{}, []byte) {
-	ret := buffer.Bytes()
-	buffer.RetrieveAll()
-	return nil, ret
+	s, e := buffer.PeekAll()
+	if len(e) > 0 {
+		size := len(s) + len(e)
+		userBuffer := *c.UserBuffer()
+		if size > cap(userBuffer) {
+			userBuffer = make([]byte, size)
+			*c.UserBuffer() = userBuffer
+		}
+
+		copy(userBuffer, s)
+		copy(userBuffer[len(s):], e)
+
+		return nil, userBuffer
+	} else {
+		buffer.RetrieveAll()
+
+		return nil, s
+	}
 }
 
 // Packet 封包

@@ -12,26 +12,26 @@ import (
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/plugin"
 	"github.com/Allenxuxu/toolkit/sync"
+	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"github.com/RussellLuo/timingwheel"
 	"golang.org/x/sys/unix"
 )
 
 // Handler Server 注册接口
 type Handler interface {
+	connection.CallBack
 	OnConnect(c *connection.Connection)
-	OnMessage(c *connection.Connection, ctx interface{}, data []byte) []byte
-	OnClose(c *connection.Connection)
 }
 
 // Server gev Server
 type Server struct {
-	loop          *eventloop.EventLoop
-	workLoops     []*eventloop.EventLoop
-	nextLoopIndex int
-	callback      Handler
+	loop      *eventloop.EventLoop
+	workLoops []*eventloop.EventLoop
+	callback  Handler
 
 	timingWheel *timingwheel.TimingWheel
 	opts        *Options
+	running     atomic.Bool
 }
 
 // NewServer 创建 Server
@@ -97,22 +97,17 @@ func (s *Server) RunEvery(d time.Duration, f func()) *timingwheel.Timer {
 	return s.timingWheel.ScheduleFunc(&everyScheduler{Interval: d}, f)
 }
 
-func (s *Server) nextLoop() *eventloop.EventLoop {
-	// TODO 更多的负载方式
-	loop := s.workLoops[s.nextLoopIndex]
-	s.nextLoopIndex = (s.nextLoopIndex + 1) % len(s.workLoops)
-	return loop
-}
+func (s *Server) handleNewConnection(fd int, sa unix.Sockaddr) {
+	loop := s.opts.Strategy(s.workLoops)
 
-func (s *Server) handleNewConnection(fd int, sa *unix.Sockaddr) {
-	loop := s.nextLoop()
+	c := connection.New(fd, loop, sa, s.opts.Protocol, s.timingWheel, s.opts.IdleTime, s.callback)
 
-	c := connection.New(fd, loop, sa, s.opts.Protocol, s.timingWheel, s.opts.IdleTime, s.callback.OnMessage, s.callback.OnClose)
-
-	s.callback.OnConnect(c)
-	if err := loop.AddSocketAndEnableRead(fd, c); err != nil {
-		log.Error("[AddSocketAndEnableRead]", err)
-	}
+	loop.QueueInLoop(func() {
+		s.callback.OnConnect(c)
+		if err := loop.AddSocketAndEnableRead(fd, c); err != nil {
+			log.Error("[AddSocketAndEnableRead]", err)
+		}
+	})
 }
 
 // Start 启动 Server
@@ -126,21 +121,27 @@ func (s *Server) Start() {
 	}
 
 	sw.AddAndRun(s.loop.RunLoop)
+	s.running.Set(true)
 	sw.Wait()
 }
 
 // Stop 关闭 Server
 func (s *Server) Stop() {
-	s.timingWheel.Stop()
-	if err := s.loop.Stop(); err != nil {
-		log.Error(err)
-	}
+	if s.running.Get() {
+		s.running.Set(false)
 
-	for k := range s.workLoops {
-		if err := s.workLoops[k].Stop(); err != nil {
+		s.timingWheel.Stop()
+		if err := s.loop.Stop(); err != nil {
 			log.Error(err)
 		}
+
+		for k := range s.workLoops {
+			if err := s.workLoops[k].Stop(); err != nil {
+				log.Error(err)
+			}
+		}
 	}
+
 }
 
 // Options 返回 options

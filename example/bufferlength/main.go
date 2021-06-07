@@ -55,6 +55,10 @@ func (s *Server) RunPush() {
 		next = e.Next()
 
 		c := e.Value.(*connection.Connection)
+		if c.WriteBufferLength() > 1024*10 {
+			log.Printf("write buffer length > 1024*10")
+			continue
+		}
 		_ = c.Send([]byte("hello\n"))
 	}
 }
@@ -71,7 +75,8 @@ func (s *Server) OnConnect(c *connection.Connection) {
 
 // OnMessage callback
 func (s *Server) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
-	log.Println("OnMessage")
+	log.Printf("OnMessage, read buffer len %d, write buffer len %d \n", c.ReadBufferLength(), c.WriteBufferLength())
+
 	out = data
 	return
 }

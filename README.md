@@ -6,10 +6,11 @@
 [![GoDoc](https://godoc.org/github.com/Allenxuxu/gev?status.svg)](https://godoc.org/github.com/Allenxuxu/gev)
 [![LICENSE](https://img.shields.io/badge/LICENSE-MIT-blue)](https://github.com/Allenxuxu/gev/blob/master/LICENSE)
 [![Code Size](https://img.shields.io/github/languages/code-size/Allenxuxu/gev.svg?style=flat)](https://img.shields.io/github/languages/code-size/Allenxuxu/gev.svg?style=flat)
+[![Sourcegraph](https://sourcegraph.com/github.com/Allenxuxu/gev/-/badge.svg)](https://sourcegraph.com/github.com/Allenxuxu/gev?badge)
 
 #### [中文](README-ZH.md) | English
 
-`gev` is a lightweight, fast non-blocking TCP network library based on Reactor mode. 
+`gev` is a lightweight, fast non-blocking TCP network library / websocket server based on Reactor mode. 
 
 Support custom protocols to quickly and easily build high-performance servers.
 
@@ -21,9 +22,9 @@ Support custom protocols to quickly and easily build high-performance servers.
 - Asynchronous read and write
 - SO_REUSEPORT port reuse support
 - Automatically clean up idle connections
-- Support WebSocket/Protobuf
+- Support WebSocket/Protobuf, custom protocols
 - Support for scheduled tasks, delayed tasks
-- Support for custom protocols
+- High performance websocket server
 
 ## Network model
 
@@ -679,7 +680,7 @@ import (
 	"github.com/Allenxuxu/gev/connection"
 	pb "github.com/Allenxuxu/gev/example/protobuf/proto"
 	"github.com/Allenxuxu/gev/plugins/protobuf"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 type example struct{}
@@ -750,7 +751,7 @@ import (
 
 	pb "github.com/Allenxuxu/gev/example/protobuf/proto"
 	"github.com/Allenxuxu/gev/plugins/protobuf"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 func main() {

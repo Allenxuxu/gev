@@ -5,6 +5,12 @@ import (
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"github.com/Allenxuxu/ringbuffer"
+	"github.com/gobwas/pool/pbytes"
+)
+
+const (
+	upgradedKey     = "gev_ws_upgraded"
+	headerbufferKey = "gev_header_buf"
 )
 
 // Protocol websocket
@@ -19,17 +25,19 @@ func New(u *ws.Upgrader) *Protocol {
 
 // UnPacket 解析 websocket 协议，返回 header ，payload
 func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuffer) (ctx interface{}, out []byte) {
-	upgraded := c.Context()
-	if upgraded == nil {
+	_, ok := c.Get(upgradedKey)
+	if !ok {
 		var err error
-		out, _, err = p.upgrade.Upgrade(buffer)
+		out, _, err = p.upgrade.Upgrade(c, buffer)
 		if err != nil {
 			log.Error("Websocket Upgrade :", err)
 			return
 		}
-		c.SetContext(true)
+		c.Set(upgradedKey, true)
+		c.Set(headerbufferKey, pbytes.Get(0, ws.MaxHeaderSize-2))
 	} else {
-		header, err := ws.VirtualReadHeader(buffer)
+		bts, _ := c.Get(headerbufferKey)
+		header, err := ws.VirtualReadHeader(bts.([]byte), buffer)
 		if err != nil {
 			if err != ws.ErrHeaderNotReady {
 				log.Error(err)

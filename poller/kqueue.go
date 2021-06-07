@@ -4,6 +4,7 @@ package poller
 
 import (
 	"errors"
+	"runtime"
 	"sync"
 
 	"github.com/Allenxuxu/gev/log"
@@ -125,21 +126,21 @@ func (p *Poller) EnableRead(fd int) error {
 func (p *Poller) kEvents(old Event, new Event, fd int) (ret []unix.Kevent_t) {
 	if new&EventRead != 0 {
 		if old&EventRead == 0 {
-			ret = append(ret, unix.Kevent_t{Ident: uint64(fd), Flags: unix.EV_ADD, Filter: unix.EVFILT_READ})
+			ret = append(ret, unix.Kevent_t{Ident: uint64(fd), Flags: unix.EV_ADD | unix.EV_ENABLE, Filter: unix.EVFILT_READ})
 		}
 	} else {
 		if old&EventRead != 0 {
-			ret = append(ret, unix.Kevent_t{Ident: uint64(fd), Flags: unix.EV_DELETE, Filter: unix.EVFILT_READ})
+			ret = append(ret, unix.Kevent_t{Ident: uint64(fd), Flags: unix.EV_DELETE | unix.EV_ONESHOT, Filter: unix.EVFILT_READ})
 		}
 	}
 
 	if new&EventWrite != 0 {
 		if old&EventWrite == 0 {
-			ret = append(ret, unix.Kevent_t{Ident: uint64(fd), Flags: unix.EV_ADD, Filter: unix.EVFILT_WRITE})
+			ret = append(ret, unix.Kevent_t{Ident: uint64(fd), Flags: unix.EV_ADD | unix.EV_ENABLE, Filter: unix.EVFILT_WRITE})
 		}
 	} else {
 		if old&EventWrite != 0 {
-			ret = append(ret, unix.Kevent_t{Ident: uint64(fd), Flags: unix.EV_DELETE, Filter: unix.EVFILT_WRITE})
+			ret = append(ret, unix.Kevent_t{Ident: uint64(fd), Flags: unix.EV_DELETE | unix.EV_ONESHOT, Filter: unix.EVFILT_WRITE})
 		}
 	}
 	return
@@ -152,14 +153,24 @@ func (p *Poller) Poll(handler func(fd int, event Event)) {
 	}()
 
 	events := make([]unix.Kevent_t, waitEventsBegin)
-	var wake bool
+	var (
+		wake bool
+		ts   unix.Timespec
+		tsp  *unix.Timespec
+	)
 	p.running.Set(true)
 	for {
-		n, err := unix.Kevent(p.fd, nil, events, nil)
+		n, err := unix.Kevent(p.fd, nil, events, tsp)
 		if err != nil && err != unix.EINTR {
 			log.Error("EpollWait: ", err)
 			continue
 		}
+		if n <= 0 {
+			tsp = nil
+			runtime.Gosched()
+			continue
+		}
+		tsp = &ts
 
 		for i := 0; i < n; i++ {
 			fd := int(events[i].Ident)
@@ -168,10 +179,10 @@ func (p *Poller) Poll(handler func(fd int, event Event)) {
 				if (events[i].Flags&unix.EV_ERROR != 0) || (events[i].Flags&unix.EV_EOF != 0) {
 					rEvents |= EventErr
 				}
-				if events[i].Filter == unix.EVFILT_WRITE {
+				if events[i].Filter == unix.EVFILT_WRITE && events[i].Flags&unix.EV_ENABLE != 0 {
 					rEvents |= EventWrite
 				}
-				if events[i].Filter == unix.EVFILT_READ {
+				if events[i].Filter == unix.EVFILT_READ && events[i].Flags&unix.EV_ENABLE != 0 {
 					rEvents |= EventRead
 				}
 
