@@ -125,6 +125,7 @@ func TestServer_StopWithClient(t *testing.T) {
 	go connector.Start()
 
 	wg := &sync.WaitGroupWrapper{}
+	time.Sleep(time.Second * 2)
 	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
 			conn, err := connector.Dial("tcp", "127.0.0.1:1831", cb, nil, 0)
