@@ -19,7 +19,7 @@ func (e exampleCallback) OnMessage(c *connection.Connection, ctx interface{}, da
 }
 
 func (e exampleCallback) OnClose(c *connection.Connection) {
-	panic("implement me")
+	panic("implement ")
 }
 
 func init() {
