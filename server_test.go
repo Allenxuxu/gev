@@ -82,7 +82,7 @@ func startClient(network, addr string) {
 	start := time.Now()
 	for time.Since(start) < duration {
 		log.Info(time.Since(start), duration)
-		sz := rand.Int()%(1024*1024) + 1
+		sz := rand.Int()%(1024) + 1
 		data := make([]byte, sz)
 		log.Info("read start")
 		if _, err := rand.Read(data); err != nil {
