@@ -55,7 +55,7 @@ func TestServer_Start(t *testing.T) {
 	}
 
 	go func() {
-		time.Sleep(time.Second * 3)
+		time.Sleep(time.Second * 1)
 		sw := sync.WaitGroupWrapper{}
 		for i := 0; i < 100; i++ {
 			sw.AddAndRun(func() {
