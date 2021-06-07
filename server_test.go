@@ -186,7 +186,7 @@ func TestServer_StopAndSendWithClient(t *testing.T) {
 	go connector.Start()
 
 	log.Info("start handling")
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 3)
 	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
 			conn, err := connector.DialWithTimeout(time.Second*5, "tcp", "127.0.0.1:1831", cb, nil, 0)
@@ -212,7 +212,7 @@ func TestServer_StopAndSendWithClient(t *testing.T) {
 	wg.Wait()
 	log.Infof("Success: %d Failed: %d\n", success, failed)
 
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second * 3)
 	count := handler.Count.Get()
 	if count != 0 {
 		t.Fatal(count)
