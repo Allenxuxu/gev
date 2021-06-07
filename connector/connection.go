@@ -191,7 +191,6 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 }
 
 func (c *Connection) closeUnconnected() {
-	log.Info(c.fd, "delete fd in loop")
 	c.loop.DeleteFdInLoop(c.fd)
 	_ = unix.Close(c.fd)
 }
