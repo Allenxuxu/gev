@@ -47,7 +47,7 @@ func TestServer_Start(t *testing.T) {
 
 	s, err := NewServer(handler,
 		Network("tcp"),
-		Address(":1831"),
+		Address("127.0.0.1:1831"),
 		NumLoops(8),
 		ReusePort(true))
 	if err != nil {
@@ -55,7 +55,7 @@ func TestServer_Start(t *testing.T) {
 	}
 
 	go func() {
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * 3)
 		sw := sync.WaitGroupWrapper{}
 		for i := 0; i < 100; i++ {
 			sw.AddAndRun(func() {

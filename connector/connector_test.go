@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev/log"
 )
 
 var (
@@ -34,7 +35,8 @@ func init() {
 func TestConnection_ListenerNotExist(t *testing.T) {
 	cb := new(exampleCallback)
 	_, err := dialer.Dial("tcp", "127.0.0.1:1830", cb, nil, 0)
-	if err != nil {
-		t.Fatal(err)
+	if err != ErrConnectionHandle {
+		t.Fatal("error is not connection handle", err)
 	}
+	log.Info(err)
 }

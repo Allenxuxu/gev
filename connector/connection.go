@@ -19,7 +19,11 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var ErrDialTimeout = errors.New("i/o timeout")
+var (
+	ErrDialTimeout      = errors.New("i/o timeout")
+	ErrConnectionHandle = errors.New("cannot handle connection")
+	ErrInvalidArguments = errors.New("invalid arguments")
+)
 
 type connectionSocketState uint8
 
@@ -120,6 +124,15 @@ func newConnection(
 	}
 }
 
+func parseError(errorNo unix.Errno) error {
+	switch errorNo {
+	case unix.EINVAL:
+		return ErrInvalidArguments
+	default:
+		return errors.New(unix.ErrnoName(errorNo))
+	}
+}
+
 func (c *Connection) HandleEvent(fd int, events poller.Event) {
 	if c.state == connectingConnectionSocketState {
 		c.stateMu.Lock()
@@ -129,7 +142,11 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 			return
 		}
 
-		if events&poller.EventWrite == 0 {
+		if events&poller.EventErr != 0 {
+			c.state = disconnectedConnectionSocketState
+			c.closeUnconnected()
+			c.result <- ErrConnectionHandle
+		} else if events&poller.EventWrite != 0 {
 			if err := checkConn(fd); err != nil {
 				c.closeUnconnected()
 				c.result <- err
@@ -139,7 +156,7 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 			sa, err := unix.Getpeername(fd)
 			if err != nil {
 				c.closeUnconnected()
-				c.result <- err
+				c.result <- parseError(err.(unix.Errno))
 				return
 			}
 
@@ -147,18 +164,12 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 			c.state = connectedConnectionSocketState
 			c.result <- nil
 			c.Connection.HandleEvent(fd, events)
-			return
-		} else if events&poller.EventWrite&poller.EventErr == 0 || events&poller.EventRead&poller.EventErr == 0 {
+		} else {
 			c.state = disconnectedConnectionSocketState
 			c.closeUnconnected()
-			c.result <- fmt.Errorf("cannot handle connection")
-			return
+
+			c.result <- fmt.Errorf("wrong_event %v", events)
 		}
-
-		c.state = disconnectedConnectionSocketState
-		c.closeUnconnected()
-
-		c.result <- fmt.Errorf("wrong_event %v", events)
 	} else if c.state == connectedConnectionSocketState {
 		c.Connection.HandleEvent(fd, events)
 	}

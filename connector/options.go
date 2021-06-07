@@ -12,9 +12,8 @@ type Options struct {
 	IdleTime time.Duration
 	Strategy eventloop.LoadBalanceStrategy
 
-	tick                        time.Duration
-	wheelSize                   int64
-	metricsPath, metricsAddress string
+	tick      time.Duration
+	wheelSize int64
 }
 
 // Option ...
