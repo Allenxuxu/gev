@@ -84,13 +84,16 @@ func startClient(network, addr string) {
 		log.Info(time.Since(start), duration)
 		sz := rand.Int()%(1024*1024) + 1
 		data := make([]byte, sz)
+		log.Info("read start")
 		if _, err := rand.Read(data); err != nil {
 			panic(err)
 		}
+		log.Info("write start")
 		if _, err := c.Write(data); err != nil {
 			panic(err)
 		}
 		data2 := make([]byte, len(data))
+		log.Info("read full")
 		if _, err := io.ReadFull(rd, data2); err != nil {
 			panic(err)
 		}
