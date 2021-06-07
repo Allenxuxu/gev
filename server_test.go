@@ -190,6 +190,7 @@ func TestServer_StopAndSendWithClient(t *testing.T) {
 	go connector.Start()
 
 	log.Info("start handling")
+	time.Sleep(time.Second * 2)
 	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
 			conn, err := connector.DialWithTimeout(time.Second*5, "tcp", "127.0.0.1:1831", cb, nil, 0)
