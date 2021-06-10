@@ -9,11 +9,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Allenxuxu/gev/log"
+
+	"github.com/Allenxuxu/gev/eventloop"
+
 	"golang.org/x/net/context"
 
 	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/gev/eventloop"
-	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/RussellLuo/timingwheel"
 	"github.com/libp2p/go-reuseport"
@@ -30,6 +32,7 @@ type connectionSocketState uint8
 
 const (
 	connectingConnectionSocketState connectionSocketState = iota + 1
+	preConnectionConnectionSocketState
 	connectedConnectionSocketState
 	disconnectedConnectionSocketState
 )
@@ -38,7 +41,8 @@ type Connection struct {
 	state   connectionSocketState
 	stateMu sync.Mutex
 
-	loop *eventloop.EventLoop
+	loop   *eventloop.EventLoop
+	poller *poller.Poller
 	*connection.Connection
 	ctx      context.Context
 	result   chan error
@@ -76,9 +80,17 @@ func newConnection(
 	switch err {
 	case unix.EINPROGRESS, unix.EALREADY, unix.EINTR:
 		conn.state = connectingConnectionSocketState
+		loop.QueueInLoop(func() {
+			if err := loop.AddSocketAndEnableRead(fd, conn); err != nil {
+				log.Info("addSocketAndEnableRead error:", err)
+			}
+			if err := loop.EnableReadWrite(fd); err != nil {
+				log.Info("EnableReadWrite error: ", err)
+			}
+		})
 	case nil, syscall.EISCONN:
 		runtime.KeepAlive(fd)
-		conn.state = connectedConnectionSocketState
+		conn.state = preConnectionConnectionSocketState
 		if err := checkConn(fd); err != nil {
 			conn.closeUnconnected()
 			return nil, fmt.Errorf("checkConn err: %v", err)
@@ -92,25 +104,15 @@ func newConnection(
 
 		conn.Connection = connection.New(fd, loop, sa, protocol, tw, idleTime, callBack)
 
+		loop.QueueInLoop(func() {
+			if err := loop.AddSocketAndEnableRead(fd, conn.Connection); err != nil {
+				log.Info("[AddSocketAndEnableRead] error: ", err)
+				return
+			}
+		})
+		return conn, nil
 	default:
 		return nil, err
-	}
-
-	loop.QueueInLoop(func() {
-		if err := loop.AddSocketAndEnableRead(fd, conn); err != nil {
-			log.Info("[AddSocketAndEnableRead]", fd, err)
-			connectResult <- err
-			return
-		}
-
-		if err := loop.EnableReadWrite(fd); err != nil {
-			log.Info("[EnableReadWrite] error ", fd, err)
-			connectResult <- err
-		}
-	})
-
-	if conn.state == connectedConnectionSocketState {
-		return conn, nil
 	}
 
 	defer close(connectResult)
@@ -121,6 +123,12 @@ func newConnection(
 			return nil, e
 		}
 
+		loop.QueueInLoop(func() {
+			if err := loop.AddSocketAndEnableRead(fd, conn.Connection); err != nil {
+				log.Info("[AddSocketAndEnableRead] error: ", err)
+				return
+			}
+		})
 		return conn, nil
 	case <-ctx.Done():
 		conn.stateMu.Lock()
@@ -131,7 +139,15 @@ func newConnection(
 			conn.state = disconnectedConnectionSocketState
 			conn.closeUnconnected()
 			return nil, ErrDialTimeout
-		case connectedConnectionSocketState:
+		case preConnectionConnectionSocketState:
+			log.Info("disable write1")
+
+			loop.QueueInLoop(func() {
+				if err := loop.AddSocketAndEnableRead(fd, conn.Connection); err != nil {
+					log.Info("[AddSocketAndEnableRead] error: ", err)
+					return
+				}
+			})
 			return conn, nil
 		default:
 			return nil, ErrDialTimeout
@@ -176,17 +192,15 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 			}
 
 			c.Connection = connection.New(c.fd, c.loop, sa, c.protocol, c.tw, c.idleTime, c.callBack)
-			c.state = connectedConnectionSocketState
+			c.state = preConnectionConnectionSocketState
+			c.loop.DeleteFdInLoop(fd)
 			c.result <- nil
-			c.Connection.HandleEvent(fd, events)
 		} else {
 			c.state = disconnectedConnectionSocketState
 			c.closeUnconnected()
 
 			c.result <- fmt.Errorf("wrong_event %v", events)
 		}
-	} else if c.state == connectedConnectionSocketState {
-		c.Connection.HandleEvent(fd, events)
 	}
 }
 
