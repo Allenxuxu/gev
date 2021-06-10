@@ -9,16 +9,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Allenxuxu/gev/log"
-
-	"github.com/Allenxuxu/gev/eventloop"
-
-	"golang.org/x/net/context"
-
 	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev/eventloop"
+	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/RussellLuo/timingwheel"
-	"github.com/libp2p/go-reuseport"
+	reuseport "github.com/libp2p/go-reuseport"
+	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 )
 
@@ -32,7 +29,6 @@ type connectionSocketState uint8
 
 const (
 	connectingConnectionSocketState connectionSocketState = iota + 1
-	preConnectionConnectionSocketState
 	connectedConnectionSocketState
 	disconnectedConnectionSocketState
 )
@@ -41,8 +37,7 @@ type Connection struct {
 	state   connectionSocketState
 	stateMu sync.Mutex
 
-	loop   *eventloop.EventLoop
-	poller *poller.Poller
+	loop *eventloop.EventLoop
 	*connection.Connection
 	ctx      context.Context
 	result   chan error
@@ -90,7 +85,7 @@ func newConnection(
 		})
 	case nil, syscall.EISCONN:
 		runtime.KeepAlive(fd)
-		conn.state = preConnectionConnectionSocketState
+		conn.state = connectedConnectionSocketState
 		if err := checkConn(fd); err != nil {
 			conn.closeUnconnected()
 			return nil, fmt.Errorf("checkConn err: %v", err)
@@ -139,9 +134,7 @@ func newConnection(
 			conn.state = disconnectedConnectionSocketState
 			conn.closeUnconnected()
 			return nil, ErrDialTimeout
-		case preConnectionConnectionSocketState:
-			log.Info("disable write1")
-
+		case connectedConnectionSocketState:
 			loop.QueueInLoop(func() {
 				if err := loop.AddSocketAndEnableRead(fd, conn.Connection); err != nil {
 					log.Info("[AddSocketAndEnableRead] error: ", err)
@@ -192,7 +185,7 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 			}
 
 			c.Connection = connection.New(c.fd, c.loop, sa, c.protocol, c.tw, c.idleTime, c.callBack)
-			c.state = preConnectionConnectionSocketState
+			c.state = connectedConnectionSocketState
 			c.loop.DeleteFdInLoop(fd)
 			c.result <- nil
 		} else {
