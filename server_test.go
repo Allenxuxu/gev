@@ -55,7 +55,7 @@ func TestServer_Start(t *testing.T) {
 	}
 
 	go func() {
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Second * 2)
 		sw := sync.WaitGroupWrapper{}
 		for i := 0; i < 100; i++ {
 			sw.AddAndRun(func() {
@@ -81,7 +81,7 @@ func startClient(network, addr string) {
 	duration := time.Duration((rand.Float64()*2+1)*float64(time.Second)) / 8
 	start := time.Now()
 	for time.Since(start) < duration {
-		sz := rand.Int()%(1024) + 1
+		sz := rand.Int()%(1024*1024) + 1
 		data := make([]byte, sz)
 		if _, err := rand.Read(data); err != nil {
 			panic(err)
