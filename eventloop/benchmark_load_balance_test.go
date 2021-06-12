@@ -1,4 +1,4 @@
-package gev
+package eventloop
 
 import (
 	"container/heap"
