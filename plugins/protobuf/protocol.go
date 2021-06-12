@@ -26,8 +26,8 @@ func New() *Protocol {
 // UnPacket ...
 func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuffer) (ctx interface{}, out []byte) {
 	if buffer.Length() > 6 {
-		len := int(buffer.PeekUint32())
-		if buffer.Length() >= len+4 {
+		length := int(buffer.PeekUint32())
+		if buffer.Length() >= length+4 {
 			buffer.Retrieve(4)
 
 			typeLen := int(buffer.PeekUint16())
@@ -36,7 +36,7 @@ func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuf
 			typeByte := pbytes.GetLen(typeLen)
 			_, _ = buffer.Read(typeByte)
 
-			dataLen := len - 2 - typeLen
+			dataLen := length - 2 - typeLen
 			data := make([]byte, dataLen)
 			_, _ = buffer.Read(data)
 

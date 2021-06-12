@@ -27,7 +27,7 @@ func TestLeastConnection(t *testing.T) {
 		}
 	}
 
-	strategy := LeastConnection()
+	strategy := eventloop.LeastConnection()
 	for i := 0; i < n; i++ {
 		l := strategy(loops)
 		assert.Equal(t, min, l.ConnectionCount())
@@ -47,7 +47,7 @@ func TestRoundRobin(t *testing.T) {
 		loops = append(loops, l)
 	}
 
-	strategy := RoundRobin()
+	strategy := eventloop.RoundRobin()
 
 	for i := 0; i < n; i++ {
 		l := strategy(loops)
