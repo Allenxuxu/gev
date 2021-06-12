@@ -24,13 +24,13 @@ type example struct {
 func (s *example) OnConnect(c *connection.Connection) {
 	s.Count.Add(1)
 	s.JustCount.Add(1)
-	//log.Info(" OnConnect ： ", c.PeerAddr())
+	// log.Info(" OnConnect ： ", c.PeerAddr())
 }
 
 func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
-	//log.Info("OnMessage")
+	// log.Info("OnMessage")
 
-	//out = data
+	// out = data
 	msg := append([]byte{}, data...)
 	if err := c.Send(msg); err != nil {
 		panic(err)
@@ -47,7 +47,7 @@ func TestServer_Start(t *testing.T) {
 
 	s, err := NewServer(handler,
 		Network("tcp"),
-		Address("127.0.0.1:1831"),
+		Address(":1831"),
 		NumLoops(8),
 		ReusePort(true))
 	if err != nil {
@@ -55,7 +55,7 @@ func TestServer_Start(t *testing.T) {
 	}
 
 	go func() {
-		time.Sleep(time.Second * 2)
+		time.Sleep(time.Second)
 		sw := sync.WaitGroupWrapper{}
 		for i := 0; i < 100; i++ {
 			sw.AddAndRun(func() {
@@ -347,13 +347,13 @@ type example1 struct {
 func (s *example1) OnConnect(c *connection.Connection) {
 	s.Count.Add(1)
 	_ = c.Send([]byte("hello gev"))
-	//log.Println(" OnConnect ： ", c.PeerAddr())
+	// log.Println(" OnConnect ： ", c.PeerAddr())
 }
 
 func (s *example1) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
-	//log.Println("OnMessage")
+	// log.Println("OnMessage")
 
-	//out = data
+	// out = data
 	if err := c.Send(data); err != nil {
 		panic(err)
 	}
@@ -362,7 +362,7 @@ func (s *example1) OnMessage(c *connection.Connection, ctx interface{}, data []b
 
 func (s *example1) OnClose(c *connection.Connection) {
 	s.Count.Add(-1)
-	//log.Println("OnClose")
+	// log.Println("OnClose")
 }
 
 func TestServer_Stop1(t *testing.T) {

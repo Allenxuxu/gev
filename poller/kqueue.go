@@ -86,12 +86,9 @@ func (p *Poller) Del(fd int) error {
 	kEvents := p.kEvents(v.(Event), EventNone, fd)
 	_, err := unix.Kevent(p.fd, kEvents, nil, nil)
 	if err != nil {
-		return err
+		p.sockets.Delete(fd)
 	}
-
-	p.sockets.Delete(fd)
-
-	return nil
+	return err
 }
 
 // EnableReadWrite 修改fd注册事件为可读可写事件
@@ -105,11 +102,9 @@ func (p *Poller) EnableReadWrite(fd int) error {
 	kEvents := p.kEvents(oldEvents.(Event), newEvents, fd)
 	_, err := unix.Kevent(p.fd, kEvents, nil, nil)
 	if err != nil {
-		return err
+		p.sockets.Store(fd, newEvents)
 	}
-
-	p.sockets.Store(fd, newEvents)
-	return nil
+	return err
 }
 
 // EnableRead 修改fd注册事件为可读事件
