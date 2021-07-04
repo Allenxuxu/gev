@@ -24,7 +24,7 @@ func (s *example2) OnConnect(c *connection.Connection) {
 	}
 }
 
-func (s *example2) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
+func (s *example2) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out interface{}) {
 	log.Info("OnMessage")
 
 	return
@@ -71,7 +71,7 @@ func (s *example3) OnConnect(c *connection.Connection) {
 	//log.Info(" OnConnect ： ", c.PeerAddr())
 }
 
-func (s *example3) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
+func (s *example3) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out interface{}) {
 	//log.Info("OnMessage")
 
 	return

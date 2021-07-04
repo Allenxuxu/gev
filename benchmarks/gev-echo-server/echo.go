@@ -3,11 +3,10 @@ package main
 import (
 	"flag"
 	"net/http"
+	_ "net/http/pprof"
 	"strconv"
 
 	"github.com/Allenxuxu/gev/log"
-
-	_ "net/http/pprof"
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/connection"
@@ -17,7 +16,7 @@ type example struct {
 }
 
 func (s *example) OnConnect(c *connection.Connection) {}
-func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
+func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out interface{}) {
 
 	out = data
 

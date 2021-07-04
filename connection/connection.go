@@ -17,7 +17,7 @@ import (
 )
 
 type CallBack interface {
-	OnMessage(c *Connection, ctx interface{}, data []byte) []byte
+	OnMessage(c *Connection, ctx interface{}, data []byte) interface{}
 	OnClose(c *Connection)
 }
 
@@ -193,7 +193,7 @@ func (c *Connection) handlerProtocol(tmpBuffer *[]byte, buffer *ringbuffer.RingB
 	ctx, receivedData := c.protocol.UnPacket(c, buffer)
 	for ctx != nil || len(receivedData) != 0 {
 		sendData := c.callBack.OnMessage(c, ctx, receivedData)
-		if len(sendData) > 0 {
+		if sendData != nil {
 			*tmpBuffer = append(*tmpBuffer, c.protocol.Packet(c, sendData)...)
 		}
 

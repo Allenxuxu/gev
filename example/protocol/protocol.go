@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+
 	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/ringbuffer"
 	"github.com/gobwas/pool/pbytes"
@@ -31,10 +32,11 @@ func (d *ExampleProtocol) UnPacket(c *connection.Connection, buffer *ringbuffer.
 	return nil, nil
 }
 
-func (d *ExampleProtocol) Packet(c *connection.Connection, data []byte) []byte {
-	dataLen := len(data)
+func (d *ExampleProtocol) Packet(c *connection.Connection, data interface{}) []byte {
+	dd := data.([]byte)
+	dataLen := len(dd)
 	ret := make([]byte, exampleHeaderLen+dataLen)
 	binary.BigEndian.PutUint32(ret, uint32(dataLen))
-	copy(ret[4:], data)
+	copy(ret[4:], dd)
 	return ret
 }
