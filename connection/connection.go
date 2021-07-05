@@ -112,14 +112,14 @@ func (c *Connection) Connected() bool {
 }
 
 // Send 用来在非 loop 协程发送
-func (c *Connection) Send(buffer []byte) error {
+func (c *Connection) Send(data interface{}) error {
 	if !c.connected.Get() {
 		return ErrConnectionClosed
 	}
 
 	c.loop.QueueInLoop(func() {
 		if c.connected.Get() {
-			c.sendInLoop(c.protocol.Packet(c, buffer))
+			c.sendInLoop(c.protocol.Packet(c, data))
 		}
 	})
 	return nil
