@@ -113,7 +113,6 @@ func (c *Connection) Connected() bool {
 
 // Send 用来在非 loop 协程发送
 func (c *Connection) Send(buffer interface{}, opts ...Option) error {
-
 	if !c.connected.Get() {
 		return ErrConnectionClosed
 	}
