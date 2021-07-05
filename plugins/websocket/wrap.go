@@ -35,7 +35,7 @@ func (s *HandlerWrap) OnConnect(c *connection.Connection) {
 }
 
 // OnMessage wrap
-func (s *HandlerWrap) OnMessage(c *connection.Connection, ctx interface{}, payload []byte) []byte {
+func (s *HandlerWrap) OnMessage(c *connection.Connection, ctx interface{}, payload []byte) interface{} {
 	header, ok := ctx.(*ws.Header)
 	if !ok && len(payload) != 0 { // 升级协议 握手
 		return payload

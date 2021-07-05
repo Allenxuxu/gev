@@ -1,6 +1,6 @@
 package connection
 
-type SendInLoopFunc func([]byte)
+type SendInLoopFunc func(interface{})
 
 type Options struct {
 	sendInLoopFinish SendInLoopFunc
