@@ -9,7 +9,7 @@ var _ Protocol = &DefaultProtocol{}
 // Protocol 自定义协议编解码接口
 type Protocol interface {
 	UnPacket(c *Connection, buffer *ringbuffer.RingBuffer) (interface{}, []byte)
-	Packet(c *Connection, data []byte) []byte
+	Packet(c *Connection, data interface{}) []byte
 }
 
 // DefaultProtocol 默认 Protocol
@@ -38,6 +38,6 @@ func (d *DefaultProtocol) UnPacket(c *Connection, buffer *ringbuffer.RingBuffer)
 }
 
 // Packet 封包
-func (d *DefaultProtocol) Packet(c *Connection, data []byte) []byte {
-	return data
+func (d *DefaultProtocol) Packet(c *Connection, data interface{}) []byte {
+	return data.([]byte)
 }

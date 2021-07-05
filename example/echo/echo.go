@@ -21,7 +21,7 @@ func (s *example) OnConnect(c *connection.Connection) {
 	s.Count.Add(1)
 	//log.Println(" OnConnect ： ", c.PeerAddr())
 }
-func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
+func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out interface{}) {
 	//log.Println("OnMessage")
 	out = data
 	return

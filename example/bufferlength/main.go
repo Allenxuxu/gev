@@ -74,7 +74,7 @@ func (s *Server) OnConnect(c *connection.Connection) {
 }
 
 // OnMessage callback
-func (s *Server) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
+func (s *Server) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out interface{}) {
 	log.Printf("OnMessage, read buffer len %d, write buffer len %d \n", c.ReadBufferLength(), c.WriteBufferLength())
 
 	out = data

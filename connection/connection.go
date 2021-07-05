@@ -17,7 +17,7 @@ import (
 )
 
 type CallBack interface {
-	OnMessage(c *Connection, ctx interface{}, data []byte) []byte
+	OnMessage(c *Connection, ctx interface{}, data []byte) interface{}
 	OnClose(c *Connection)
 }
 
@@ -112,14 +112,14 @@ func (c *Connection) Connected() bool {
 }
 
 // Send 用来在非 loop 协程发送
-func (c *Connection) Send(buffer []byte) error {
+func (c *Connection) Send(data interface{}) error {
 	if !c.connected.Get() {
 		return ErrConnectionClosed
 	}
 
 	c.loop.QueueInLoop(func() {
 		if c.connected.Get() {
-			c.sendInLoop(c.protocol.Packet(c, buffer))
+			c.sendInLoop(c.protocol.Packet(c, data))
 		}
 	})
 	return nil
@@ -193,7 +193,7 @@ func (c *Connection) handlerProtocol(tmpBuffer *[]byte, buffer *ringbuffer.RingB
 	ctx, receivedData := c.protocol.UnPacket(c, buffer)
 	for ctx != nil || len(receivedData) != 0 {
 		sendData := c.callBack.OnMessage(c, ctx, receivedData)
-		if len(sendData) > 0 {
+		if sendData != nil {
 			*tmpBuffer = append(*tmpBuffer, c.protocol.Packet(c, sendData)...)
 		}
 

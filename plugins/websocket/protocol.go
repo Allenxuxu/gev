@@ -64,6 +64,6 @@ func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuf
 }
 
 // Packet 直接返回
-func (p *Protocol) Packet(c *connection.Connection, data []byte) []byte {
-	return data
+func (p *Protocol) Packet(c *connection.Connection, data interface{}) []byte {
+	return data.([]byte)
 }

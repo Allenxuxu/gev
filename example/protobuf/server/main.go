@@ -17,7 +17,7 @@ type example struct{}
 func (s *example) OnConnect(c *connection.Connection) {
 	log.Println(" OnConnect ： ", c.PeerAddr())
 }
-func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
+func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out interface{}) {
 	msgType := ctx.(string)
 
 	switch msgType {
