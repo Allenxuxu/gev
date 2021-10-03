@@ -804,6 +804,13 @@ func main() {
 
 </details>
 
+## Buy me a coffee
+
+<img src="https://raw.githubusercontent.com/Allenxuxu/doc/master/alipay.jpeg" width = "200" height="300" />
+<img src="https://raw.githubusercontent.com/Allenxuxu/doc/master/wechat.jpeg" width = "200" height="300" />
+
+**Paypal**: [Paypal/AllenXuxu](https://www.paypal.me/AllenXuxu)
+
 ## Thanks
 
 Thanks JetBrains for the free open source license
