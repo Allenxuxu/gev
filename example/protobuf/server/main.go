@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/connection"
 	pb "github.com/Allenxuxu/gev/example/protobuf/proto"
 	"github.com/Allenxuxu/gev/plugins/protobuf"
 	"google.golang.org/protobuf/proto"
@@ -14,10 +13,10 @@ import (
 
 type example struct{}
 
-func (s *example) OnConnect(c *connection.Connection) {
+func (s *example) OnConnect(c *gev.Connection) {
 	log.Println(" OnConnect ： ", c.PeerAddr())
 }
-func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out interface{}) {
+func (s *example) OnMessage(c *gev.Connection, ctx interface{}, data []byte) (out interface{}) {
 	msgType := ctx.(string)
 
 	switch msgType {
@@ -40,7 +39,7 @@ func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []by
 	return
 }
 
-func (s *example) OnClose(c *connection.Connection) {
+func (s *example) OnClose(c *gev.Connection) {
 	log.Println("OnClose")
 }
 

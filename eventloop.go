@@ -1,4 +1,4 @@
-package eventloop
+package gev
 
 import (
 	"unsafe"
@@ -44,8 +44,8 @@ type eventLoopLocal struct {
 	UserBuffer *[]byte
 }
 
-// New 创建一个 EventLoop
-func New() (*EventLoop, error) {
+// NewEventLoop 创建一个 EventLoop
+func NewEventLoop() (*EventLoop, error) {
 	p, err := poller.Create()
 	if err != nil {
 		return nil, err

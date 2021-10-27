@@ -7,7 +7,6 @@ import (
 	"github.com/Allenxuxu/gev/log"
 
 	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/plugins/websocket"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 )
@@ -18,11 +17,11 @@ type example struct {
 // connection lifecycle
 // OnConnect() -> OnRequest() -> OnHeader() -> OnMessage() -> OnClose()
 
-func (s *example) OnConnect(c *connection.Connection) {
+func (s *example) OnConnect(c *gev.Connection) {
 	//log.Println("OnConnect: ", c.PeerAddr())
 }
 
-func (s *example) OnMessage(c *connection.Connection, data []byte) (messageType ws.MessageType, out []byte) {
+func (s *example) OnMessage(c *gev.Connection, data []byte) (messageType ws.MessageType, out []byte) {
 	//log.Println("OnMessage: ", string(data))
 
 	messageType = ws.MessageBinary
@@ -31,7 +30,7 @@ func (s *example) OnMessage(c *connection.Connection, data []byte) (messageType 
 	return
 }
 
-func (s *example) OnClose(c *connection.Connection) {
+func (s *example) OnClose(c *gev.Connection) {
 	//log.Println("123 OnClose", c.PeerAddr())
 }
 

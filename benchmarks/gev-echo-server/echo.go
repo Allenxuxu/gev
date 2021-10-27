@@ -9,14 +9,13 @@ import (
 	"github.com/Allenxuxu/gev/log"
 
 	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/connection"
 )
 
 type example struct {
 }
 
-func (s *example) OnConnect(c *connection.Connection) {}
-func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out interface{}) {
+func (s *example) OnConnect(c *gev.Connection) {}
+func (s *example) OnMessage(c *gev.Connection, ctx interface{}, data []byte) (out interface{}) {
 
 	out = data
 
@@ -29,7 +28,7 @@ func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []by
 	return
 }
 
-func (s *example) OnClose(c *connection.Connection) {
+func (s *example) OnClose(c *gev.Connection) {
 	//log.Error("onclose ")
 }
 

@@ -1,4 +1,4 @@
-package connection
+package gev
 
 import (
 	"errors"
@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/Allenxuxu/ringbuffer"
@@ -31,7 +30,7 @@ type Connection struct {
 	outBufferLen atomic.Int64
 	inBufferLen  atomic.Int64
 	callBack     CallBack
-	loop         *eventloop.EventLoop
+	loop         *EventLoop
 	peerAddr     string
 	ctx          interface{}
 	KeyValueContext
@@ -40,16 +39,16 @@ type Connection struct {
 	activeTime  atomic.Int64
 	timingWheel *timingwheel.TimingWheel
 
-	protocol Protocol
+	protocol GevProtocol
 }
 
 var ErrConnectionClosed = errors.New("connection closed")
 
-// New 创建 Connection
-func New(fd int,
-	loop *eventloop.EventLoop,
+// NewConnection 创建 Connection
+func NewConnection(fd int,
+	loop *EventLoop,
 	sa unix.Sockaddr,
-	protocol Protocol,
+	protocol GevProtocol,
 	tw *timingwheel.TimingWheel,
 	idleTime time.Duration,
 	callBack CallBack) *Connection {
@@ -112,12 +111,12 @@ func (c *Connection) Connected() bool {
 }
 
 // Send 用来在非 loop 协程发送
-func (c *Connection) Send(data interface{}, opts ...Option) error {
+func (c *Connection) Send(data interface{}, opts ...ConnectionOption) error {
 	if !c.connected.Get() {
 		return ErrConnectionClosed
 	}
 
-	opt := Options{}
+	opt := ConnectionOptions{}
 	for _, o := range opts {
 		o(&opt)
 	}

@@ -5,19 +5,17 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/Allenxuxu/gev/eventloop"
 )
 
 func TestLeastConnection(t *testing.T) {
 	var (
-		loops []*eventloop.EventLoop
+		loops []*EventLoop
 		n     = 100
 		min   int64
 	)
 
 	for i := 0; i < n; i++ {
-		l := &eventloop.EventLoop{}
+		l := &EventLoop{}
 		connCount := int64(rand.Intn(n))
 		l.ConnCunt.Swap(connCount)
 		loops = append(loops, l)
@@ -37,12 +35,12 @@ func TestLeastConnection(t *testing.T) {
 
 func TestRoundRobin(t *testing.T) {
 	var (
-		loops []*eventloop.EventLoop
+		loops []*EventLoop
 		n     = 100
 	)
 
 	for i := 0; i < n; i++ {
-		l := &eventloop.EventLoop{}
+		l := &EventLoop{}
 		l.ConnCunt.Swap(int64(i))
 		loops = append(loops, l)
 	}

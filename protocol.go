@@ -1,13 +1,13 @@
-package connection
+package gev
 
 import (
 	"github.com/Allenxuxu/ringbuffer"
 )
 
-var _ Protocol = &DefaultProtocol{}
+var _ GevProtocol = &DefaultProtocol{}
 
-// Protocol 自定义协议编解码接口
-type Protocol interface {
+// GevProtocol 自定义协议编解码接口
+type GevProtocol interface {
 	UnPacket(c *Connection, buffer *ringbuffer.RingBuffer) (interface{}, []byte)
 	Packet(c *Connection, data interface{}) []byte
 }

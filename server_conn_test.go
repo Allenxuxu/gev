@@ -10,27 +10,26 @@ import (
 
 	"github.com/Allenxuxu/toolkit/sync"
 
-	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/log"
 )
 
 type example2 struct {
 }
 
-func (s *example2) OnConnect(c *connection.Connection) {
+func (s *example2) OnConnect(c *Connection) {
 	log.Info(" OnConnect ： ", c.PeerAddr())
 	if err := c.Close(); err != nil {
 		panic(err)
 	}
 }
 
-func (s *example2) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out interface{}) {
+func (s *example2) OnMessage(c *Connection, ctx interface{}, data []byte) (out interface{}) {
 	log.Info("OnMessage")
 
 	return
 }
 
-func (s *example2) OnClose(c *connection.Connection) {
+func (s *example2) OnClose(c *Connection) {
 	log.Info("OnClose")
 }
 
@@ -67,18 +66,18 @@ func TestConnClose(t *testing.T) {
 type example3 struct {
 }
 
-func (s *example3) OnConnect(c *connection.Connection) {
-	//log.Info(" OnConnect ： ", c.PeerAddr())
+func (s *example3) OnConnect(c *Connection) {
+	// log.Info(" OnConnect ： ", c.PeerAddr())
 }
 
-func (s *example3) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out interface{}) {
-	//log.Info("OnMessage")
+func (s *example3) OnMessage(c *Connection, ctx interface{}, data []byte) (out interface{}) {
+	// log.Info("OnMessage")
 
 	return
 }
 
-func (s *example3) OnClose(c *connection.Connection) {
-	//log.Info("OnClose")
+func (s *example3) OnClose(c *Connection) {
+	// log.Info("OnClose")
 }
 func TestIdleTime(t *testing.T) {
 	log.SetLevel(log.LevelDebug)

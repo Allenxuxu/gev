@@ -1,7 +1,7 @@
 package protobuf
 
 import (
-	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/ringbuffer"
 	"github.com/gobwas/pool/pbytes"
 )
@@ -24,7 +24,7 @@ func New() *Protocol {
 }
 
 // UnPacket ...
-func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuffer) (ctx interface{}, out []byte) {
+func (p *Protocol) UnPacket(c *gev.Connection, buffer *ringbuffer.RingBuffer) (ctx interface{}, out []byte) {
 	if buffer.Length() > 6 {
 		length := int(buffer.PeekUint32())
 		if buffer.Length() >= length+4 {
@@ -50,6 +50,6 @@ func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuf
 }
 
 // Packet ...
-func (p *Protocol) Packet(c *connection.Connection, data interface{}) []byte {
+func (p *Protocol) Packet(c *gev.Connection, data interface{}) []byte {
 	return data.([]byte)
 }

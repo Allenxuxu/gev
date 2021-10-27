@@ -2,8 +2,6 @@ package gev
 
 import (
 	"time"
-
-	"github.com/Allenxuxu/gev/connection"
 )
 
 // Options 服务配置
@@ -13,7 +11,7 @@ type Options struct {
 	NumLoops  int
 	ReusePort bool
 	IdleTime  time.Duration
-	Protocol  connection.Protocol
+	Protocol  GevProtocol
 	Strategy  LoadBalanceStrategy
 
 	tick                        time.Duration
@@ -44,7 +42,7 @@ func newOptions(opt ...Option) *Options {
 		opts.wheelSize = 1000
 	}
 	if opts.Protocol == nil {
-		opts.Protocol = &connection.DefaultProtocol{}
+		opts.Protocol = &DefaultProtocol{}
 	}
 	if opts.Strategy == nil {
 		opts.Strategy = RoundRobin()
@@ -82,7 +80,7 @@ func NumLoops(n int) Option {
 }
 
 // Protocol 数据包处理
-func Protocol(p connection.Protocol) Option {
+func Protocol(p GevProtocol) Option {
 	return func(o *Options) {
 		o.Protocol = p
 	}

@@ -1,4 +1,4 @@
-package eventloop
+package gev
 
 import (
 	"log"
@@ -10,7 +10,7 @@ import (
 )
 
 func TestEventLoop_RunLoop(t *testing.T) {
-	el, err := New()
+	el, err := NewEventLoop()
 	if err != nil {
 		t.Fatal(err)
 	}

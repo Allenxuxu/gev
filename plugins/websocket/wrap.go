@@ -1,7 +1,7 @@
 package websocket
 
 import (
-	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws/util"
@@ -10,9 +10,9 @@ import (
 
 // WSHandler WebSocket Server 注册接口
 type WSHandler interface {
-	OnConnect(c *connection.Connection)
-	OnMessage(c *connection.Connection, msg []byte) (ws.MessageType, []byte)
-	OnClose(c *connection.Connection)
+	OnConnect(c *gev.Connection)
+	OnMessage(c *gev.Connection, msg []byte) (ws.MessageType, []byte)
+	OnClose(c *gev.Connection)
 }
 
 // HandlerWrap gev Handler wrap
@@ -30,12 +30,12 @@ func NewHandlerWrap(u *ws.Upgrader, wsHandler WSHandler) *HandlerWrap {
 }
 
 // OnConnect wrap
-func (s *HandlerWrap) OnConnect(c *connection.Connection) {
+func (s *HandlerWrap) OnConnect(c *gev.Connection) {
 	s.wsHandler.OnConnect(c)
 }
 
 // OnMessage wrap
-func (s *HandlerWrap) OnMessage(c *connection.Connection, ctx interface{}, payload []byte) interface{} {
+func (s *HandlerWrap) OnMessage(c *gev.Connection, ctx interface{}, payload []byte) interface{} {
 	header, ok := ctx.(*ws.Header)
 	if !ok && len(payload) != 0 { // 升级协议 握手
 		return payload
@@ -90,7 +90,7 @@ func (s *HandlerWrap) OnMessage(c *connection.Connection, ctx interface{}, paylo
 }
 
 // OnClose wrap
-func (s *HandlerWrap) OnClose(c *connection.Connection) {
+func (s *HandlerWrap) OnClose(c *gev.Connection) {
 	s.wsHandler.OnClose(c)
 
 	if bts, ok := c.Get(headerbufferKey); ok {

@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/toolkit/sync"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
@@ -19,15 +18,15 @@ type example struct {
 	Count atomic.Int64
 }
 
-func (s *example) OnConnect(c *connection.Connection) {
+func (s *example) OnConnect(c *Connection) {
 	s.Count.Add(1)
-	//log.Println(" OnConnect ： ", c.PeerAddr())
+	// log.Println(" OnConnect ： ", c.PeerAddr())
 }
 
-func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out interface{}) {
-	//log.Println("OnMessage")
+func (s *example) OnMessage(c *Connection, ctx interface{}, data []byte) (out interface{}) {
+	// log.Println("OnMessage")
 
-	//out = data
+	// out = data
 	msg := append([]byte{}, data...)
 	if err := c.Send(msg); err != nil {
 		panic(err)
@@ -35,9 +34,9 @@ func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []by
 	return
 }
 
-func (s *example) OnClose(c *connection.Connection) {
+func (s *example) OnClose(c *Connection) {
 	s.Count.Add(-1)
-	//log.Println("OnClose")
+	// log.Println("OnClose")
 }
 
 func TestServer_Start(t *testing.T) {
@@ -201,25 +200,25 @@ type example1 struct {
 	Count atomic.Int64
 }
 
-func (s *example1) OnConnect(c *connection.Connection) {
+func (s *example1) OnConnect(c *Connection) {
 	s.Count.Add(1)
 	_ = c.Send([]byte("hello gev"))
-	//log.Println(" OnConnect ： ", c.PeerAddr())
+	// log.Println(" OnConnect ： ", c.PeerAddr())
 }
 
-func (s *example1) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out interface{}) {
-	//log.Println("OnMessage")
+func (s *example1) OnMessage(c *Connection, ctx interface{}, data []byte) (out interface{}) {
+	// log.Println("OnMessage")
 
-	//out = data
+	// out = data
 	if err := c.Send(data); err != nil {
 		panic(err)
 	}
 	return
 }
 
-func (s *example1) OnClose(c *connection.Connection) {
+func (s *example1) OnClose(c *Connection) {
 	s.Count.Add(-1)
-	//log.Println("OnClose")
+	// log.Println("OnClose")
 }
 
 func TestServer_Stop1(t *testing.T) {

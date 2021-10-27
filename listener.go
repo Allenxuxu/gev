@@ -1,11 +1,10 @@
-package listener
+package gev
 
 import (
 	"errors"
 	"net"
 	"os"
 
-	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/libp2p/go-reuseport"
@@ -21,11 +20,11 @@ type Listener struct {
 	fd       int
 	handleC  HandleConnFunc
 	listener net.Listener
-	loop     *eventloop.EventLoop
+	loop     *EventLoop
 }
 
 // New 创建Listener
-func New(network, addr string, reusePort bool, loop *eventloop.EventLoop, handlerConn HandleConnFunc) (*Listener, error) {
+func New(network, addr string, reusePort bool, loop *EventLoop, handlerConn HandleConnFunc) (*Listener, error) {
 	var listener net.Listener
 	var err error
 	if reusePort {

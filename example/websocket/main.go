@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws/util"
 )
@@ -22,19 +21,19 @@ var (
 
 type example struct {
 	sync.Mutex
-	sessions map[*connection.Connection]*Session
+	sessions map[*gev.Connection]*Session
 }
 
 type Session struct {
 	first  bool
 	header http.Header
-	conn   *connection.Connection
+	conn   *gev.Connection
 }
 
 // connection lifecycle
 // OnConnect() -> OnRequest() -> OnHeader() -> OnMessage() -> OnClose()
 
-func (s *example) OnConnect(c *connection.Connection) {
+func (s *example) OnConnect(c *gev.Connection) {
 	log.Println("OnConnect: ", c.PeerAddr())
 
 	s.Lock()
@@ -46,7 +45,7 @@ func (s *example) OnConnect(c *connection.Connection) {
 	}
 }
 
-func (s *example) OnMessage(c *connection.Connection, data []byte) (messageType ws.MessageType, out []byte) {
+func (s *example) OnMessage(c *gev.Connection, data []byte) (messageType ws.MessageType, out []byte) {
 	log.Println("OnMessage: ", string(data))
 
 	s.Lock()
@@ -118,7 +117,7 @@ func (s *example) OnMessage(c *connection.Connection, data []byte) (messageType 
 	return
 }
 
-func (s *example) OnClose(c *connection.Connection) {
+func (s *example) OnClose(c *gev.Connection) {
 	log.Println("OnClose")
 
 	s.Lock()
@@ -161,11 +160,11 @@ func main() {
 	flag.Parse()
 
 	handler := &example{
-		sessions: make(map[*connection.Connection]*Session, 10),
+		sessions: make(map[*gev.Connection]*Session, 10),
 	}
 
 	wsUpgrader := &ws.Upgrader{}
-	wsUpgrader.OnHeader = func(c *connection.Connection, key, value []byte) error {
+	wsUpgrader.OnHeader = func(c *gev.Connection, key, value []byte) error {
 		log.Println("OnHeader: ", string(key), string(value))
 
 		var header http.Header
@@ -181,7 +180,7 @@ func main() {
 		return nil
 	}
 
-	wsUpgrader.OnRequest = func(c *connection.Connection, uri []byte) error {
+	wsUpgrader.OnRequest = func(c *gev.Connection, uri []byte) error {
 		log.Println("OnRequest: ", string(uri))
 
 		c.Set(keyUri, string(uri))
