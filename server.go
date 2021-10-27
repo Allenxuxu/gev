@@ -20,8 +20,8 @@ type Handler interface {
 
 // Server gev Server
 type Server struct {
-	loop      *EventLoop
-	workLoops []*EventLoop
+	loop      *eventLoop
+	workLoops []*eventLoop
 	callback  Handler
 
 	timingWheel *timingwheel.TimingWheel
@@ -39,17 +39,17 @@ func NewServer(handler Handler, opts ...Option) (server *Server, err error) {
 	server.callback = handler
 	server.opts = options
 	server.timingWheel = timingwheel.NewTimingWheel(server.opts.tick, server.opts.wheelSize)
-	server.loop, err = NewEventLoop()
+	server.loop, err = newEventLoop()
 	if err != nil {
-		_ = server.loop.Stop()
+		_ = server.loop.stop()
 		return nil, err
 	}
 
-	l, err := New(server.opts.Network, server.opts.Address, options.ReusePort, server.loop, server.handleNewConnection)
+	l, err := newListener(server.opts.Network, server.opts.Address, options.ReusePort, server.loop, server.handleNewConnection)
 	if err != nil {
 		return nil, err
 	}
-	if err = server.loop.AddSocketAndEnableRead(l.Fd(), l); err != nil {
+	if err = server.loop.addSocketAndEnableRead(l.fd, l); err != nil {
 		return nil, err
 	}
 
@@ -57,12 +57,12 @@ func NewServer(handler Handler, opts ...Option) (server *Server, err error) {
 		server.opts.NumLoops = runtime.NumCPU()
 	}
 
-	wloops := make([]*EventLoop, server.opts.NumLoops)
+	wloops := make([]*eventLoop, server.opts.NumLoops)
 	for i := 0; i < server.opts.NumLoops; i++ {
-		l, err := NewEventLoop()
+		l, err := newEventLoop()
 		if err != nil {
 			for j := 0; j < i; j++ {
-				_ = wloops[j].Stop()
+				_ = wloops[j].stop()
 			}
 			return nil, err
 		}
@@ -88,10 +88,10 @@ func (s *Server) handleNewConnection(fd int, sa unix.Sockaddr) {
 
 	c := NewConnection(fd, loop, sa, s.opts.Protocol, s.timingWheel, s.opts.IdleTime, s.callback)
 
-	loop.QueueInLoop(func() {
+	loop.queueInLoop(func() {
 		s.callback.OnConnect(c)
-		if err := loop.AddSocketAndEnableRead(fd, c); err != nil {
-			log.Error("[AddSocketAndEnableRead]", err)
+		if err := loop.addSocketAndEnableRead(fd, c); err != nil {
+			log.Error("[addSocketAndEnableRead]", err)
 		}
 	})
 }
@@ -103,10 +103,10 @@ func (s *Server) Start() {
 
 	length := len(s.workLoops)
 	for i := 0; i < length; i++ {
-		sw.AddAndRun(s.workLoops[i].RunLoop)
+		sw.AddAndRun(s.workLoops[i].runLoop)
 	}
 
-	sw.AddAndRun(s.loop.RunLoop)
+	sw.AddAndRun(s.loop.runLoop)
 	s.running.Set(true)
 	sw.Wait()
 }
@@ -117,12 +117,12 @@ func (s *Server) Stop() {
 		s.running.Set(false)
 
 		s.timingWheel.Stop()
-		if err := s.loop.Stop(); err != nil {
+		if err := s.loop.stop(); err != nil {
 			log.Error(err)
 		}
 
 		for k := range s.workLoops {
-			if err := s.workLoops[k].Stop(); err != nil {
+			if err := s.workLoops[k].stop(); err != nil {
 				log.Error(err)
 			}
 		}

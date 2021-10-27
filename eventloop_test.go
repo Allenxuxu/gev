@@ -10,14 +10,14 @@ import (
 )
 
 func TestEventLoop_RunLoop(t *testing.T) {
-	el, err := NewEventLoop()
+	el, err := newEventLoop()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for i := 0; i < 10; i++ {
 		go func() {
-			el.QueueInLoop(func() {
+			el.queueInLoop(func() {
 				log.Println("runinloop")
 			})
 		}()
@@ -25,17 +25,17 @@ func TestEventLoop_RunLoop(t *testing.T) {
 
 	go func() {
 		time.Sleep(time.Second)
-		if err := el.Stop(); err != nil {
+		if err := el.stop(); err != nil {
 			panic(err)
 		}
 	}()
 
-	el.RunLoop()
+	el.runLoop()
 }
 
 func TestEventLoopSize(t *testing.T) {
 	t.Log(unsafe.Sizeof(eventLoopLocal{}))
-	t.Log(unsafe.Sizeof(EventLoop{}))
+	t.Log(unsafe.Sizeof(eventLoop{}))
 
-	assert.Equal(t, 128, int(unsafe.Sizeof(EventLoop{})))
+	assert.Equal(t, 128, int(unsafe.Sizeof(eventLoop{})))
 }

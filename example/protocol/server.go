@@ -36,7 +36,7 @@ func main() {
 		gev.Network("tcp"),
 		gev.Address(":"+strconv.Itoa(port)),
 		gev.NumLoops(loops),
-		gev.Protocol(&ExampleProtocol{}))
+		gev.CustomProtocol(&ExampleProtocol{}))
 	if err != nil {
 		panic(err)
 	}

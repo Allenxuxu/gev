@@ -11,7 +11,7 @@ type Options struct {
 	NumLoops  int
 	ReusePort bool
 	IdleTime  time.Duration
-	Protocol  GevProtocol
+	Protocol  Protocol
 	Strategy  LoadBalanceStrategy
 
 	tick                        time.Duration
@@ -79,8 +79,8 @@ func NumLoops(n int) Option {
 	}
 }
 
-// Protocol 数据包处理
-func Protocol(p GevProtocol) Option {
+// CustomProtocol 数据包处理
+func CustomProtocol(p Protocol) Option {
 	return func(o *Options) {
 		o.Protocol = p
 	}

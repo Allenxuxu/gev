@@ -30,7 +30,7 @@ type Connection struct {
 	outBufferLen atomic.Int64
 	inBufferLen  atomic.Int64
 	callBack     CallBack
-	loop         *EventLoop
+	loop         *eventLoop
 	peerAddr     string
 	ctx          interface{}
 	KeyValueContext
@@ -39,16 +39,16 @@ type Connection struct {
 	activeTime  atomic.Int64
 	timingWheel *timingwheel.TimingWheel
 
-	protocol GevProtocol
+	protocol Protocol
 }
 
 var ErrConnectionClosed = errors.New("connection closed")
 
 // NewConnection 创建 Connection
 func NewConnection(fd int,
-	loop *EventLoop,
+	loop *eventLoop,
 	sa unix.Sockaddr,
-	protocol GevProtocol,
+	protocol Protocol,
 	tw *timingwheel.TimingWheel,
 	idleTime time.Duration,
 	callBack CallBack) *Connection {
@@ -121,7 +121,7 @@ func (c *Connection) Send(data interface{}, opts ...ConnectionOption) error {
 		o(&opt)
 	}
 
-	c.loop.QueueInLoop(func() {
+	c.loop.queueInLoop(func() {
 		if c.connected.Get() {
 			c.sendInLoop(c.protocol.Packet(c, data))
 
@@ -139,7 +139,7 @@ func (c *Connection) Close() error {
 		return ErrConnectionClosed
 	}
 
-	c.loop.QueueInLoop(func() {
+	c.loop.queueInLoop(func() {
 		c.handleClose(c.fd)
 	})
 	return nil
@@ -161,7 +161,7 @@ func (c *Connection) WriteBufferLength() int64 {
 }
 
 // HandleEvent 内部使用，event loop 回调
-func (c *Connection) HandleEvent(fd int, events poller.Event) {
+func (c *Connection) handleEvent(fd int, events poller.Event) {
 	if c.idleTime > 0 {
 		_ = c.activeTime.Swap(time.Now().Unix())
 	}
@@ -269,8 +269,8 @@ func (c *Connection) handleWrite(fd int) (closed bool) {
 	}
 
 	if c.outBuffer.IsEmpty() {
-		if err := c.loop.EnableRead(fd); err != nil {
-			log.Error("[EnableRead]", err)
+		if err := c.loop.enableRead(fd); err != nil {
+			log.Error("[enableRead]", err)
 		}
 	}
 
@@ -280,7 +280,7 @@ func (c *Connection) handleWrite(fd int) (closed bool) {
 func (c *Connection) handleClose(fd int) {
 	if c.connected.Get() {
 		c.connected.Set(false)
-		c.loop.DeleteFdInLoop(fd)
+		c.loop.deleteFdInLoop(fd)
 
 		c.callBack.OnClose(c)
 		if err := unix.Close(fd); err != nil {
@@ -310,7 +310,7 @@ func (c *Connection) sendInLoop(data []byte) (closed bool) {
 		}
 
 		if !c.outBuffer.IsEmpty() {
-			_ = c.loop.EnableReadWrite(c.fd)
+			_ = c.loop.enableReadWrite(c.fd)
 		}
 	}
 

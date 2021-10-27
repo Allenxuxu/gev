@@ -9,13 +9,13 @@ import (
 
 func TestLeastConnection(t *testing.T) {
 	var (
-		loops []*EventLoop
+		loops []*eventLoop
 		n     = 100
 		min   int64
 	)
 
 	for i := 0; i < n; i++ {
-		l := &EventLoop{}
+		l := &eventLoop{}
 		connCount := int64(rand.Intn(n))
 		l.ConnCunt.Swap(connCount)
 		loops = append(loops, l)
@@ -35,12 +35,12 @@ func TestLeastConnection(t *testing.T) {
 
 func TestRoundRobin(t *testing.T) {
 	var (
-		loops []*EventLoop
+		loops []*eventLoop
 		n     = 100
 	)
 
 	for i := 0; i < n; i++ {
-		l := &EventLoop{}
+		l := &eventLoop{}
 		l.ConnCunt.Swap(int64(i))
 		loops = append(loops, l)
 	}
