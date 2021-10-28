@@ -135,6 +135,10 @@ func (c *Connection) Send(data interface{}, opts ...ConnectionOption) error {
 
 // Close 关闭连接
 func (c *Connection) Close() error {
+	return c.close()
+}
+
+func (c *Connection) close() error {
 	if !c.connected.Get() {
 		return ErrConnectionClosed
 	}

@@ -15,15 +15,10 @@ var (
 	DefaultTaskQueueSize = 1024
 )
 
-type handler interface {
-	handleEvent(fd int, events poller.Event)
-}
-
 // Socket 接口
 type Socket interface {
-	handler
-
-	Close() error
+	handleEvent(fd int, events poller.Event)
+	close() error
 }
 
 // eventLoop 事件循环
@@ -88,7 +83,7 @@ func (l *eventLoop) deleteFdInLoop(fd int) {
 	l.ConnCunt.Add(-1)
 }
 
-// addSocketAndEnableRead 增加 Socket 到时间循环中，并注册可读事件
+// addSocketAndEnableRead 增加 Socket 到事件循环中，并注册可读事件
 func (l *eventLoop) addSocketAndEnableRead(fd int, s Socket) error {
 	l.sockets[fd] = s
 	if err := l.poll.AddRead(fd); err != nil {
@@ -119,7 +114,7 @@ func (l *eventLoop) runLoop() {
 func (l *eventLoop) stop() error {
 	l.queueInLoop(func() {
 		for _, v := range l.sockets {
-			if err := v.Close(); err != nil {
+			if err := v.close(); err != nil {
 				log.Error(err)
 			}
 		}

@@ -24,7 +24,7 @@ type listener struct {
 }
 
 // newListener 创建Listener
-func newListener(network, addr string, reusePort bool, loop *eventLoop, handlerConn handleConnFunc) (*listener, error) {
+func newListener(network, addr string, reusePort bool, handlerConn handleConnFunc) (*listener, error) {
 	var ls net.Listener
 	var err error
 	if reusePort {
@@ -50,12 +50,27 @@ func newListener(network, addr string, reusePort bool, loop *eventLoop, handlerC
 		return nil, err
 	}
 
-	return &listener{
+	loop, err := newEventLoop()
+	if err != nil {
+		return nil, err
+	}
+
+	listener := &listener{
 		file:     file,
 		fd:       fd,
 		handleC:  handlerConn,
 		listener: ls,
-		loop:     loop}, nil
+		loop:     loop,
+	}
+	if err = loop.addSocketAndEnableRead(fd, listener); err != nil {
+		return nil, err
+	}
+
+	return listener, nil
+}
+
+func (l *listener) Run() {
+	l.loop.runLoop()
 }
 
 // HandleEvent 内部使用，供 event loop 回调处理事件
@@ -78,14 +93,10 @@ func (l *listener) handleEvent(fd int, events poller.Event) {
 	}
 }
 
-// Close listener
-func (l *listener) Close() error {
-	l.loop.queueInLoop(func() {
-		l.loop.deleteFdInLoop(l.fd)
-		if err := l.listener.Close(); err != nil {
-			log.Error("[listener] close error: ", err)
-		}
-	})
+func (l *listener) close() error {
+	return l.listener.Close()
+}
 
-	return nil
+func (l *listener) Stop() error {
+	return l.loop.stop()
 }

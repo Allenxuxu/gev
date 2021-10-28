@@ -20,7 +20,7 @@ type Handler interface {
 
 // Server gev Server
 type Server struct {
-	loop      *eventLoop
+	listener  *listener
 	workLoops []*eventLoop
 	callback  Handler
 
@@ -39,17 +39,8 @@ func NewServer(handler Handler, opts ...Option) (server *Server, err error) {
 	server.callback = handler
 	server.opts = options
 	server.timingWheel = timingwheel.NewTimingWheel(server.opts.tick, server.opts.wheelSize)
-	server.loop, err = newEventLoop()
+	server.listener, err = newListener(server.opts.Network, server.opts.Address, options.ReusePort, server.handleNewConnection)
 	if err != nil {
-		_ = server.loop.stop()
-		return nil, err
-	}
-
-	l, err := newListener(server.opts.Network, server.opts.Address, options.ReusePort, server.loop, server.handleNewConnection)
-	if err != nil {
-		return nil, err
-	}
-	if err = server.loop.addSocketAndEnableRead(l.fd, l); err != nil {
 		return nil, err
 	}
 
@@ -106,7 +97,7 @@ func (s *Server) Start() {
 		sw.AddAndRun(s.workLoops[i].runLoop)
 	}
 
-	sw.AddAndRun(s.loop.runLoop)
+	sw.AddAndRun(s.listener.Run)
 	s.running.Set(true)
 	sw.Wait()
 }
@@ -117,7 +108,7 @@ func (s *Server) Stop() {
 		s.running.Set(false)
 
 		s.timingWheel.Stop()
-		if err := s.loop.stop(); err != nil {
+		if err := s.listener.Stop(); err != nil {
 			log.Error(err)
 		}
 
