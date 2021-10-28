@@ -138,7 +138,7 @@ Handler 是一个接口，我们的程序必须实现它。
 ```go
 type Handler interface {
 	OnConnect(c *connection.Connection)
-	OnMessage(c *connection.Connection, ctx interface{}, data []byte) []byte
+	OnMessage(c *connection.Connection, ctx interface{}, data []byte) interface{}
 	OnClose(c *connection.Connection)
 }
 

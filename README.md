@@ -140,7 +140,7 @@ func main() {
 ```go
 type Handler interface {
 	OnConnect(c *connection.Connection)
-	OnMessage(c *connection.Connection, ctx interface{}, data []byte) []byte
+	OnMessage(c *connection.Connection, ctx interface{}, data []byte) interface{}
 	OnClose(c *connection.Connection)
 }
 
