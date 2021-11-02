@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 
+	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/libp2p/go-reuseport"
@@ -20,7 +21,7 @@ type listener struct {
 	fd       int
 	handleC  handleConnFunc
 	listener net.Listener
-	loop     *eventLoop
+	loop     *eventloop.EventLoop
 }
 
 // newListener 创建Listener
@@ -50,7 +51,7 @@ func newListener(network, addr string, reusePort bool, handlerConn handleConnFun
 		return nil, err
 	}
 
-	loop, err := newEventLoop()
+	loop, err := eventloop.New()
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +63,7 @@ func newListener(network, addr string, reusePort bool, handlerConn handleConnFun
 		listener: ls,
 		loop:     loop,
 	}
-	if err = loop.addSocketAndEnableRead(fd, listener); err != nil {
+	if err = loop.AddSocketAndEnableRead(fd, listener); err != nil {
 		return nil, err
 	}
 
@@ -70,11 +71,11 @@ func newListener(network, addr string, reusePort bool, handlerConn handleConnFun
 }
 
 func (l *listener) Run() {
-	l.loop.runLoop()
+	l.loop.Run()
 }
 
 // HandleEvent 内部使用，供 event loop 回调处理事件
-func (l *listener) handleEvent(fd int, events poller.Event) {
+func (l *listener) HandleEvent(fd int, events poller.Event) {
 	if events&poller.EventRead != 0 {
 		nfd, sa, err := unix.Accept(fd)
 		if err != nil {
@@ -93,10 +94,10 @@ func (l *listener) handleEvent(fd int, events poller.Event) {
 	}
 }
 
-func (l *listener) close() error {
+func (l *listener) Close() error {
 	return l.listener.Close()
 }
 
 func (l *listener) Stop() error {
-	return l.loop.stop()
+	return l.loop.Stop()
 }

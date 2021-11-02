@@ -1,4 +1,4 @@
-package gev
+package eventloop
 
 import (
 	"log"
@@ -10,14 +10,14 @@ import (
 )
 
 func TestEventLoop_RunLoop(t *testing.T) {
-	el, err := newEventLoop()
+	el, err := New()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for i := 0; i < 10; i++ {
 		go func() {
-			el.queueInLoop(func() {
+			el.QueueInLoop(func() {
 				log.Println("runinloop")
 			})
 		}()
@@ -25,17 +25,17 @@ func TestEventLoop_RunLoop(t *testing.T) {
 
 	go func() {
 		time.Sleep(time.Second)
-		if err := el.stop(); err != nil {
+		if err := el.Stop(); err != nil {
 			panic(err)
 		}
 	}()
 
-	el.runLoop()
+	el.Run()
 }
 
 func TestEventLoopSize(t *testing.T) {
 	t.Log(unsafe.Sizeof(eventLoopLocal{}))
-	t.Log(unsafe.Sizeof(eventLoop{}))
+	t.Log(unsafe.Sizeof(EventLoop{}))
 
-	assert.Equal(t, 128, int(unsafe.Sizeof(eventLoop{})))
+	assert.Equal(t, 128, int(unsafe.Sizeof(EventLoop{})))
 }

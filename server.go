@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/toolkit/sync"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
@@ -21,7 +22,7 @@ type Handler interface {
 // Server gev Server
 type Server struct {
 	listener  *listener
-	workLoops []*eventLoop
+	workLoops []*eventloop.EventLoop
 	callback  Handler
 
 	timingWheel *timingwheel.TimingWheel
@@ -48,12 +49,12 @@ func NewServer(handler Handler, opts ...Option) (server *Server, err error) {
 		server.opts.NumLoops = runtime.NumCPU()
 	}
 
-	wloops := make([]*eventLoop, server.opts.NumLoops)
+	wloops := make([]*eventloop.EventLoop, server.opts.NumLoops)
 	for i := 0; i < server.opts.NumLoops; i++ {
-		l, err := newEventLoop()
+		l, err := eventloop.New()
 		if err != nil {
 			for j := 0; j < i; j++ {
-				_ = wloops[j].stop()
+				_ = wloops[j].Stop()
 			}
 			return nil, err
 		}
@@ -79,10 +80,10 @@ func (s *Server) handleNewConnection(fd int, sa unix.Sockaddr) {
 
 	c := NewConnection(fd, loop, sa, s.opts.Protocol, s.timingWheel, s.opts.IdleTime, s.callback)
 
-	loop.queueInLoop(func() {
+	loop.QueueInLoop(func() {
 		s.callback.OnConnect(c)
-		if err := loop.addSocketAndEnableRead(fd, c); err != nil {
-			log.Error("[addSocketAndEnableRead]", err)
+		if err := loop.AddSocketAndEnableRead(fd, c); err != nil {
+			log.Error("[AddSocketAndEnableRead]", err)
 		}
 	})
 }
@@ -94,7 +95,7 @@ func (s *Server) Start() {
 
 	length := len(s.workLoops)
 	for i := 0; i < length; i++ {
-		sw.AddAndRun(s.workLoops[i].runLoop)
+		sw.AddAndRun(s.workLoops[i].Run)
 	}
 
 	sw.AddAndRun(s.listener.Run)
@@ -113,7 +114,7 @@ func (s *Server) Stop() {
 		}
 
 		for k := range s.workLoops {
-			if err := s.workLoops[k].stop(); err != nil {
+			if err := s.workLoops[k].Stop(); err != nil {
 				log.Error(err)
 			}
 		}

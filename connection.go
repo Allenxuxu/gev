@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Allenxuxu/gev/eventloop"
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/poller"
 	"github.com/Allenxuxu/ringbuffer"
@@ -30,7 +31,7 @@ type Connection struct {
 	outBufferLen atomic.Int64
 	inBufferLen  atomic.Int64
 	callBack     CallBack
-	loop         *eventLoop
+	loop         *eventloop.EventLoop
 	peerAddr     string
 	ctx          interface{}
 	KeyValueContext
@@ -46,7 +47,7 @@ var ErrConnectionClosed = errors.New("connection closed")
 
 // NewConnection 创建 Connection
 func NewConnection(fd int,
-	loop *eventLoop,
+	loop *eventloop.EventLoop,
 	sa unix.Sockaddr,
 	protocol Protocol,
 	tw *timingwheel.TimingWheel,
@@ -121,7 +122,7 @@ func (c *Connection) Send(data interface{}, opts ...ConnectionOption) error {
 		o(&opt)
 	}
 
-	c.loop.queueInLoop(func() {
+	c.loop.QueueInLoop(func() {
 		if c.connected.Get() {
 			c.sendInLoop(c.protocol.Packet(c, data))
 
@@ -135,15 +136,11 @@ func (c *Connection) Send(data interface{}, opts ...ConnectionOption) error {
 
 // Close 关闭连接
 func (c *Connection) Close() error {
-	return c.close()
-}
-
-func (c *Connection) close() error {
 	if !c.connected.Get() {
 		return ErrConnectionClosed
 	}
 
-	c.loop.queueInLoop(func() {
+	c.loop.QueueInLoop(func() {
 		c.handleClose(c.fd)
 	})
 	return nil
@@ -165,7 +162,7 @@ func (c *Connection) WriteBufferLength() int64 {
 }
 
 // HandleEvent 内部使用，event loop 回调
-func (c *Connection) handleEvent(fd int, events poller.Event) {
+func (c *Connection) HandleEvent(fd int, events poller.Event) {
 	if c.idleTime > 0 {
 		_ = c.activeTime.Swap(time.Now().Unix())
 	}
@@ -273,7 +270,7 @@ func (c *Connection) handleWrite(fd int) (closed bool) {
 	}
 
 	if c.outBuffer.IsEmpty() {
-		if err := c.loop.enableRead(fd); err != nil {
+		if err := c.loop.EnableRead(fd); err != nil {
 			log.Error("[enableRead]", err)
 		}
 	}
@@ -284,7 +281,7 @@ func (c *Connection) handleWrite(fd int) (closed bool) {
 func (c *Connection) handleClose(fd int) {
 	if c.connected.Get() {
 		c.connected.Set(false)
-		c.loop.deleteFdInLoop(fd)
+		c.loop.DeleteFdInLoop(fd)
 
 		c.callBack.OnClose(c)
 		if err := unix.Close(fd); err != nil {
@@ -314,7 +311,7 @@ func (c *Connection) sendInLoop(data []byte) (closed bool) {
 		}
 
 		if !c.outBuffer.IsEmpty() {
-			_ = c.loop.enableReadWrite(c.fd)
+			_ = c.loop.EnableReadWrite(c.fd)
 		}
 	}
 

@@ -1,4 +1,4 @@
-package gev
+package eventloop
 
 import (
 	"unsafe"
@@ -17,12 +17,12 @@ var (
 
 // Socket 接口
 type Socket interface {
-	handleEvent(fd int, events poller.Event)
-	close() error
+	HandleEvent(fd int, events poller.Event)
+	Close() error
 }
 
-// eventLoop 事件循环
-type eventLoop struct {
+// EventLoop 事件循环
+type EventLoop struct {
 	eventLoopLocal
 	// nolint
 	// Prevents false sharing on widespread platforms with
@@ -44,15 +44,15 @@ type eventLoopLocal struct {
 	UserBuffer *[]byte
 }
 
-// newEventLoop 创建一个 eventLoop
-func newEventLoop() (*eventLoop, error) {
+// New 创建一个 EventLoop
+func New() (*EventLoop, error) {
 	p, err := poller.Create()
 	if err != nil {
 		return nil, err
 	}
 
 	userBuffer := make([]byte, DefaultBufferSize)
-	return &eventLoop{
+	return &EventLoop{
 		eventLoopLocal: eventLoopLocal{
 			poll:       p,
 			packet:     make([]byte, DefaultPacketSize),
@@ -66,25 +66,25 @@ func newEventLoop() (*eventLoop, error) {
 }
 
 // PacketBuf 内部使用，临时缓冲区
-func (l *eventLoop) PacketBuf() []byte {
+func (l *EventLoop) PacketBuf() []byte {
 	return l.packet
 }
 
-func (l *eventLoop) ConnectionCount() int64 {
+func (l *EventLoop) ConnectionCount() int64 {
 	return l.ConnCunt.Get()
 }
 
-// deleteFdInLoop 删除 fd
-func (l *eventLoop) deleteFdInLoop(fd int) {
+// DeleteFdInLoop 删除 fd
+func (l *EventLoop) DeleteFdInLoop(fd int) {
 	if err := l.poll.Del(fd); err != nil {
-		log.Error("[deleteFdInLoop]", err)
+		log.Error("[DeleteFdInLoop]", err)
 	}
 	delete(l.sockets, fd)
 	l.ConnCunt.Add(-1)
 }
 
-// addSocketAndEnableRead 增加 Socket 到事件循环中，并注册可读事件
-func (l *eventLoop) addSocketAndEnableRead(fd int, s Socket) error {
+// AddSocketAndEnableRead 增加 Socket 到事件循环中，并注册可读事件
+func (l *EventLoop) AddSocketAndEnableRead(fd int, s Socket) error {
 	l.sockets[fd] = s
 	if err := l.poll.AddRead(fd); err != nil {
 		delete(l.sockets, fd)
@@ -95,26 +95,26 @@ func (l *eventLoop) addSocketAndEnableRead(fd int, s Socket) error {
 	return nil
 }
 
-// enableReadWrite 注册可读可写事件
-func (l *eventLoop) enableReadWrite(fd int) error {
+// EnableReadWrite 注册可读可写事件
+func (l *EventLoop) EnableReadWrite(fd int) error {
 	return l.poll.EnableReadWrite(fd)
 }
 
-// enableRead 只注册可写事件
-func (l *eventLoop) enableRead(fd int) error {
+// EnableRead 只注册可写事件
+func (l *EventLoop) EnableRead(fd int) error {
 	return l.poll.EnableRead(fd)
 }
 
-// runLoop 启动事件循环
-func (l *eventLoop) runLoop() {
+// Run 启动事件循环
+func (l *EventLoop) Run() {
 	l.poll.Poll(l.handlerEvent)
 }
 
-// stop 关闭事件循环
-func (l *eventLoop) stop() error {
-	l.queueInLoop(func() {
+// Stop 关闭事件循环
+func (l *EventLoop) Stop() error {
+	l.QueueInLoop(func() {
 		for _, v := range l.sockets {
-			if err := v.close(); err != nil {
+			if err := v.Close(); err != nil {
 				log.Error(err)
 			}
 		}
@@ -125,24 +125,24 @@ func (l *eventLoop) stop() error {
 	return l.poll.Close()
 }
 
-// queueInLoop 添加 func 到事件循环中执行
-func (l *eventLoop) queueInLoop(f func()) {
+// QueueInLoop 添加 func 到事件循环中执行
+func (l *EventLoop) QueueInLoop(f func()) {
 	l.mu.Lock()
 	l.taskQueueW = append(l.taskQueueW, f)
 	l.mu.Unlock()
 
 	if l.needWake.CompareAndSwap(true, false) {
 		if err := l.poll.Wake(); err != nil {
-			log.Error("queueInLoop Wake loop, ", err)
+			log.Error("QueueInLoop Wake loop, ", err)
 		}
 	}
 }
 
-func (l *eventLoop) handlerEvent(fd int, events poller.Event) {
+func (l *EventLoop) handlerEvent(fd int, events poller.Event) {
 	if fd != -1 {
 		s, ok := l.sockets[fd]
 		if ok {
-			s.handleEvent(fd, events)
+			s.HandleEvent(fd, events)
 		}
 	} else {
 		l.needWake.Set(true)
@@ -150,7 +150,7 @@ func (l *eventLoop) handlerEvent(fd int, events poller.Event) {
 	}
 }
 
-func (l *eventLoop) doPendingFunc() {
+func (l *EventLoop) doPendingFunc() {
 	l.mu.Lock()
 	l.taskQueueW, l.taskQueueR = l.taskQueueR, l.taskQueueW
 	l.mu.Unlock()
