@@ -1,7 +1,7 @@
 package websocket
 
 import (
-	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"github.com/Allenxuxu/ringbuffer"
@@ -24,7 +24,7 @@ func New(u *ws.Upgrader) *Protocol {
 }
 
 // UnPacket 解析 websocket 协议，返回 header ，payload
-func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuffer) (ctx interface{}, out []byte) {
+func (p *Protocol) UnPacket(c *gev.Connection, buffer *ringbuffer.RingBuffer) (ctx interface{}, out []byte) {
 	_, ok := c.Get(upgradedKey)
 	if !ok {
 		var err error
@@ -64,6 +64,6 @@ func (p *Protocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuf
 }
 
 // Packet 直接返回
-func (p *Protocol) Packet(c *connection.Connection, data interface{}) []byte {
+func (p *Protocol) Packet(c *gev.Connection, data interface{}) []byte {
 	return data.([]byte)
 }

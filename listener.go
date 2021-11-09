@@ -1,4 +1,4 @@
-package listener
+package gev
 
 import (
 	"errors"
@@ -12,32 +12,32 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// HandleConnFunc 处理新连接
-type HandleConnFunc func(fd int, sa unix.Sockaddr)
+// handleConnFunc 处理新连接
+type handleConnFunc func(fd int, sa unix.Sockaddr)
 
-// Listener 监听TCP连接
-type Listener struct {
+// listener 监听TCP连接
+type listener struct {
 	file     *os.File
 	fd       int
-	handleC  HandleConnFunc
+	handleC  handleConnFunc
 	listener net.Listener
 	loop     *eventloop.EventLoop
 }
 
-// New 创建Listener
-func New(network, addr string, reusePort bool, loop *eventloop.EventLoop, handlerConn HandleConnFunc) (*Listener, error) {
-	var listener net.Listener
+// newListener 创建Listener
+func newListener(network, addr string, reusePort bool, handlerConn handleConnFunc) (*listener, error) {
+	var ls net.Listener
 	var err error
 	if reusePort {
-		listener, err = reuseport.Listen(network, addr)
+		ls, err = reuseport.Listen(network, addr)
 	} else {
-		listener, err = net.Listen(network, addr)
+		ls, err = net.Listen(network, addr)
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	l, ok := listener.(*net.TCPListener)
+	l, ok := ls.(*net.TCPListener)
 	if !ok {
 		return nil, errors.New("could not get file descriptor")
 	}
@@ -51,16 +51,31 @@ func New(network, addr string, reusePort bool, loop *eventloop.EventLoop, handle
 		return nil, err
 	}
 
-	return &Listener{
+	loop, err := eventloop.New()
+	if err != nil {
+		return nil, err
+	}
+
+	listener := &listener{
 		file:     file,
 		fd:       fd,
 		handleC:  handlerConn,
-		listener: listener,
-		loop:     loop}, nil
+		listener: ls,
+		loop:     loop,
+	}
+	if err = loop.AddSocketAndEnableRead(fd, listener); err != nil {
+		return nil, err
+	}
+
+	return listener, nil
+}
+
+func (l *listener) Run() {
+	l.loop.Run()
 }
 
 // HandleEvent 内部使用，供 event loop 回调处理事件
-func (l *Listener) HandleEvent(fd int, events poller.Event) {
+func (l *listener) HandleEvent(fd int, events poller.Event) {
 	if events&poller.EventRead != 0 {
 		nfd, sa, err := unix.Accept(fd)
 		if err != nil {
@@ -79,19 +94,10 @@ func (l *Listener) HandleEvent(fd int, events poller.Event) {
 	}
 }
 
-// Close listener
-func (l *Listener) Close() error {
-	l.loop.QueueInLoop(func() {
-		l.loop.DeleteFdInLoop(l.fd)
-		if err := l.listener.Close(); err != nil {
-			log.Error("[Listener] close error: ", err)
-		}
-	})
-
-	return nil
+func (l *listener) Close() error {
+	return l.listener.Close()
 }
 
-// Fd Listener fd
-func (l *Listener) Fd() int {
-	return l.fd
+func (l *listener) Stop() error {
+	return l.loop.Stop()
 }

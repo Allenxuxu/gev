@@ -4,9 +4,8 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/Allenxuxu/gev/eventloop"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLeastConnection(t *testing.T) {

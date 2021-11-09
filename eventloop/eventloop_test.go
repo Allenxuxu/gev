@@ -30,7 +30,7 @@ func TestEventLoop_RunLoop(t *testing.T) {
 		}
 	}()
 
-	el.RunLoop()
+	el.Run()
 }
 
 func TestEventLoopSize(t *testing.T) {

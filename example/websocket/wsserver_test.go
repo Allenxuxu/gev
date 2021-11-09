@@ -11,7 +11,6 @@ import (
 	"github.com/Allenxuxu/gev/log"
 
 	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws/util"
 	"github.com/Allenxuxu/toolkit/sync"
@@ -24,11 +23,11 @@ type wsExample struct {
 	ClientNum atomic.Int64
 }
 
-func (s *wsExample) OnConnect(c *connection.Connection) {
+func (s *wsExample) OnConnect(c *gev.Connection) {
 	s.ClientNum.Add(1)
 	//log.Println(" OnConnect ： ", c.PeerAddr())
 }
-func (s *wsExample) OnMessage(c *connection.Connection, data []byte) (messageType ws.MessageType, out []byte) {
+func (s *wsExample) OnMessage(c *gev.Connection, data []byte) (messageType ws.MessageType, out []byte) {
 	messageType = ws.MessageText
 
 	switch rand.Int() % 3 {
@@ -60,7 +59,7 @@ func (s *wsExample) OnMessage(c *connection.Connection, data []byte) (messageTyp
 	return
 }
 
-func (s *wsExample) OnClose(c *connection.Connection) {
+func (s *wsExample) OnClose(c *gev.Connection) {
 	s.ClientNum.Add(-1)
 	//log.Println("OnClose")
 }

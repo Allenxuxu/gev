@@ -7,30 +7,29 @@ import (
 	"strconv"
 
 	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/log"
 	"github.com/gobwas/pool/pbytes"
 )
 
 type example struct{}
 
-func (s *example) OnConnect(c *connection.Connection) {
+func (s *example) OnConnect(c *gev.Connection) {
 	log.Info(" OnConnect ： ", c.PeerAddr())
 }
-func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out interface{}) {
+func (s *example) OnMessage(c *gev.Connection, ctx interface{}, data []byte) (out interface{}) {
 	log.Info("OnMessage ", string(data))
 
 	b := pbytes.Get(0, 10)
 	b = append(b, []byte("1234\n")...)
 
-	_ = c.Send(b, connection.SendInLoop(func(i interface{}) {
+	_ = c.Send(b, gev.SendInLoop(func(i interface{}) {
 		log.Info("put []byte ")
 		pbytes.Put(i.([]byte))
 	}))
 	return
 }
 
-func (s *example) OnClose(c *connection.Connection) {
+func (s *example) OnClose(c *gev.Connection) {
 	log.Info("OnClose")
 }
 

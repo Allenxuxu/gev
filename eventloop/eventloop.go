@@ -83,7 +83,7 @@ func (l *EventLoop) DeleteFdInLoop(fd int) {
 	l.ConnCunt.Add(-1)
 }
 
-// AddSocketAndEnableRead 增加 Socket 到时间循环中，并注册可读事件
+// AddSocketAndEnableRead 增加 Socket 到事件循环中，并注册可读事件
 func (l *EventLoop) AddSocketAndEnableRead(fd int, s Socket) error {
 	l.sockets[fd] = s
 	if err := l.poll.AddRead(fd); err != nil {
@@ -105,8 +105,8 @@ func (l *EventLoop) EnableRead(fd int) error {
 	return l.poll.EnableRead(fd)
 }
 
-// RunLoop 启动事件循环
-func (l *EventLoop) RunLoop() {
+// Run 启动事件循环
+func (l *EventLoop) Run() {
 	l.poll.Poll(l.handlerEvent)
 }
 

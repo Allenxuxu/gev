@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/binary"
 
-	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/ringbuffer"
 	"github.com/gobwas/pool/pbytes"
 )
@@ -12,7 +12,7 @@ const exampleHeaderLen = 4
 
 type ExampleProtocol struct{}
 
-func (d *ExampleProtocol) UnPacket(c *connection.Connection, buffer *ringbuffer.RingBuffer) (interface{}, []byte) {
+func (d *ExampleProtocol) UnPacket(c *gev.Connection, buffer *ringbuffer.RingBuffer) (interface{}, []byte) {
 	if buffer.VirtualLength() > exampleHeaderLen {
 		buf := pbytes.GetLen(exampleHeaderLen)
 		defer pbytes.Put(buf)
@@ -32,7 +32,7 @@ func (d *ExampleProtocol) UnPacket(c *connection.Connection, buffer *ringbuffer.
 	return nil, nil
 }
 
-func (d *ExampleProtocol) Packet(c *connection.Connection, data interface{}) []byte {
+func (d *ExampleProtocol) Packet(c *gev.Connection, data interface{}) []byte {
 	dd := data.([]byte)
 	dataLen := len(dd)
 	ret := make([]byte, exampleHeaderLen+dataLen)

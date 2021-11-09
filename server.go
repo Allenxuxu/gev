@@ -5,9 +5,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/gev/eventloop"
-	"github.com/Allenxuxu/gev/listener"
 	"github.com/Allenxuxu/gev/log"
 	"github.com/Allenxuxu/toolkit/sync"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
@@ -17,13 +15,13 @@ import (
 
 // Handler Server 注册接口
 type Handler interface {
-	connection.CallBack
-	OnConnect(c *connection.Connection)
+	CallBack
+	OnConnect(c *Connection)
 }
 
 // Server gev Server
 type Server struct {
-	loop      *eventloop.EventLoop
+	listener  *listener
 	workLoops []*eventloop.EventLoop
 	callback  Handler
 
@@ -42,17 +40,8 @@ func NewServer(handler Handler, opts ...Option) (server *Server, err error) {
 	server.callback = handler
 	server.opts = options
 	server.timingWheel = timingwheel.NewTimingWheel(server.opts.tick, server.opts.wheelSize)
-	server.loop, err = eventloop.New()
+	server.listener, err = newListener(server.opts.Network, server.opts.Address, options.ReusePort, server.handleNewConnection)
 	if err != nil {
-		_ = server.loop.Stop()
-		return nil, err
-	}
-
-	l, err := listener.New(server.opts.Network, server.opts.Address, options.ReusePort, server.loop, server.handleNewConnection)
-	if err != nil {
-		return nil, err
-	}
-	if err = server.loop.AddSocketAndEnableRead(l.Fd(), l); err != nil {
 		return nil, err
 	}
 
@@ -89,7 +78,7 @@ func (s *Server) RunEvery(d time.Duration, f func()) *timingwheel.Timer {
 func (s *Server) handleNewConnection(fd int, sa unix.Sockaddr) {
 	loop := s.opts.Strategy(s.workLoops)
 
-	c := connection.New(fd, loop, sa, s.opts.Protocol, s.timingWheel, s.opts.IdleTime, s.callback)
+	c := NewConnection(fd, loop, sa, s.opts.Protocol, s.timingWheel, s.opts.IdleTime, s.callback)
 
 	loop.QueueInLoop(func() {
 		s.callback.OnConnect(c)
@@ -106,10 +95,10 @@ func (s *Server) Start() {
 
 	length := len(s.workLoops)
 	for i := 0; i < length; i++ {
-		sw.AddAndRun(s.workLoops[i].RunLoop)
+		sw.AddAndRun(s.workLoops[i].Run)
 	}
 
-	sw.AddAndRun(s.loop.RunLoop)
+	sw.AddAndRun(s.listener.Run)
 	s.running.Set(true)
 	sw.Wait()
 }
@@ -120,7 +109,7 @@ func (s *Server) Stop() {
 		s.running.Set(false)
 
 		s.timingWheel.Stop()
-		if err := s.loop.Stop(); err != nil {
+		if err := s.listener.Stop(); err != nil {
 			log.Error(err)
 		}
 

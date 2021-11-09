@@ -6,7 +6,6 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/connection"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 )
 
@@ -42,7 +41,7 @@ func (s *Server) Stop() {
 }
 
 // OnConnect callback
-func (s *Server) OnConnect(c *connection.Connection) {
+func (s *Server) OnConnect(c *gev.Connection) {
 	s.clientNum.Add(1)
 	log.Println(" OnConnect ： ", c.PeerAddr())
 
@@ -54,14 +53,14 @@ func (s *Server) OnConnect(c *connection.Connection) {
 }
 
 // OnMessage callback
-func (s *Server) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out interface{}) {
+func (s *Server) OnMessage(c *gev.Connection, ctx interface{}, data []byte) (out interface{}) {
 	log.Println("OnMessage")
 	out = data
 	return
 }
 
 // OnClose callback
-func (s *Server) OnClose(c *connection.Connection) {
+func (s *Server) OnClose(c *gev.Connection) {
 	s.clientNum.Add(-1)
 	log.Println("OnClose")
 }

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/connection"
 )
 
 const clientsKey = "demo_push_message_key"
@@ -54,7 +53,7 @@ func (s *Server) RunPush() {
 	for e := s.conn.Front(); e != nil; e = next {
 		next = e.Next()
 
-		c := e.Value.(*connection.Connection)
+		c := e.Value.(*gev.Connection)
 		if c.WriteBufferLength() > 1024*10 {
 			log.Printf("write buffer length > 1024*10")
 			continue
@@ -64,7 +63,7 @@ func (s *Server) RunPush() {
 }
 
 // OnConnect callback
-func (s *Server) OnConnect(c *connection.Connection) {
+func (s *Server) OnConnect(c *gev.Connection) {
 	log.Println(" OnConnect ： ", c.PeerAddr())
 
 	s.mu.Lock()
@@ -74,7 +73,7 @@ func (s *Server) OnConnect(c *connection.Connection) {
 }
 
 // OnMessage callback
-func (s *Server) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out interface{}) {
+func (s *Server) OnMessage(c *gev.Connection, ctx interface{}, data []byte) (out interface{}) {
 	log.Printf("OnMessage, read buffer len %d, write buffer len %d \n", c.ReadBufferLength(), c.WriteBufferLength())
 
 	out = data
@@ -82,7 +81,7 @@ func (s *Server) OnMessage(c *connection.Connection, ctx interface{}, data []byt
 }
 
 // OnClose callback
-func (s *Server) OnClose(c *connection.Connection) {
+func (s *Server) OnClose(c *gev.Connection) {
 	log.Println("OnClose")
 	v, ok := c.Get(clientsKey)
 	if !ok {

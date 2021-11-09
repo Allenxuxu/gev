@@ -1,4 +1,4 @@
-package connection
+package gev
 
 import (
 	"errors"
@@ -45,8 +45,8 @@ type Connection struct {
 
 var ErrConnectionClosed = errors.New("connection closed")
 
-// New 创建 Connection
-func New(fd int,
+// NewConnection 创建 Connection
+func NewConnection(fd int,
 	loop *eventloop.EventLoop,
 	sa unix.Sockaddr,
 	protocol Protocol,
@@ -112,12 +112,12 @@ func (c *Connection) Connected() bool {
 }
 
 // Send 用来在非 loop 协程发送
-func (c *Connection) Send(data interface{}, opts ...Option) error {
+func (c *Connection) Send(data interface{}, opts ...ConnectionOption) error {
 	if !c.connected.Get() {
 		return ErrConnectionClosed
 	}
 
-	opt := Options{}
+	opt := ConnectionOptions{}
 	for _, o := range opts {
 		o(&opt)
 	}
@@ -271,7 +271,7 @@ func (c *Connection) handleWrite(fd int) (closed bool) {
 
 	if c.outBuffer.IsEmpty() {
 		if err := c.loop.EnableRead(fd); err != nil {
-			log.Error("[EnableRead]", err)
+			log.Error("[enableRead]", err)
 		}
 	}
 
