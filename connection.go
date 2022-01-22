@@ -24,13 +24,14 @@ type CallBack interface {
 
 // Connection TCP 连接
 type Connection struct {
+	outBufferLen atomic.Int64
+	inBufferLen  atomic.Int64
+	activeTime   atomic.Int64
 	fd           int
 	connected    atomic.Bool
 	buffer       *ringbuffer.RingBuffer
 	outBuffer    *ringbuffer.RingBuffer // write buffer
 	inBuffer     *ringbuffer.RingBuffer // read buffer
-	outBufferLen atomic.Int64
-	inBufferLen  atomic.Int64
 	callBack     CallBack
 	loop         *eventloop.EventLoop
 	peerAddr     string
@@ -38,7 +39,6 @@ type Connection struct {
 	KeyValueContext
 
 	idleTime    time.Duration
-	activeTime  atomic.Int64
 	timingWheel *timingwheel.TimingWheel
 	timer       at.Value
 	protocol    Protocol
