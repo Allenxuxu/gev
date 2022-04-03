@@ -28,8 +28,9 @@ func (d *DefaultProtocol) UnPacket(c *Connection, buffer *ringbuffer.RingBuffer)
 
 		copy(userBuffer, s)
 		copy(userBuffer[len(s):], e)
+		buffer.RetrieveAll()
 
-		return nil, userBuffer
+		return nil, userBuffer[:size]
 	} else {
 		buffer.RetrieveAll()
 
