@@ -152,7 +152,6 @@ func ExampleServer_RunEvery() {
 }
 
 func TestServer_Stop(t *testing.T) {
-	log.SetLevel(log.LevelDebug)
 	handler := new(example)
 
 	s, err := NewServer(handler,

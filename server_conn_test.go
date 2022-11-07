@@ -97,7 +97,7 @@ func TestIdleTime(t *testing.T) {
 	wg := &sync.WaitGroupWrapper{}
 	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
-			conn, err := net.DialTimeout("tcp", "127.0.0.1:1830", time.Second*60)
+			conn, err := net.DialTimeout("tcp", "127.0.0.1:1830", time.Second*3)
 			if err != nil {
 				log.Error(err)
 				return
