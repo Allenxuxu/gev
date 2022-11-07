@@ -33,7 +33,7 @@ func (s *wsExample) OnMessage(c *gev.Connection, data []byte) (messageType ws.Me
 
 	log.Info("on Message ", c.PeerAddr())
 
-	if time.Now().Sub(s.StartTime) > 10*time.Second {
+	if time.Since(s.StartTime) > 10*time.Second {
 		msg, err := util.PackCloseData("close")
 		if err != nil {
 			panic(err)
