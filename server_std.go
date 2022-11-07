@@ -4,6 +4,7 @@ package gev
 
 import (
 	"errors"
+	"io"
 	"net"
 	stdsync "sync"
 	"time"
@@ -31,6 +32,7 @@ type Server struct {
 	timingWheel *timingwheel.TimingWheel
 	opts        *Options
 	running     atomic.Bool
+	dying       chan struct{}
 }
 
 // NewServer 创建 Server
@@ -40,6 +42,7 @@ func NewServer(handler Handler, opts ...Option) (server *Server, err error) {
 	}
 	options := newOptions(opts...)
 	server = new(Server)
+	server.dying = make(chan struct{})
 	server.callback = handler
 	server.opts = options
 	server.timingWheel = timingwheel.NewTimingWheel(server.opts.tick, server.opts.wheelSize)
@@ -69,31 +72,42 @@ func (s *Server) Start() {
 
 	sw.AddAndRun(func() {
 		for {
-			conn, err := s.listener.Accept()
-			if err != nil {
-				log.Error("accept error: %v", err)
-				continue
+			select {
+			case <-s.dying:
+				return
+
+			default:
+				conn, err := s.listener.Accept()
+				if err != nil {
+					log.Errorf("accept error: %v", err)
+					continue
+				}
+
+				connection := NewConnection(conn, s.opts.Protocol, s.timingWheel, s.opts.IdleTime, s.callback)
+				s.connections = append(s.connections, connection)
+
+				s.callback.OnConnect(connection)
+
+				sw.AddAndRun(func() {
+					connection.readLoop()
+				})
+				sw.AddAndRun(func() {
+					connection.writeLoop()
+				})
 			}
-
-			connection := NewConnection(conn, s.opts.Protocol, s.timingWheel, s.opts.IdleTime, s.callback)
-			s.connections = append(s.connections, connection)
-
-			sw.AddAndRun(func() {
-				connection.readLoop()
-			})
-			sw.AddAndRun(func() {
-				connection.writeLoop()
-			})
 		}
 	})
 
 	s.running.Set(true)
+
+	log.Infof("server run in windows")
 	sw.Wait()
 }
 
 // Stop 关闭 Server
 func (s *Server) Stop() {
 	if s.running.Get() {
+		close(s.dying)
 		s.running.Set(false)
 
 		s.timingWheel.Stop()
@@ -236,17 +250,25 @@ func (c *Connection) Send(data interface{}, opts ...ConnectionOption) error {
 
 // Close 关闭连接
 func (c *Connection) Close() error {
-	if !c.connected.Get() {
-		return ErrConnectionClosed
+	log.Info("Close", c.PeerAddr())
+
+	if c.connected.Get() {
+		close(c.dying)
+		c.connected.Set(false)
+		c.callBack.OnClose(c)
+
+		return c.conn.Close()
 	}
 
-	close(c.dying)
-	return c.conn.Close()
+	return nil
 }
 
 // ShutdownWrite 关闭可写端，等待读取完接收缓冲区所有数据
 func (c *Connection) ShutdownWrite() error {
-	return c.conn.Close()
+	log.Info("ShutdownWrite ", c.PeerAddr())
+
+	//return nil
+	return c.Close()
 }
 
 // ReadBufferLength read buffer 当前积压的数据长度
@@ -265,7 +287,7 @@ func (c *Connection) HandleEvent(fd int, events poller.Event) {
 }
 
 func (c *Connection) readLoop() {
-	buf := make([]byte, 65535)
+	buf := make([]byte, 0, 66635)
 
 	for {
 		select {
@@ -275,8 +297,11 @@ func (c *Connection) readLoop() {
 		default:
 			n, err := c.conn.Read(buf)
 			if err != nil {
-				log.Errorf("read error: %v", err)
-				c.callBack.OnClose(c)
+				if err != io.EOF {
+					log.Info("read error: %v", err)
+				}
+
+				c.Close()
 				return
 			}
 
@@ -285,11 +310,11 @@ func (c *Connection) readLoop() {
 			c.handlerProtocol(&buf, c.inBuffer)
 
 			if len(buf) != 0 {
-				tmp := make([]byte, 0, len(buf))
+				tmp := make([]byte, len(buf))
 				copy(tmp, buf)
 				_ = c.Send(tmp)
 			}
-			buf = buf[:0]
+			buf = buf[:cap(buf)]
 
 			c.inBufferLen.Swap(int64(c.inBuffer.Length()))
 		}
@@ -312,7 +337,9 @@ func (c *Connection) writeLoop() {
 			first, end := c.outBuffer.PeekAll()
 			n, err := c.conn.Write(first)
 			if err != nil {
-				c.callBack.OnClose(c)
+				log.Error("Write error: ", err)
+
+				c.Close()
 				return
 			}
 			c.outBuffer.Retrieve(n)
@@ -320,7 +347,9 @@ func (c *Connection) writeLoop() {
 			if n == len(first) && len(end) > 0 {
 				n, err = c.conn.Write(end)
 				if err != nil {
-					c.callBack.OnClose(c)
+					log.Error("Write error: ", err)
+
+					c.Close()
 					return
 				}
 				c.outBuffer.Retrieve(n)
@@ -354,7 +383,9 @@ func (c *Connection) sendInLoop(data []byte) (closed bool) {
 	} else {
 		n, err := c.conn.Write(data)
 		if err != nil {
-			c.callBack.OnClose(c)
+			log.Error("Write error: ", err)
+
+			c.Close()
 
 			return true
 		}
