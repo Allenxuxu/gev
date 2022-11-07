@@ -102,7 +102,7 @@ func (l *EventLoop) EnableReadWrite(fd int) error {
 	return l.poll.EnableReadWrite(fd)
 }
 
-// EnableRead 只注册可写事件
+// EnableRead 只注册可读事件
 func (l *EventLoop) EnableRead(fd int) error {
 	return l.poll.EnableRead(fd)
 }

@@ -94,28 +94,42 @@ package main
 
 import (
 	"flag"
+	"net/http"
+	_ "net/http/pprof"
 	"strconv"
+	"time"
 
 	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/connection"
+	"github.com/Allenxuxu/gev/log"
+	"github.com/Allenxuxu/toolkit/sync/atomic"
 )
 
-type example struct{}
+type example struct {
+	Count atomic.Int64
+}
 
-func (s *example) OnConnect(c *connection.Connection) {
+func (s *example) OnConnect(c *gev.Connection) {
+	s.Count.Add(1)
 	//log.Println(" OnConnect ： ", c.PeerAddr())
 }
-func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
+func (s *example) OnMessage(c *gev.Connection, ctx interface{}, data []byte) (out interface{}) {
 	//log.Println("OnMessage")
 	out = data
 	return
 }
 
-func (s *example) OnClose(c *connection.Connection) {
+func (s *example) OnClose(c *gev.Connection) {
+	s.Count.Add(-1)
 	//log.Println("OnClose")
 }
 
 func main() {
+	go func() {
+		if err := http.ListenAndServe(":6060", nil); err != nil {
+			panic(err)
+		}
+	}()
+
 	handler := new(example)
 	var port int
 	var loops int
@@ -125,11 +139,18 @@ func main() {
 	flag.Parse()
 
 	s, err := gev.NewServer(handler,
+		gev.Network("tcp"),
 		gev.Address(":"+strconv.Itoa(port)),
-		gev.NumLoops(loops))
+		gev.NumLoops(loops),
+		gev.MetricsServer("", ":9091"),
+	)
 	if err != nil {
 		panic(err)
 	}
+
+	s.RunEvery(time.Second*2, func() {
+		log.Info("connections :", handler.Count.Get())
+	})
 
 	s.Start()
 }
@@ -138,13 +159,15 @@ func main() {
 *Handler* is an interface that programs must implement.
 
 ```go
-type Handler interface {
-	OnConnect(c *connection.Connection)
-	OnMessage(c *connection.Connection, ctx interface{}, data []byte) []byte
-	OnClose(c *connection.Connection)
+type CallBack interface {
+	OnMessage(c *Connection, ctx interface{}, data []byte) interface{}
+	OnClose(c *Connection)
 }
 
-func NewServer(handler Handler, opts ...Option) (server *Server, err error)
+type Handler interface {
+	CallBack
+	OnConnect(c *Connection)
+}
 ```
 
 OnMessage will be called back when a complete data frame arrives.Users can get the data, process the business logic, and return the data that needs to be sent.
@@ -153,12 +176,14 @@ When there is data coming, gev does not call back OnMessage immediately, but ins
 
 ```go
 ctx, receivedData := c.protocol.UnPacket(c, buffer)
-	if ctx != nil || len(receivedData) != 0 {
-		sendData := c.OnMessage(c, ctx, receivedData)
-		if len(sendData) > 0 {
-			return c.protocol.Packet(c, sendData)
-		}
+for ctx != nil || len(receivedData) != 0 {
+	sendData := c.callBack.OnMessage(c, ctx, receivedData)
+	if sendData != nil {
+		*tmpBuffer = append(*tmpBuffer, c.protocol.Packet(c, sendData)...)
 	}
+
+	ctx, receivedData = c.protocol.UnPacket(c, buffer)
+}
 ```
 
 ![protocol](benchmarks/out/protocol.png)
@@ -170,19 +195,34 @@ The return value of UnPacket `(interface{}, []byte)` will be passed in as a call
 ```go
 type Protocol interface {
 	UnPacket(c *Connection, buffer *ringbuffer.RingBuffer) (interface{}, []byte)
-	Packet(c *Connection, data []byte) []byte
+	Packet(c *Connection, data interface{}) []byte
 }
 
 type DefaultProtocol struct{}
 
 func (d *DefaultProtocol) UnPacket(c *Connection, buffer *ringbuffer.RingBuffer) (interface{}, []byte) {
-	ret := buffer.Bytes()
-	buffer.RetrieveAll()
-	return nil, ret
+	s, e := buffer.PeekAll()
+	if len(e) > 0 {
+		size := len(s) + len(e)
+		userBuffer := *c.UserBuffer()
+		if size > cap(userBuffer) {
+			userBuffer = make([]byte, size)
+			*c.UserBuffer() = userBuffer
+		}
+
+		copy(userBuffer, s)
+		copy(userBuffer[len(s):], e)
+
+		return nil, userBuffer
+	} else {
+		buffer.RetrieveAll()
+
+		return nil, s
+	}
 }
 
-func (d *DefaultProtocol) Packet(c *Connection, data []byte) []byte {
-	return data
+func (d *DefaultProtocol) Packet(c *Connection, data interface{}) []byte {
+	return data.([]byte)
 }
 ```
 
@@ -199,7 +239,7 @@ There is also a *Send* method that can be used for sending data. But *Send* puts
 Check out the example [Server timing push](example/pushmessage/main.go) for a detailed.
 
 ```go
-func (c *Connection) Send(buffer []byte) error
+func (c *Connection) Send(data interface{}, opts ...ConnectionOption) error
 ```
 
 *ShutdownWrite* works for reverting connected status to false and closing connection.
@@ -274,535 +314,13 @@ The detailed implementation can be viewed by the [plugin](plugins/websocket). Th
 
 ## Example
 
-<details>
-  <summary> echo server</summary>
-
-```go
-package main
-
-import (
-	"flag"
-	"strconv"
-
-	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/connection"
-)
-
-type example struct{}
-
-func (s *example) OnConnect(c *connection.Connection) {
-	//log.Println(" OnConnect ： ", c.PeerAddr())
-}
-func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
-	//log.Println("OnMessage")
-	out = data
-	return
-}
-
-func (s *example) OnClose(c *connection.Connection) {
-	//log.Println("OnClose")
-}
-
-func main() {
-	handler := new(example)
-	var port int
-	var loops int
-
-	flag.IntVar(&port, "port", 1833, "server port")
-	flag.IntVar(&loops, "loops", -1, "num loops")
-	flag.Parse()
-
-	s, err := gev.NewServer(handler,
-		gev.Network("tcp"),
-		gev.Address(":"+strconv.Itoa(port)),
-		gev.NumLoops(loops))
-	if err != nil {
-		panic(err)
-	}
-
-	s.Start()
-}
-```
-
-</details>
-
-<details>
-  <summary> Automatically clean up idle connections </summary>
-
-```go
-package main
-
-import (
-	"flag"
-	"strconv"
-	"time"
-
-	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/gev/log"
-)
-
-type example struct {
-}
-
-func (s *example) OnConnect(c *connection.Connection) {
-	log.Info(" OnConnect ： ", c.PeerAddr())
-}
-func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
-	log.Infof("OnMessage from : %s", c.PeerAddr())
-	out = data
-	return
-}
-
-func (s *example) OnClose(c *connection.Connection) {
-	log.Info("OnClose: ", c.PeerAddr())
-}
-
-func main() {
-	handler := new(example)
-	var port int
-	var loops int
-
-	flag.IntVar(&port, "port", 1833, "server port")
-	flag.IntVar(&loops, "loops", -1, "num loops")
-	flag.Parse()
-
-	s, err := gev.NewServer(handler,
-		gev.Network("tcp"),
-		gev.Address(":"+strconv.Itoa(port)),
-		gev.NumLoops(loops),
-		gev.IdleTime(5*time.Second))
-	if err != nil {
-		panic(err)
-	}
-
-	s.Start()
-}
-```
-
-</details>
-
-<details>
-  <summary> Maximum connections </summary>
-
-```go
-package main
-
-import (
-	"log"
-
-	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/toolkit/sync/atomic"
-)
-
-// Server example
-type Server struct {
-	clientNum     atomic.Int64
-	maxConnection int64
-	server        *gev.Server
-}
-
-// New server
-func New(ip, port string, maxConnection int64) (*Server, error) {
-	var err error
-	s := new(Server)
-	s.maxConnection = maxConnection
-	s.server, err = gev.NewServer(s,
-		gev.Address(ip+":"+port))
-	if err != nil {
-		return nil, err
-	}
-
-	return s, nil
-}
-
-// Start server
-func (s *Server) Start() {
-	s.server.Start()
-}
-
-// Stop server
-func (s *Server) Stop() {
-	s.server.Stop()
-}
-
-// OnConnect callback
-func (s *Server) OnConnect(c *connection.Connection) {
-	s.clientNum.Add(1)
-	log.Println(" OnConnect ： ", c.PeerAddr())
-
-	if s.clientNum.Get() > s.maxConnection {
-		_ = c.ShutdownWrite()
-		log.Println("Refused connection")
-		return
-	}
-}
-
-// OnMessage callback
-func (s *Server) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
-	log.Println("OnMessage")
-	out = data
-	return
-}
-
-// OnClose callback
-func (s *Server) OnClose(c *connection.Connection) {
-	s.clientNum.Add(-1)
-	log.Println("OnClose")
-}
-
-func main() {
-	s, err := New("", "1833", 1)
-	if err != nil {
-		panic(err)
-	}
-	defer s.Stop()
-
-	s.Start()
-}
-```
-
-</details>
-
-<details>
-  <summary> Server timing push </summary>
-
-```go
-package main
-
-import (
-	"container/list"
-	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/connection"
-	"log"
-	"sync"
-	"time"
-)
-
-// Server example
-type Server struct {
-	conn   *list.List
-	mu     sync.RWMutex
-	server *gev.Server
-}
-
-// New server
-func New(ip, port string) (*Server, error) {
-	var err error
-	s := new(Server)
-	s.conn = list.New()
-	s.server, err = gev.NewServer(s,
-		gev.Address(ip+":"+port))
-	if err != nil {
-		return nil, err
-	}
-
-	return s, nil
-}
-
-// Start server
-func (s *Server) Start() {
-	s.server.RunEvery(1*time.Second, s.RunPush)
-	s.server.Start()
-}
-
-// Stop server
-func (s *Server) Stop() {
-	s.server.Stop()
-}
-
-// RunPush push message
-func (s *Server) RunPush() {
-	var next *list.Element
-
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	for e := s.conn.Front(); e != nil; e = next {
-		next = e.Next()
-
-		c := e.Value.(*connection.Connection)
-		_ = c.Send([]byte("hello\n"))
-	}
-}
-
-// OnConnect callback
-func (s *Server) OnConnect(c *connection.Connection) {
-	log.Println(" OnConnect ： ", c.PeerAddr())
-
-	s.mu.Lock()
-	e := s.conn.PushBack(c)
-	s.mu.Unlock()
-	c.SetContext(e)
-}
-
-// OnMessage callback
-func (s *Server) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
-	log.Println("OnMessage")
-	out = data
-	return
-}
-
-// OnClose callback
-func (s *Server) OnClose(c *connection.Connection) {
-	log.Println("OnClose")
-	e := c.Context().(*list.Element)
-
-	s.mu.Lock()
-	s.conn.Remove(e)
-	s.mu.Unlock()
-}
-
-func main() {
-	s, err := New("", "1833")
-	if err != nil {
-		panic(err)
-	}
-	defer s.Stop()
-
-	s.Start()
-}
-```
-
-</details>
-
-<details>
-  <summary> WebSocket </summary>
-
-```go
-package main
-
-import (
-	"flag"
-	"log"
-	"math/rand"
-	"strconv"
-
-	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/connection"
-	"github.com/Allenxuxu/gev/plugins/websocket/ws"
-	"github.com/Allenxuxu/gev/plugins/websocket/ws/util"
-)
-
-type example struct{}
-
-func (s *example) OnConnect(c *connection.Connection) {
-	log.Println(" OnConnect ： ", c.PeerAddr())
-}
-func (s *example) OnMessage(c *connection.Connection, data []byte) (messageType ws.MessageType, out []byte) {
-	log.Println("OnMessage:", string(data))
-	messageType = ws.MessageBinary
-	switch rand.Int() % 3 {
-	case 0:
-		out = data
-	case 1:
-		msg, err := util.PackData(ws.MessageText, data)
-		if err != nil {
-			panic(err)
-		}
-		if err := c.Send(msg); err != nil {
-			msg, err := util.PackCloseData(err.Error())
-			if err != nil {
-				panic(err)
-			}
-			if e := c.Send(msg); e != nil {
-				panic(e)
-			}
-		}
-	case 2:
-		msg, err := util.PackCloseData("close")
-		if err != nil {
-			panic(err)
-		}
-		if e := c.Send(msg); e != nil {
-			panic(e)
-		}
-	}
-	return
-}
-
-func (s *example) OnClose(c *connection.Connection) {
-	log.Println("OnClose")
-}
-
-func main() {
-	handler := new(example)
-	var port int
-	var loops int
-
-	flag.IntVar(&port, "port", 1833, "server port")
-	flag.IntVar(&loops, "loops", -1, "num loops")
-	flag.Parse()
-
-	s, err := NewWebSocketServer(handler, &ws.Upgrader{},
-		gev.Network("tcp"),
-		gev.Address(":"+strconv.Itoa(port)),
-		gev.NumLoops(loops))
-	if err != nil {
-		panic(err)
-	}
-
-	s.Start()
-}
-```
-
-```go
-package main
-
-import (
-	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/plugins/websocket"
-	"github.com/Allenxuxu/gev/plugins/websocket/ws"
-)
-
-// NewWebSocketServer 创建 WebSocket Server
-func NewWebSocketServer(handler websocket.WebSocketHandler, u *ws.Upgrader, opts ...gev.Option) (server *gev.Server, err error) {
-	opts = append(opts, gev.Protocol(websocket.New(u)))
-	return gev.NewServer(websocket.NewHandlerWrap(u, handler), opts...)
-}
-```
-
-</details>
-
-<details>
-  <summary> protobuf </summary>
-
-```go
-package main
-
-import (
-	"flag"
-	"log"
-	"strconv"
-
-	"github.com/Allenxuxu/gev"
-	"github.com/Allenxuxu/gev/connection"
-	pb "github.com/Allenxuxu/gev/example/protobuf/proto"
-	"github.com/Allenxuxu/gev/plugins/protobuf"
-	"google.golang.org/protobuf/proto"
-)
-
-type example struct{}
-
-func (s *example) OnConnect(c *connection.Connection) {
-	log.Println(" OnConnect ： ", c.PeerAddr())
-}
-func (s *example) OnMessage(c *connection.Connection, ctx interface{}, data []byte) (out []byte) {
-	msgType := ctx.(string)
-
-	switch msgType {
-	case "msg1":
-		msg := &pb.Msg1{}
-		if err := proto.Unmarshal(data, msg); err != nil {
-			log.Println(err)
-		}
-		log.Println(msgType, msg)
-	case "msg2":
-		msg := &pb.Msg2{}
-		if err := proto.Unmarshal(data, msg); err != nil {
-			log.Println(err)
-		}
-		log.Println(msgType, msg)
-	default:
-		log.Println("unknown msg type")
-	}
-
-	return
-}
-
-func (s *example) OnClose(c *connection.Connection) {
-	log.Println("OnClose")
-}
-
-func main() {
-	handler := new(example)
-	var port int
-	var loops int
-
-	flag.IntVar(&port, "port", 1833, "server port")
-	flag.IntVar(&loops, "loops", -1, "num loops")
-	flag.Parse()
-
-	s, err := gev.NewServer(handler,
-		gev.Network("tcp"),
-		gev.Address(":"+strconv.Itoa(port)),
-		gev.NumLoops(loops),
-		gev.Protocol(&protobuf.Protocol{}))
-	if err != nil {
-		panic(err)
-	}
-
-	log.Println("server start")
-	s.Start()
-}
-```
-
-```go
-package main
-
-import (
-	"bufio"
-	"fmt"
-	"log"
-	"math/rand"
-	"net"
-	"os"
-
-	pb "github.com/Allenxuxu/gev/example/protobuf/proto"
-	"github.com/Allenxuxu/gev/plugins/protobuf"
-	"google.golang.org/protobuf/proto"
-)
-
-func main() {
-	conn, e := net.Dial("tcp", ":1833")
-	if e != nil {
-		log.Fatal(e)
-	}
-	defer conn.Close()
-
-	var buffer []byte
-	for {
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Text to send: ")
-		text, _ := reader.ReadString('\n')
-		name := text[:len(text)-1]
-
-		switch rand.Int() % 2 {
-		case 0:
-			msg := &pb.Msg1{
-				Name: name,
-				Id:   1,
-			}
-
-			data, err := proto.Marshal(msg)
-			if err != nil {
-				panic(err)
-			}
-			buffer = protobuf.PackMessage("msg1", data)
-		case 1:
-			msg := &pb.Msg2{
-				Name:  name,
-				Alias: "big " + name,
-				Id:    2,
-			}
-
-			data, err := proto.Marshal(msg)
-			if err != nil {
-				panic(err)
-			}
-			buffer = protobuf.PackMessage("msg2", data)
-		}
-
-		_, err := conn.Write(buffer)
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-```
-
-</details>
+- [Echo Server](example/echo)
+- [Automatically clean up idle connections](example/idleconnection)
+- [Maximum connections](example/maxconnection)
+- [Server timing push](example/pushmessage)
+- [WebSocket](example/websocket)
+- [Protobuf](example/protobuf)
+- [...](example)
 
 ## Buy me a coffee
 

@@ -22,6 +22,7 @@ func (s *example) OnConnect(c *gev.Connection) {
 }
 func (s *example) OnMessage(c *gev.Connection, ctx interface{}, data []byte) (out interface{}) {
 	log.Info("OnMessage")
+
 	out = data
 	return
 }

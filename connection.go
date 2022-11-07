@@ -1,5 +1,3 @@
-// +build !windows
-
 package gev
 
 import (
@@ -7,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	at "sync/atomic"
 	"time"
 
 	"github.com/Allenxuxu/gev/eventloop"
@@ -25,13 +24,14 @@ type CallBack interface {
 
 // Connection TCP 连接
 type Connection struct {
+	outBufferLen atomic.Int64
+	inBufferLen  atomic.Int64
+	activeTime   atomic.Int64
 	fd           int
 	connected    atomic.Bool
 	buffer       *ringbuffer.RingBuffer
 	outBuffer    *ringbuffer.RingBuffer // write buffer
 	inBuffer     *ringbuffer.RingBuffer // read buffer
-	outBufferLen atomic.Int64
-	inBufferLen  atomic.Int64
 	callBack     CallBack
 	loop         *eventloop.EventLoop
 	peerAddr     string
@@ -39,10 +39,9 @@ type Connection struct {
 	KeyValueContext
 
 	idleTime    time.Duration
-	activeTime  atomic.Int64
 	timingWheel *timingwheel.TimingWheel
-
-	protocol Protocol
+	timer       at.Value
+	protocol    Protocol
 }
 
 var ErrConnectionClosed = errors.New("connection closed")
@@ -71,7 +70,8 @@ func NewConnection(fd int,
 
 	if conn.idleTime > 0 {
 		_ = conn.activeTime.Swap(time.Now().Unix())
-		conn.timingWheel.AfterFunc(conn.idleTime, conn.closeTimeoutConn())
+		timer := conn.timingWheel.AfterFunc(conn.idleTime, conn.closeTimeoutConn())
+		conn.timer.Store(timer)
 	}
 
 	return conn
@@ -88,7 +88,10 @@ func (c *Connection) closeTimeoutConn() func() {
 		if intervals >= c.idleTime {
 			_ = c.Close()
 		} else {
-			c.timingWheel.AfterFunc(c.idleTime-intervals, c.closeTimeoutConn())
+			if c.connected.Get() {
+				timer := c.timingWheel.AfterFunc(c.idleTime-intervals, c.closeTimeoutConn())
+				c.timer.Store(timer)
+			}
 		}
 	}
 }
@@ -284,14 +287,16 @@ func (c *Connection) handleClose(fd int) {
 	if c.connected.Get() {
 		c.connected.Set(false)
 		c.loop.DeleteFdInLoop(fd)
-
 		c.callBack.OnClose(c)
 		if err := unix.Close(fd); err != nil {
 			log.Error("[close fd]", err)
 		}
-
 		ringbuffer.PutInPool(c.inBuffer)
 		ringbuffer.PutInPool(c.outBuffer)
+		if v := c.timer.Load(); v != nil {
+			timer := v.(*timingwheel.Timer)
+			timer.Stop()
+		}
 	}
 }
 
