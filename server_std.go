@@ -251,7 +251,7 @@ func (c *Connection) Send(data interface{}, opts ...ConnectionOption) error {
 // Close 关闭连接
 func (c *Connection) Close() error {
 	if c.connected.Get() {
-		log.Info("Close", c.PeerAddr())
+		log.Info("Close ", c.PeerAddr())
 
 		close(c.dying)
 		c.connected.Set(false)
@@ -295,11 +295,11 @@ func (c *Connection) readLoop() {
 			return
 
 		default:
-			c.conn.SetReadDeadline(time.Now().Add(time.Second))
+			//c.conn.SetReadDeadline(time.Now().Add(time.Second))
 			n, err := c.conn.Read(buf)
 			if err != nil {
 				if err != io.EOF {
-					log.Info("read error: %v", err)
+					log.Info("read error: ", err)
 				}
 
 				c.Close()
@@ -317,6 +317,9 @@ func (c *Connection) readLoop() {
 			}
 			buf = buf[:cap(buf)]
 
+			if c.idleTime > 0 {
+				_ = c.activeTime.Swap(time.Now().Unix())
+			}
 			c.inBufferLen.Swap(int64(c.inBuffer.Length()))
 		}
 	}
@@ -420,6 +423,7 @@ func (c *Connection) closeTimeoutConn() func() {
 		now := time.Now()
 		intervals := now.Sub(time.Unix(c.activeTime.Get(), 0))
 		if intervals >= c.idleTime {
+			log.Info("closeTimeoutConn ", c.conn.RemoteAddr())
 			_ = c.Close()
 		} else {
 			c.timingWheel.AfterFunc(c.idleTime-intervals, c.closeTimeoutConn())

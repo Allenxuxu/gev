@@ -95,6 +95,8 @@ func TestIdleTime(t *testing.T) {
 
 	start := time.Now()
 	wg := &sync.WaitGroupWrapper{}
+	log.Infof("Server start")
+
 	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
 			conn, err := net.DialTimeout("tcp", "127.0.0.1:1830", time.Second*3)
@@ -102,6 +104,8 @@ func TestIdleTime(t *testing.T) {
 				log.Error(err)
 				return
 			}
+
+			log.Infof("Client conn success %v", conn.LocalAddr())
 
 			buf := make([]byte, 10)
 			n, err := conn.Read(buf)
