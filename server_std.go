@@ -250,9 +250,9 @@ func (c *Connection) Send(data interface{}, opts ...ConnectionOption) error {
 
 // Close 关闭连接
 func (c *Connection) Close() error {
-	log.Info("Close", c.PeerAddr())
-
 	if c.connected.Get() {
+		log.Info("Close", c.PeerAddr())
+
 		close(c.dying)
 		c.connected.Set(false)
 		c.callBack.OnClose(c)
@@ -295,6 +295,7 @@ func (c *Connection) readLoop() {
 			return
 
 		default:
+			c.conn.SetReadDeadline(time.Now().Add(time.Second))
 			n, err := c.conn.Read(buf)
 			if err != nil {
 				if err != io.EOF {
@@ -333,6 +334,8 @@ func (c *Connection) writeLoop() {
 			if c.outBuffer.IsEmpty() {
 				continue
 			}
+
+			c.conn.SetWriteDeadline(time.Now().Add(time.Second))
 
 			first, end := c.outBuffer.PeekAll()
 			n, err := c.conn.Write(first)
