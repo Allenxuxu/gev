@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	stdsync "sync"
+	at "sync/atomic"
 	"time"
 
 	"github.com/Allenxuxu/gev/log"
@@ -155,8 +156,8 @@ type Connection struct {
 	idleTime    time.Duration
 	activeTime  atomic.Int64
 	timingWheel *timingwheel.TimingWheel
-
-	protocol Protocol
+	timer       at.Value
+	protocol    Protocol
 }
 
 var ErrConnectionClosed = errors.New("connection closed")
@@ -190,7 +191,8 @@ func NewConnection(
 
 	if connection.idleTime > 0 {
 		_ = connection.activeTime.Swap(time.Now().Unix())
-		connection.timingWheel.AfterFunc(connection.idleTime, connection.closeTimeoutConn())
+		timer := connection.timingWheel.AfterFunc(connection.idleTime, connection.closeTimeoutConn())
+		connection.timer.Store(timer)
 	}
 
 	return connection
@@ -256,6 +258,11 @@ func (c *Connection) Close() error {
 		close(c.dying)
 		c.connected.Set(false)
 		c.callBack.OnClose(c)
+
+		if v := c.timer.Load(); v != nil {
+			timer := v.(*timingwheel.Timer)
+			timer.Stop()
+		}
 
 		return c.conn.Close()
 	}
@@ -422,11 +429,16 @@ func (c *Connection) closeTimeoutConn() func() {
 	return func() {
 		now := time.Now()
 		intervals := now.Sub(time.Unix(c.activeTime.Get(), 0))
+		log.Info("closeTimeoutConn ", intervals)
+
 		if intervals >= c.idleTime {
 			log.Info("closeTimeoutConn ", c.conn.RemoteAddr())
 			_ = c.Close()
 		} else {
-			c.timingWheel.AfterFunc(c.idleTime-intervals, c.closeTimeoutConn())
+			log.Info("timingWheel.AfterFunc ", c.idleTime-intervals)
+
+			timer := c.timingWheel.AfterFunc(c.idleTime-intervals, c.closeTimeoutConn())
+			c.timer.Store(timer)
 		}
 	}
 }
