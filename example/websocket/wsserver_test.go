@@ -155,7 +155,6 @@ func TestWebSocketServer_CloseConnection(t *testing.T) {
 			addr    = "ws://" + s.Options().Address
 		)
 
-		log.SetLevel(log.LevelDebug)
 		for i := 0; i < n; i++ {
 			conn[i], err = websocket.Dial(addr, "", addr)
 			if err != nil {

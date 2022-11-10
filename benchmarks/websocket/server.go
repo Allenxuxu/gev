@@ -4,8 +4,6 @@ import (
 	"flag"
 	"strconv"
 
-	"github.com/Allenxuxu/gev/log"
-
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/plugins/websocket"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
@@ -41,7 +39,6 @@ func NewWebSocketServer(handler websocket.WSHandler, u *ws.Upgrader, opts ...gev
 }
 
 func main() {
-	log.SetLevel(log.LevelDebug)
 	var (
 		port  int
 		loops int

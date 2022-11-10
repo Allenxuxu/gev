@@ -1,3 +1,5 @@
+// +build !windows
+
 package gev
 
 import (
@@ -32,7 +34,6 @@ func (s *example2) OnClose(c *Connection) {
 }
 
 func TestConnClose(t *testing.T) {
-	log.SetLevel(log.LevelDebug)
 	handler := new(example2)
 
 	s, err := NewServer(handler,
@@ -78,7 +79,6 @@ func (s *example3) OnClose(c *Connection) {
 	// log.Info("OnClose")
 }
 func TestIdleTime(t *testing.T) {
-	log.SetLevel(log.LevelDebug)
 	handler := new(example3)
 
 	s, err := NewServer(handler,
