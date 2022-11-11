@@ -18,18 +18,17 @@ type example struct {
 
 func (s *example) OnConnect(c *gev.Connection) {
 	s.Count.Add(1)
-	log.Info(" OnConnect ： ", c.PeerAddr())
+	//log.Println(" OnConnect ： ", c.PeerAddr())
 }
 func (s *example) OnMessage(c *gev.Connection, ctx interface{}, data []byte) (out interface{}) {
-	log.Info("OnMessage")
-
+	//log.Println("OnMessage")
 	out = data
 	return
 }
 
 func (s *example) OnClose(c *gev.Connection) {
 	s.Count.Add(-1)
-	log.Info("OnClose")
+	//log.Println("OnClose")
 }
 
 func main() {

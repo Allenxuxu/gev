@@ -1,5 +1,3 @@
-// +build !windows
-
 package main
 
 import (
@@ -11,11 +9,11 @@ import (
 	"time"
 
 	"github.com/Allenxuxu/gev/log"
-	"github.com/Allenxuxu/toolkit/sync"
 
 	"github.com/Allenxuxu/gev"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws"
 	"github.com/Allenxuxu/gev/plugins/websocket/ws/util"
+	"github.com/Allenxuxu/toolkit/sync"
 	"github.com/Allenxuxu/toolkit/sync/atomic"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/websocket"
@@ -23,7 +21,6 @@ import (
 
 type wsExample struct {
 	ClientNum atomic.Int64
-	StartTime time.Time
 }
 
 func (s *wsExample) OnConnect(c *gev.Connection) {
@@ -33,19 +30,7 @@ func (s *wsExample) OnConnect(c *gev.Connection) {
 func (s *wsExample) OnMessage(c *gev.Connection, data []byte) (messageType ws.MessageType, out []byte) {
 	messageType = ws.MessageText
 
-	log.Info("on Message ", c.PeerAddr())
-
-	if time.Since(s.StartTime) > 10*time.Second {
-		msg, err := util.PackCloseData("close")
-		if err != nil {
-			panic(err)
-		}
-		if e := c.Send(msg); e != nil && e != gev.ErrConnectionClosed {
-			panic(e)
-		}
-	}
-
-	switch rand.Int() % 2 {
+	switch rand.Int() % 3 {
 	case 0:
 		out = data
 	case 1:
@@ -58,9 +43,17 @@ func (s *wsExample) OnMessage(c *gev.Connection, data []byte) (messageType ws.Me
 			if err != nil {
 				panic(err)
 			}
-			if e := c.Send(msg); e != nil && e != gev.ErrConnectionClosed {
+			if e := c.Send(msg); e != nil {
 				panic(e)
 			}
+		}
+	case 2:
+		msg, err := util.PackCloseData("close")
+		if err != nil {
+			panic(err)
+		}
+		if e := c.Send(msg); e != nil {
+			panic(e)
 		}
 	}
 	return
@@ -74,10 +67,9 @@ func (s *wsExample) OnClose(c *gev.Connection) {
 func TestWebSocketServer_Start(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	handler := new(wsExample)
-	handler.StartTime = time.Now()
 
 	s, err := NewWebSocketServer(handler, &ws.Upgrader{},
-		gev.Address("localhost:1834"),
+		gev.Address(":1834"),
 		gev.NumLoops(8))
 	if err != nil {
 		t.Fatal(err)
@@ -101,13 +93,13 @@ func TestWebSocketServer_Start(t *testing.T) {
 
 func startWebSocketClient(addr string) {
 	rand.Seed(time.Now().UnixNano())
-	addr = "ws://" + addr
+	addr = "ws://localhost" + addr
 	c, err := websocket.Dial(addr, "", addr)
 	if err != nil {
 		panic(err)
 	}
 	defer c.Close()
-	duration := 2 * time.Second
+	duration := time.Duration((rand.Float64()*2+1)*float64(time.Second)) / 8
 	start := time.Now()
 	for time.Since(start) < duration {
 		sz := rand.Int()%(1024*3) + 1
@@ -121,7 +113,7 @@ func startWebSocketClient(addr string) {
 
 		data2 := make([]byte, len(data))
 		if n, err := io.ReadFull(c, data2); err != nil || n != len(data) {
-			if err != io.EOF && err != io.ErrUnexpectedEOF {
+			if err != io.EOF {
 				panic(err)
 			} else {
 				return
@@ -138,7 +130,7 @@ func TestWebSocketServer_CloseConnection(t *testing.T) {
 	handler := new(wsExample)
 
 	s, err := NewWebSocketServer(handler, &ws.Upgrader{},
-		gev.Address("localhost:2021"),
+		gev.Address(":2021"),
 		gev.NumLoops(8))
 	if err != nil {
 		t.Fatal(err)
@@ -152,9 +144,10 @@ func TestWebSocketServer_CloseConnection(t *testing.T) {
 			n       = 100
 			toClose = 50
 			conn    = make([]*websocket.Conn, n)
-			addr    = "ws://" + s.Options().Address
+			addr    = "ws://localhost" + s.Options().Address
 		)
 
+		log.SetLevel(log.LevelDebug)
 		for i := 0; i < n; i++ {
 			conn[i], err = websocket.Dial(addr, "", addr)
 			if err != nil {
@@ -169,7 +162,7 @@ func TestWebSocketServer_CloseConnection(t *testing.T) {
 				panic(err)
 			}
 		}
-		time.Sleep(time.Second * 3)
+		time.Sleep(time.Second)
 		assert.Equal(t, n-toClose, int(handler.ClientNum.Get()))
 
 		s.Stop()
