@@ -37,6 +37,7 @@ func (s *example2) OnClose(c *Connection) {
 }
 
 func TestConnClose(t *testing.T) {
+	log.SetLevel(log.LevelDebug)
 	handler := new(example2)
 
 	s, err := NewServer(handler,
@@ -82,6 +83,7 @@ func (s *example3) OnClose(c *Connection) {
 	// log.Info("OnClose")
 }
 func TestIdleTime(t *testing.T) {
+	log.SetLevel(log.LevelDebug)
 	handler := new(example3)
 
 	s, err := NewServer(handler,
@@ -100,7 +102,7 @@ func TestIdleTime(t *testing.T) {
 	wg := &sync.WaitGroupWrapper{}
 	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
-			conn, err := net.DialTimeout("tcp", "127.0.0.1:1830", time.Second*3)
+			conn, err := net.DialTimeout("tcp", "127.0.0.1:1830", time.Second*60)
 			if err != nil {
 				log.Error(err)
 				return
