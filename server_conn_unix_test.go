@@ -15,7 +15,7 @@ func TestConnLoadBalanceLeastConnection(t *testing.T) {
 
 	s, err := NewServer(handler,
 		Network("tcp"),
-		Address(":1840"),
+		Address("localhost:1840"),
 		NumLoops(4),
 		ReusePort(true),
 		LoadBalance(LeastConnection()))
@@ -47,7 +47,7 @@ func TestConnLoadBalanceRoundRobin(t *testing.T) {
 
 	s, err := NewServer(handler,
 		Network("tcp"),
-		Address(":1841"),
+		Address("localhost:1841"),
 		NumLoops(4),
 		ReusePort(true),
 		LoadBalance(RoundRobin()))

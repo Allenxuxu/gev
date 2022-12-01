@@ -38,7 +38,7 @@ func TestConnClose(t *testing.T) {
 
 	s, err := NewServer(handler,
 		Network("tcp"),
-		Address(":1843"),
+		Address("localhost:1843"),
 		NumLoops(8),
 		ReusePort(true))
 	if err != nil {
@@ -83,7 +83,7 @@ func TestIdleTime(t *testing.T) {
 
 	s, err := NewServer(handler,
 		Network("tcp"),
-		Address(":1830"),
+		Address("localhost:1830"),
 		NumLoops(8),
 		ReusePort(true),
 		IdleTime(3*time.Second))
