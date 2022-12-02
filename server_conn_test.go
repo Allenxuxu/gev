@@ -1,3 +1,6 @@
+//go:build !windows
+// +build !windows
+
 package gev
 
 import (
@@ -39,7 +42,7 @@ func TestConnClose(t *testing.T) {
 
 	s, err := NewServer(handler,
 		Network("tcp"),
-		Address(":1843"),
+		Address("localhost:1843"),
 		NumLoops(8),
 		ReusePort(true))
 	if err != nil {
@@ -85,7 +88,7 @@ func TestIdleTime(t *testing.T) {
 
 	s, err := NewServer(handler,
 		Network("tcp"),
-		Address(":1830"),
+		Address("localhost:1830"),
 		NumLoops(8),
 		ReusePort(true),
 		IdleTime(3*time.Second))
@@ -127,7 +130,7 @@ func TestConnLoadBalanceLeastConnection(t *testing.T) {
 
 	s, err := NewServer(handler,
 		Network("tcp"),
-		Address(":1840"),
+		Address("localhost:1840"),
 		NumLoops(4),
 		ReusePort(true),
 		LoadBalance(LeastConnection()))
@@ -159,7 +162,7 @@ func TestConnLoadBalanceRoundRobin(t *testing.T) {
 
 	s, err := NewServer(handler,
 		Network("tcp"),
-		Address(":1841"),
+		Address("localhost:1841"),
 		NumLoops(4),
 		ReusePort(true),
 		LoadBalance(RoundRobin()))

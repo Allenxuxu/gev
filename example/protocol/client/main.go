@@ -36,7 +36,7 @@ func UnPacket(c net.Conn) ([]byte, error) {
 }
 
 func main() {
-	conn, e := net.Dial("tcp", ":1833")
+	conn, e := net.Dial("tcp", "localhost:1833")
 	if e != nil {
 		log.Fatal(e)
 	}

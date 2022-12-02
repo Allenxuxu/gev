@@ -6,8 +6,6 @@ import (
 	_ "net/http/pprof"
 	"strconv"
 
-	"github.com/Allenxuxu/gev/log"
-
 	"github.com/Allenxuxu/gev"
 )
 
@@ -33,7 +31,6 @@ func (s *example) OnClose(c *gev.Connection) {
 }
 
 func main() {
-	log.SetLevel(log.LevelDebug)
 	go func() {
 		if err := http.ListenAndServe(":6089", nil); err != nil {
 			panic(err)
