@@ -170,7 +170,7 @@ func TestServer_Stop(t *testing.T) {
 	wg := &sync.WaitGroupWrapper{}
 	for i := 0; i < 100; i++ {
 		wg.AddAndRun(func() {
-			conn, err := net.DialTimeout("tcp", "127.0.0.1:1832", time.Second*60)
+			conn, err := net.DialTimeout("tcp", "127.0.0.1:1832", time.Second*1)
 			if err != nil {
 				failed.Add(1)
 				log.Error(err)
@@ -186,7 +186,7 @@ func TestServer_Stop(t *testing.T) {
 	wg.Wait()
 	log.Infof("Success: %d Failed: %d\n", success, failed)
 
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 2)
 	count := handler.Count.Get()
 	if count != 0 {
 		t.Fatal(count)
